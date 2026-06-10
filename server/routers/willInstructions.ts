@@ -1,0 +1,357 @@
+import { z } from "zod";
+import { publicProcedure, router } from "../_core/trpc";
+import { getDb } from "../db";
+import { willInstructions } from "../../drizzle/schema";
+import { eq, desc } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { invokeLLM } from "../_core/llm";
+import { ADMIN_EMAILS } from "../../shared/willConstants";
+import { sendAdminEmail } from "../emailService";
+
+// Zod schema for a person (executor/trustee/guardian/beneficiary)
+const personSchema = z.object({
+  prefix: z.string().optional(),
+  firstName: z.string(),
+  lastName: z.string(),
+  relationship: z.string().optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  dob: z.string().optional(),
+  share: z.string().optional(),
+  isVulnerable: z.boolean().optional(),
+  notes: z.string().optional(),
+});
+
+const specificGiftSchema = z.object({
+  description: z.string(),
+  recipient: z.string(),
+  notes: z.string().optional(),
+});
+
+const willInstructionInputSchema = z.object({
+  // Appointment
+  appointmentDate: z.string().optional(),
+  appointmentTime: z.string().optional(),
+  consultantName: z.string().optional(),
+  consultantEmail: z.string().optional(),
+  consultantPhone: z.string().optional(),
+  caseCoordinatorName: z.string().optional(),
+  caseCoordinatorEmail: z.string().optional(),
+  caseCoordinatorPhone: z.string().optional(),
+  priceQuoted: z.string().optional(),
+  estimatedDraftDate: z.string().optional(),
+  productsOrdered: z.array(z.string()).optional(),
+  willType: z.string().optional(),
+  lpaType: z.string().optional(),
+
+  // Client 1
+  client1Prefix: z.string().optional(),
+  client1FirstName: z.string().min(1, "First name is required"),
+  client1MiddleName: z.string().optional(),
+  client1LastName: z.string().min(1, "Last name is required"),
+  client1Dob: z.string().optional(),
+  client1AddressLine1: z.string().optional(),
+  client1City: z.string().optional(),
+  client1Postcode: z.string().optional(),
+  client1MaritalStatus: z.string().optional(),
+  client1JobTitle: z.string().optional(),
+  client1DaytimePhone: z.string().optional(),
+  client1Mobile: z.string().optional(),
+  client1Email: z.string().optional(),
+  client1Nationality: z.string().optional(),
+
+  // Client 2
+  client2Prefix: z.string().optional(),
+  client2FirstName: z.string().optional(),
+  client2MiddleName: z.string().optional(),
+  client2LastName: z.string().optional(),
+  client2Dob: z.string().optional(),
+  client2AddressLine1: z.string().optional(),
+  client2City: z.string().optional(),
+  client2Postcode: z.string().optional(),
+  client2MaritalStatus: z.string().optional(),
+  client2JobTitle: z.string().optional(),
+  client2DaytimePhone: z.string().optional(),
+  client2Mobile: z.string().optional(),
+  client2Email: z.string().optional(),
+  client2Nationality: z.string().optional(),
+
+  // Executors, trustees, guardians, beneficiaries
+  executors: z.array(personSchema).optional(),
+  trustees: z.array(personSchema).optional(),
+  guardians: z.array(personSchema).optional(),
+  beneficiaries: z.array(personSchema).optional(),
+  childrenBenefitAge: z.string().optional(),
+  disasterClauseClient1: z.string().optional(),
+  disasterClauseClient2: z.string().optional(),
+
+  // Property & Assets
+  propertyOwned: z.string().optional(),
+  propertyAddress: z.string().optional(),
+  propertyOwnership: z.string().optional(),
+  mortgageOutstanding: z.string().optional(),
+  propertyValue: z.string().optional(),
+  hasOtherProperties: z.string().optional(),
+  otherProperties: z.string().optional(),
+  bankAccounts: z.string().optional(),
+  investments: z.string().optional(),
+  pensionDetails: z.string().optional(),
+  lifeInsurance: z.string().optional(),
+  businessInterests: z.string().optional(),
+  estimatedEstateValue: z.string().optional(),
+
+  // Gifts & wishes
+  specificGifts: z.array(specificGiftSchema).optional(),
+  residuaryEstate: z.string().optional(),
+  residuaryBackup: z.string().optional(),
+  funeralType: z.string().optional(),
+  funeralWishes: z.string().optional(),
+  organDonation: z.string().optional(),
+
+  // Vulnerable & care
+  hasVulnerableBeneficiary: z.string().optional(),
+  vulnerableBeneficiaryDetails: z.string().optional(),
+  careConcerns: z.string().optional(),
+  careConcernDetails: z.string().optional(),
+
+  // Notes
+  specialNotes: z.string().optional(),
+});
+
+export const willInstructionsRouter = router({
+  submit: publicProcedure
+    .input(willInstructionInputSchema)
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const referenceNumber = `GEP-${Date.now().toString(36).toUpperCase()}-${nanoid(4).toUpperCase()}`;
+
+      // Generate AI recommendations
+      const { recommendations, narrative, clientEmailDraft } = await generateAIRecommendations(input);
+
+      const insertData = {
+        referenceNumber,
+        ...input,
+        productsOrdered: input.productsOrdered ?? [],
+        executors: input.executors ?? [],
+        trustees: input.trustees ?? [],
+        guardians: input.guardians ?? [],
+        beneficiaries: input.beneficiaries ?? [],
+        specificGifts: input.specificGifts ?? [],
+        recommendationsJson: recommendations,
+        aiRecommendationNarrative: narrative,
+        aiClientEmailDraft: clientEmailDraft,
+        status: "submitted" as const,
+        emailSent: 0,
+      };
+
+      await db.insert(willInstructions).values(insertData);
+
+      // Fetch the newly inserted record
+      const [record] = await db
+        .select()
+        .from(willInstructions)
+        .where(eq(willInstructions.referenceNumber, referenceNumber))
+        .limit(1);
+
+      // Send admin emails (non-blocking)
+      sendAdminEmail(record).catch(err =>
+        console.error("[Email] Failed to send admin notification:", err)
+      );
+
+      return { success: true, referenceNumber, id: record.id, recommendations, narrative, clientEmailDraft };
+    }),
+
+  list: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    return db
+      .select({
+        id: willInstructions.id,
+        referenceNumber: willInstructions.referenceNumber,
+        client1FirstName: willInstructions.client1FirstName,
+        client1LastName: willInstructions.client1LastName,
+        consultantName: willInstructions.consultantName,
+        willType: willInstructions.willType,
+        productsOrdered: willInstructions.productsOrdered,
+        status: willInstructions.status,
+        createdAt: willInstructions.createdAt,
+      })
+      .from(willInstructions)
+      .orderBy(desc(willInstructions.createdAt));
+  }),
+
+  getById: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [record] = await db
+        .select()
+        .from(willInstructions)
+        .where(eq(willInstructions.id, input.id))
+        .limit(1);
+      return record ?? null;
+    }),
+
+  getByRef: publicProcedure
+    .input(z.object({ ref: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [record] = await db
+        .select()
+        .from(willInstructions)
+        .where(eq(willInstructions.referenceNumber, input.ref))
+        .limit(1);
+      return record ?? null;
+    }),
+});
+
+// ─── AI Recommendation Engine ────────────────────────────────────────────────
+
+async function generateAIRecommendations(input: z.infer<typeof willInstructionInputSchema>) {
+  const products = input.productsOrdered ?? [];
+  const hasLPA = products.some(p => p.includes("lpa") || p.includes("both_lpas"));
+  const hasPPT = products.includes("ppt");
+  const hasAAT = products.includes("aat");
+  const hasStorage = products.includes("storage");
+  const hasVulnerableTrust = products.includes("vulnerable_trust");
+  const isMirrorWill = products.includes("mirror_wills") || input.willType === "Mirror Wills";
+  const isMarried = ["Married", "Civil Partnership", "Partner / Common Law Spouse"].includes(input.client1MaritalStatus ?? "");
+  const ownsProperty = input.propertyOwned === "yes";
+  const hasVulnerableBeneficiary = input.hasVulnerableBeneficiary === "yes";
+  const hasCareConerns = input.careConcerns === "yes";
+
+  const recommendations: Array<{ id: string; title: string; reason: string; priority: "high" | "medium" | "low" }> = [];
+
+  if (!hasPPT && isMarried && ownsProperty && isMirrorWill) {
+    recommendations.push({
+      id: "ppt",
+      title: "Protective Property Trust (PPT)",
+      reason: `${input.client1FirstName} and their partner are married/in a partnership and own property. A PPT protects the property share of the first to die, ensuring it passes to the intended beneficiaries rather than being lost to a new partner or care fees.`,
+      priority: "high",
+    });
+  }
+
+  if (!hasAAT && ownsProperty) {
+    recommendations.push({
+      id: "aat",
+      title: "Asset Allocation Trust (Family Trust / AAT)",
+      reason: `With property ownership, an Asset Allocation Trust provides robust protection against care home fees, divorce of beneficiaries, and creditor claims — ensuring assets pass intact to the next generation.`,
+      priority: "high",
+    });
+  }
+
+  if (!hasLPA) {
+    recommendations.push({
+      id: "lpa",
+      title: "Lasting Powers of Attorney (LPAs)",
+      reason: `No LPA has been ordered. Without LPAs, if ${input.client1FirstName} loses mental capacity, family members would need to apply to the Court of Protection — a costly and lengthy process. Both Property & Finance and Health & Welfare LPAs are strongly recommended.`,
+      priority: "high",
+    });
+  }
+
+  if (!hasStorage) {
+    recommendations.push({
+      id: "storage",
+      title: "Secure Will Storage",
+      reason: `Storing the original Will with Genesis Estate Planning ensures it is safe, accessible, and cannot be lost, damaged, or contested. Without secure storage, a Will can be misplaced or destroyed.`,
+      priority: "medium",
+    });
+  }
+
+  if (hasVulnerableBeneficiary && !hasVulnerableTrust) {
+    recommendations.push({
+      id: "vulnerable_trust",
+      title: "Vulnerable Person's Trust",
+      reason: `A vulnerable beneficiary has been identified. A Vulnerable Person's Trust protects their inheritance from being used to disqualify them from means-tested benefits, and ensures a trusted person manages funds on their behalf.`,
+      priority: "high",
+    });
+  }
+
+  if (hasCareConerns && !hasAAT) {
+    recommendations.push({
+      id: "care_protection",
+      title: "Care Protection Trust",
+      reason: `Care cost concerns have been noted. A Care Protection Trust (via an Asset Allocation Trust) can help shield assets from local authority means-testing for care home fees, preserving wealth for beneficiaries.`,
+      priority: "high",
+    });
+  }
+
+  if (recommendations.length === 0) {
+    return {
+      recommendations,
+      narrative: "The client's current instruction covers all key estate planning areas. No additional recommendations are required at this time.",
+      clientEmailDraft: "",
+    };
+  }
+
+  // Generate AI narrative and client email
+  const clientName = `${input.client1Prefix ?? ""} ${input.client1FirstName} ${input.client1LastName}`.trim();
+  const consultantName = input.consultantName ?? "your consultant";
+
+  const prompt = `You are a senior estate planning advisor at Genesis Estate Planning. Based on the following client profile and identified recommendations, write two things:
+
+1. An INTERNAL RECOMMENDATION NARRATIVE for the admin team (professional, detailed, 2-3 paragraphs).
+2. A PROFESSIONAL CLIENT EMAIL DRAFT ready to be sent to the client (warm, clear, non-technical, signed by the consultant).
+
+Client: ${clientName}
+Marital Status: ${input.client1MaritalStatus ?? "Not specified"}
+Property Owner: ${ownsProperty ? "Yes" : "No"}
+Products Already Ordered: ${products.join(", ") || "None"}
+Consultant: ${consultantName}
+
+Recommendations to address:
+${recommendations.map(r => `- ${r.title}: ${r.reason}`).join("\n")}
+
+Format your response as valid JSON with keys: "narrative" (string) and "clientEmailDraft" (string).
+The client email should:
+- Open with a warm greeting using the client's name
+- Briefly explain why each recommendation matters in plain English
+- Invite the client to discuss further with their consultant
+- Be signed by ${consultantName}, Genesis Estate Planning
+- Be professional but approachable`;
+
+  try {
+    const response = await invokeLLM({
+      messages: [
+        { role: "system", content: "You are a senior estate planning advisor. Always respond with valid JSON only." },
+        { role: "user", content: prompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "recommendations_output",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              narrative: { type: "string" },
+              clientEmailDraft: { type: "string" },
+            },
+            required: ["narrative", "clientEmailDraft"],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+
+    const rawContent = response.choices?.[0]?.message?.content;
+    const content = typeof rawContent === 'string' ? rawContent : null;
+    if (content) {
+      const parsed = JSON.parse(content);
+      return { recommendations, narrative: parsed.narrative, clientEmailDraft: parsed.clientEmailDraft };
+    }
+  } catch (err) {
+    console.error("[AI] Failed to generate recommendations:", err);
+  }
+
+  // Fallback narrative
+  const fallbackNarrative = `Based on the instruction taken for ${clientName}, the following estate planning enhancements are recommended:\n\n${recommendations.map(r => `${r.title}: ${r.reason}`).join("\n\n")}`;
+  const fallbackEmail = `Dear ${clientName},\n\nThank you for choosing Genesis Estate Planning. Following your recent consultation with ${consultantName}, we would like to bring some additional estate planning options to your attention that may be of significant benefit to you.\n\n${recommendations.map(r => `${r.title}: ${r.reason}`).join("\n\n")}\n\nWe would be delighted to discuss any of these options with you at your convenience. Please do not hesitate to contact us.\n\nYours sincerely,\n${consultantName}\nGenesis Estate Planning\n0330 118 0937`;
+
+  return { recommendations, narrative: fallbackNarrative, clientEmailDraft: fallbackEmail };
+}
