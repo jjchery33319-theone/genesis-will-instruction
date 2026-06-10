@@ -1,9 +1,28 @@
+import nodemailer from "nodemailer";
 import { ADMIN_EMAILS } from "../shared/willConstants";
 import type { WillInstruction } from "../drizzle/schema";
 
-const FORGE_API_URL = process.env.BUILT_IN_FORGE_API_URL;
-const FORGE_API_KEY = process.env.BUILT_IN_FORGE_API_KEY;
+// ─── Transporter ─────────────────────────────────────────────────────────────
+// Uses Gmail SMTP with an App Password.
+// Set GMAIL_USER and GMAIL_APP_PASSWORD in project secrets.
+function createTransporter() {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
 
+  if (!user || !pass) {
+    console.warn("[Email] GMAIL_USER or GMAIL_APP_PASSWORD not set — email sending disabled");
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // SSL
+    auth: { user, pass },
+  });
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatProductsList(products: unknown): string {
   if (!Array.isArray(products) || products.length === 0) return "None specified";
   const labels: Record<string, string> = {
@@ -19,18 +38,19 @@ function formatProductsList(products: unknown): string {
     vulnerable_trust: "Vulnerable Person's Trust",
     storage: "Will Storage",
   };
-  return products.map((p: string) => labels[p] ?? p).join(", ");
+  return (products as string[]).map((p) => labels[p] ?? p).join(", ");
 }
 
 function formatPersonList(persons: unknown): string {
   if (!Array.isArray(persons) || persons.length === 0) return "None specified";
-  return persons
-    .map((p: Record<string, string>) =>
+  return (persons as Record<string, string>[])
+    .map((p) =>
       `${p.prefix ?? ""} ${p.firstName ?? ""} ${p.lastName ?? ""}${p.relationship ? ` (${p.relationship})` : ""}`.trim()
     )
     .join("; ");
 }
 
+// ─── HTML Builder ─────────────────────────────────────────────────────────────
 function buildEmailHtml(record: WillInstruction): string {
   const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim();
   const client2Name = record.client2FirstName
@@ -56,10 +76,9 @@ function buildEmailHtml(record: WillInstruction): string {
   .field-label { font-weight: 600; min-width: 200px; color: #2d5a3d; font-size: 13px; }
   .field-value { color: #1a3a2a; font-size: 13px; }
   .rec-item { background: #f0f7f3; border-left: 4px solid #c9a84c; padding: 12px 16px; margin-bottom: 12px; border-radius: 0 4px 4px 0; }
+  .rec-item.high { border-left-color: #c0392b; }
   .rec-title { font-weight: 700; color: #1a3a2a; font-size: 14px; margin-bottom: 4px; }
   .rec-reason { color: #2d5a3d; font-size: 13px; }
-  .rec-priority-high { border-left-color: #c0392b; }
-  .rec-priority-medium { border-left-color: #c9a84c; }
   .email-draft { background: #f9f7f2; border: 1px solid #d4e6da; border-radius: 6px; padding: 20px; white-space: pre-wrap; font-family: Georgia, serif; font-size: 13px; color: #1a3a2a; line-height: 1.6; }
   .footer { background: #1a3a2a; padding: 20px 40px; text-align: center; }
   .footer p { color: #a8c4b0; font-size: 12px; margin: 4px 0; }
@@ -105,7 +124,7 @@ function buildEmailHtml(record: WillInstruction): string {
   ` : ""}
 
   <div class="section">
-    <h2>Executors, Trustees & Guardians</h2>
+    <h2>Executors, Trustees &amp; Guardians</h2>
     <div class="field"><span class="field-label">Executors:</span><span class="field-value">${formatPersonList(record.executors)}</span></div>
     <div class="field"><span class="field-label">Trustees:</span><span class="field-value">${formatPersonList(record.trustees)}</span></div>
     <div class="field"><span class="field-label">Guardians:</span><span class="field-value">${formatPersonList(record.guardians)}</span></div>
@@ -119,7 +138,7 @@ function buildEmailHtml(record: WillInstruction): string {
   </div>
 
   <div class="section">
-    <h2>Property & Assets</h2>
+    <h2>Property &amp; Assets</h2>
     <div class="field"><span class="field-label">Property Owned:</span><span class="field-value">${record.propertyOwned === "yes" ? "Yes" : "No"}</span></div>
     ${record.propertyOwned === "yes" ? `
     <div class="field"><span class="field-label">Property Address:</span><span class="field-value">${record.propertyAddress ?? "—"}</span></div>
@@ -143,9 +162,9 @@ function buildEmailHtml(record: WillInstruction): string {
   ${recommendations.length > 0 ? `
   <div class="section">
     <h2>Estate Planning Recommendations</h2>
-    ${recommendations.map((r: Record<string, string>) => `
-    <div class="rec-item rec-priority-${r.priority}">
-      <div class="rec-title">⭐ ${r.title}</div>
+    ${(recommendations as Record<string, string>[]).map((r) => `
+    <div class="rec-item${r.priority === "high" ? " high" : ""}">
+      <div class="rec-title">&#11088; ${r.title}</div>
       <div class="rec-reason">${r.reason}</div>
     </div>`).join("")}
   </div>
@@ -156,7 +175,7 @@ function buildEmailHtml(record: WillInstruction): string {
   </div>
 
   <div class="section">
-    <h2>📧 Client Email Draft — Ready to Send</h2>
+    <h2>&#128231; Client Email Draft — Ready to Send</h2>
     <p style="font-size:12px;color:#666;margin-bottom:12px;">Copy and forward this email to the client at <strong>${record.client1Email ?? "client's email"}</strong></p>
     <div class="email-draft">${record.aiClientEmailDraft ?? ""}</div>
   </div>
@@ -176,40 +195,45 @@ function buildEmailHtml(record: WillInstruction): string {
 </html>`;
 }
 
+// ─── Plain-text fallback ──────────────────────────────────────────────────────
+function buildEmailText(record: WillInstruction): string {
+  const client1Name = `${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim();
+  return [
+    `GENESIS ESTATE PLANNING — NEW WILL INSTRUCTION`,
+    `Reference: ${record.referenceNumber}`,
+    ``,
+    `CLIENT: ${client1Name}`,
+    `Consultant: ${record.consultantName ?? "—"}`,
+    `Date: ${record.appointmentDate ?? "—"}`,
+    `Products: ${formatProductsList(record.productsOrdered)}`,
+    ``,
+    `Please log in to the admin dashboard to view the full instruction and AI recommendations.`,
+  ].join("\n");
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
 export async function sendAdminEmail(record: WillInstruction): Promise<void> {
-  if (!FORGE_API_URL || !FORGE_API_KEY) {
-    console.warn("[Email] Forge API credentials not available — skipping email send");
-    return;
-  }
+  const transporter = createTransporter();
+  if (!transporter) return;
 
   const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim();
   const subject = `[Genesis EP] New Will Instruction — ${client1Name} | Ref: ${record.referenceNumber}`;
   const html = buildEmailHtml(record);
+  const text = buildEmailText(record);
+  const fromAddress = process.env.GMAIL_USER!;
 
   for (const recipient of ADMIN_EMAILS) {
     try {
-      const response = await fetch(`${FORGE_API_URL}/v1/email/send`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${FORGE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          to: recipient,
-          subject,
-          html,
-          from_name: "Genesis Estate Planning",
-        }),
+      const info = await transporter.sendMail({
+        from: `"Genesis Estate Planning" <${fromAddress}>`,
+        to: recipient,
+        subject,
+        text,
+        html,
       });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error(`[Email] Failed to send to ${recipient}: ${response.status} ${text}`);
-      } else {
-        console.log(`[Email] Sent successfully to ${recipient}`);
-      }
+      console.log(`[Email] Sent to ${recipient} — messageId: ${info.messageId}`);
     } catch (err: unknown) {
-      console.error(`[Email] Error sending to ${recipient}:`, err);
+      console.error(`[Email] Failed to send to ${recipient}:`, err);
     }
   }
 }
