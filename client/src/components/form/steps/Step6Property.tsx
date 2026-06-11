@@ -74,14 +74,47 @@ export default function Step6Property({ data, onChange }: Props) {
                 </FieldRow>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={data.mortgageOutstanding === "yes"}
-                  onCheckedChange={v => onChange({ mortgageOutstanding: v ? "yes" : "no" })}
-                />
-                <Label className="text-sm cursor-pointer">
-                  Mortgage outstanding on this property
-                </Label>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={data.mortgageOutstanding === "yes"}
+                    onCheckedChange={v => onChange({ mortgageOutstanding: v ? "yes" : "no" })}
+                  />
+                  <Label className="text-sm cursor-pointer">
+                    Mortgage outstanding on this property
+                  </Label>
+                </div>
+
+                {data.mortgageOutstanding === "yes" && (
+                  <div
+                    className="rounded-lg border p-4 space-y-4"
+                    style={{ background: "oklch(0.98 0.01 155 / 0.4)", borderColor: "oklch(0.65 0.08 155 / 0.3)" }}
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FieldRow label="Mortgage Lender">
+                        <Input
+                          value={data.mortgageLender ?? ""}
+                          onChange={e => onChange({ mortgageLender: e.target.value })}
+                          placeholder="e.g. Halifax, Nationwide"
+                        />
+                      </FieldRow>
+                      <FieldRow label="Outstanding Balance (£)" hint="Approximate current balance">
+                        <Input
+                          value={data.mortgageBalance ?? ""}
+                          onChange={e => onChange({ mortgageBalance: e.target.value })}
+                          placeholder="e.g. 180000"
+                        />
+                      </FieldRow>
+                      <FieldRow label="Term Remaining" hint="Years or months left">
+                        <Input
+                          value={data.mortgageTermRemaining ?? ""}
+                          onChange={e => onChange({ mortgageTermRemaining: e.target.value })}
+                          placeholder="e.g. 18 years"
+                        />
+                      </FieldRow>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-3">

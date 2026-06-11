@@ -41,6 +41,17 @@ export type BusinessInterestEntry = {
   notes?: string;
 };
 
+export type ChildEntry = {
+  firstName: string;
+  lastName?: string;
+  dob?: string;
+  ageGroup: "under18" | "over18";
+  hasSpecialNeeds?: boolean;
+  specialNeedsDetails?: string;
+  relationship?: string; // e.g. "Child from current marriage", "Stepchild"
+  notes?: string;
+};
+
 export type WillFormData = {
   // Step 1 — Appointment
   appointmentDate?: string;
@@ -93,11 +104,21 @@ export type WillFormData = {
   client1MarriagePlans?: string;
   client1MarriagePlanDetails?: string;
   client1HasChildren?: string;
-  client1ChildrenDetails?: string;
+  client1TotalChildren?: string;
+  client1ChildrenSpecialNeeds?: string;
+  client1ChildrenSpecialNeedsDetails?: string;
+  client1ChildrenUnder18?: ChildEntry[];
+  client1ChildrenOver18?: ChildEntry[];
+  client1ChildrenDetails?: string; // legacy / notes
   client1FamilyCircumstances?: string;
   client2MarriagePlans?: string;
   client2MarriagePlanDetails?: string;
   client2HasChildren?: string;
+  client2TotalChildren?: string;
+  client2ChildrenSpecialNeeds?: string;
+  client2ChildrenSpecialNeedsDetails?: string;
+  client2ChildrenUnder18?: ChildEntry[];
+  client2ChildrenOver18?: ChildEntry[];
   client2ChildrenDetails?: string;
   client2FamilyCircumstances?: string;
 
@@ -129,8 +150,10 @@ export type WillFormData = {
 
   // Step 7 — Executors / Trustees / Guardians
   executors?: PersonEntry[];
+  reservedExecutors?: PersonEntry[];
   trustees?: PersonEntry[];
   guardians?: PersonEntry[];
+  reservedGuardians?: PersonEntry[];
 
   // Step 8 — Beneficiaries
   beneficiaries?: PersonEntry[];
@@ -145,6 +168,9 @@ export type WillFormData = {
   propertyAddress?: string;
   propertyOwnership?: string;
   mortgageOutstanding?: string;
+  mortgageBalance?: string;
+  mortgageTermRemaining?: string;
+  mortgageLender?: string;
   propertyValue?: string;
   hasOtherProperties?: string;
   otherProperties?: string;
@@ -191,12 +217,18 @@ export type WillFormData = {
 const initialData: WillFormData = {
   productsOrdered: [],
   executors: [],
+  reservedExecutors: [],
   trustees: [],
   guardians: [],
+  reservedGuardians: [],
   beneficiaries: [],
   specificGifts: [],
   lifeInsurancePolicies: [],
   businessInterestsDetails: [],
+  client1ChildrenUnder18: [],
+  client1ChildrenOver18: [],
+  client2ChildrenUnder18: [],
+  client2ChildrenOver18: [],
 };
 
 export function useWillForm() {
