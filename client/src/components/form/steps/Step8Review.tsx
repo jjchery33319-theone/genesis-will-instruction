@@ -232,12 +232,26 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
       <ReviewSection title="Family Background" icon={<Users className="w-4 h-4" />} step={4} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="C1 Marriage Plans" value={data.client1MarriagePlans === "yes" ? `Yes — ${data.client1MarriagePlanDetails ?? ""}` : data.client1MarriagePlans === "no" ? "No" : undefined} />
-          <Field label="C1 Has Children" value={data.client1HasChildren === "yes" ? `Yes — ${data.client1ChildrenDetails ?? ""}` : data.client1HasChildren === "no" ? "No" : undefined} />
+          <Field label="C1 Has Children" value={data.client1HasChildren === "yes" ? `Yes (${data.client1TotalChildren ?? ""} total)` : data.client1HasChildren === "no" ? "No" : undefined} />
+          {data.client1HasChildren === "yes" && (
+            <>
+              {(data.client1ChildrenSpecialNeeds === "yes") && <Field label="C1 Special Needs" value={`Yes — ${data.client1ChildrenSpecialNeedsDetails ?? ""}`} />}
+              {(data.client1ChildrenUnder18?.length ?? 0) > 0 && <Field label="C1 Under 18" value={data.client1ChildrenUnder18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
+              {(data.client1ChildrenOver18?.length ?? 0) > 0 && <Field label="C1 Over 18" value={data.client1ChildrenOver18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
+            </>
+          )}
           <Field label="C1 Family Circumstances" value={data.client1FamilyCircumstances} />
           {data.client2FirstName && (
             <>
               <Field label="C2 Marriage Plans" value={data.client2MarriagePlans === "yes" ? `Yes — ${data.client2MarriagePlanDetails ?? ""}` : data.client2MarriagePlans === "no" ? "No" : undefined} />
-              <Field label="C2 Has Children" value={data.client2HasChildren === "yes" ? `Yes — ${data.client2ChildrenDetails ?? ""}` : data.client2HasChildren === "no" ? "No" : undefined} />
+              <Field label="C2 Has Children" value={data.client2HasChildren === "yes" ? `Yes (${data.client2TotalChildren ?? ""} total)` : data.client2HasChildren === "no" ? "No" : undefined} />
+              {data.client2HasChildren === "yes" && (
+                <>
+                  {(data.client2ChildrenSpecialNeeds === "yes") && <Field label="C2 Special Needs" value={`Yes — ${data.client2ChildrenSpecialNeedsDetails ?? ""}`} />}
+                  {(data.client2ChildrenUnder18?.length ?? 0) > 0 && <Field label="C2 Under 18" value={data.client2ChildrenUnder18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
+                  {(data.client2ChildrenOver18?.length ?? 0) > 0 && <Field label="C2 Over 18" value={data.client2ChildrenOver18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
+                </>
+              )}
             </>
           )}
         </div>
@@ -266,21 +280,19 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
 
       <ReviewSection title="Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={7} onEdit={onEdit}>
         <div className="space-y-1.5">
-          <Field label="Executors" value={formatPersons(data.executors)} />
+          <Field label="Primary Executors" value={formatPersons(data.executors)} />
+          {(data.reservedExecutors?.length ?? 0) > 0 && (
+            <Field label="Reserved Executors" value={formatPersons(data.reservedExecutors)} />
+          )}
           <Field label="Trustees" value={formatPersons(data.trustees)} />
-          <Field label="Guardians" value={formatPersons(data.guardians)} />
+          <Field label="Primary Guardians" value={formatPersons(data.guardians)} />
+          {(data.reservedGuardians?.length ?? 0) > 0 && (
+            <Field label="Reserved Guardians" value={formatPersons(data.reservedGuardians)} />
+          )}
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Beneficiaries" icon={<Heart className="w-4 h-4" />} step={8} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Beneficiaries" value={formatPersons(data.beneficiaries)} />
-          <Field label="Children Benefit Age" value={data.childrenBenefitAge ? `Age ${data.childrenBenefitAge}` : undefined} />
-          <Field label="Vulnerable Beneficiary" value={data.hasVulnerableBeneficiary === "yes" ? `Yes — ${data.vulnerableBeneficiaryDetails ?? ""}` : "No"} />
-        </div>
-      </ReviewSection>
-
-      <ReviewSection title="Property & Assets" icon={<Home className="w-4 h-4" />} step={9} onEdit={onEdit}>
+      <ReviewSection title="Property & Assets" icon={<Home className="w-4 h-4" />} step={8} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Property Owned" value={data.propertyOwned === "yes" ? "Yes" : "No"} />
           {data.propertyOwned === "yes" && (
@@ -288,6 +300,13 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
               <Field label="Property Address" value={data.propertyAddress} />
               <Field label="Ownership Type" value={data.propertyOwnership} />
               <Field label="Estimated Value" value={data.propertyValue ? `£${data.propertyValue}` : undefined} />
+              {data.mortgageOutstanding === "yes" && (
+                <>
+                  <Field label="Mortgage Lender" value={data.mortgageLender} />
+                  <Field label="Mortgage Balance" value={data.mortgageBalance ? `£${data.mortgageBalance}` : undefined} />
+                  <Field label="Term Remaining" value={data.mortgageTermRemaining} />
+                </>
+              )}
             </>
           )}
           <Field label="Assets Outside UK" value={data.assetsOutsideUK === "yes" ? `Yes — ${data.assetsOutsideUKDetails ?? ""}` : data.assetsOutsideUK === "no" ? "No" : undefined} />
@@ -297,7 +316,7 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
       </ReviewSection>
 
       {/* Life Insurance */}
-      <ReviewSection title="Life Insurance" icon={<ShoppingBag className="w-4 h-4" />} step={10} onEdit={onEdit}>
+      <ReviewSection title="Life Insurance" icon={<ShoppingBag className="w-4 h-4" />} step={9} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Has Life Insurance" value={data.hasLifeInsurance === "yes" ? `Yes — ${data.lifeInsurancePolicies?.length ?? 0} policy/policies` : data.hasLifeInsurance === "no" ? "No" : undefined} />
           <Field label="Notes" value={data.lifeInsuranceNotes} />
@@ -305,14 +324,30 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
       </ReviewSection>
 
       {/* Business Interests */}
-      <ReviewSection title="Business Interests" icon={<Scale className="w-4 h-4" />} step={11} onEdit={onEdit}>
+      <ReviewSection title="Business Interests" icon={<Scale className="w-4 h-4" />} step={10} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Has Business Interests" value={data.hasBusinessInterests === "yes" ? `Yes — ${data.businessInterestsDetails?.length ?? 0} business(es)` : data.hasBusinessInterests === "no" ? "No" : undefined} />
         </div>
       </ReviewSection>
 
+      {/* Pets */}
+      <ReviewSection title="Pets" icon={<Heart className="w-4 h-4" />} step={11} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="Has Pets" value={data.hasPets === "yes" ? `Yes — ${data.petsDetails ?? ""}` : data.hasPets === "no" ? "No" : undefined} />
+          <Field label="Proposed Carer" value={data.petsCarer} />
+        </div>
+      </ReviewSection>
+
+      <ReviewSection title="Beneficiaries" icon={<Heart className="w-4 h-4" />} step={12} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="Beneficiaries" value={formatPersons(data.beneficiaries)} />
+          <Field label="Children Benefit Age" value={data.childrenBenefitAge ? `Age ${data.childrenBenefitAge}` : undefined} />
+          <Field label="Vulnerable Beneficiary" value={data.hasVulnerableBeneficiary === "yes" ? `Yes — ${data.vulnerableBeneficiaryDetails ?? ""}` : "No"} />
+        </div>
+      </ReviewSection>
+
       {/* Gifts */}
-      <ReviewSection title="Legacies & Gifts" icon={<Gift className="w-4 h-4" />} step={12} onEdit={onEdit}>
+      <ReviewSection title="Legacies & Gifts" icon={<Gift className="w-4 h-4" />} step={13} onEdit={onEdit}>
         <div className="space-y-1.5">
           {(data.specificGifts?.length ?? 0) > 0
             ? data.specificGifts?.map((g, i) => (
@@ -320,14 +355,6 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
               ))
             : <span className="text-sm text-muted-foreground italic">No specific gifts</span>
           }
-        </div>
-      </ReviewSection>
-
-      {/* Pets */}
-      <ReviewSection title="Pets" icon={<Heart className="w-4 h-4" />} step={13} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Has Pets" value={data.hasPets === "yes" ? `Yes — ${data.petsDetails ?? ""}` : data.hasPets === "no" ? "No" : undefined} />
-          <Field label="Proposed Carer" value={data.petsCarer} />
         </div>
       </ReviewSection>
 

@@ -66,12 +66,12 @@
 - [x] Admin email updated with new sections
 
 ## UX Improvements (Phase 3)
-- [ ] Redesign step indicator: compact, readable, no text overflow
-- [ ] Rebuild children section: Yes/No, total count, special needs, under-18 panel, over-18 panel
-- [ ] Add reserved executors sub-section to Step 7
-- [ ] Add reserved guardians sub-section to Step 7
-- [ ] Add mortgage balance and term remaining fields (shown when mortgage outstanding = Yes)
-- [ ] Reorder steps: move Beneficiaries, Gifts/Legacies, Wishes to end (before Review)
-- [ ] Update willConstants FORM_STEPS to reflect new order
-- [ ] Update WillForm.tsx step routing to match new order
-- [ ] Update DB schema and server router for new fields
+- [x] Redesign step indicator: compact, readable, no text overflow
+- [x] Rebuild children section: Yes/No, total count, special needs, under-18 panel, over-18 panel
+- [x] Add reserved executors sub-section to Step 7
+- [x] Add reserved guardians sub-section to Step 7
+- [x] Add mortgage balance and term remaining fields (shown when mortgage outstanding = Yes)
+- [x] Reorder steps: move Beneficiaries, Gifts/Legacies, Wishes to end (before Review)
+- [x] Update willConstants FORM_STEPS to reflect new order
+- [x] Update WillForm.tsx step routing to match new order
+- [x] Update DB schema and server router for new fields
