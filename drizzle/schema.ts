@@ -19,7 +19,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   id: int("id").autoincrement().primaryKey(),
   referenceNumber: varchar("referenceNumber", { length: 32 }).notNull().unique(),
 
-  // Appointment
+  // ── Appointment ────────────────────────────────────────────────────────────
   appointmentDate: varchar("appointmentDate", { length: 32 }),
   appointmentTime: varchar("appointmentTime", { length: 16 }),
   consultantName: varchar("consultantName", { length: 128 }),
@@ -34,7 +34,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   willType: varchar("willType", { length: 32 }),
   lpaType: varchar("lpaType", { length: 64 }),
 
-  // Client 1
+  // ── Client 1 ───────────────────────────────────────────────────────────────
   client1Prefix: varchar("client1Prefix", { length: 16 }),
   client1FirstName: varchar("client1FirstName", { length: 128 }),
   client1MiddleName: varchar("client1MiddleName", { length: 128 }),
@@ -50,7 +50,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   client1Email: varchar("client1Email", { length: 320 }),
   client1Nationality: varchar("client1Nationality", { length: 64 }),
 
-  // Client 2
+  // ── Client 2 ───────────────────────────────────────────────────────────────
   client2Prefix: varchar("client2Prefix", { length: 16 }),
   client2FirstName: varchar("client2FirstName", { length: 128 }),
   client2MiddleName: varchar("client2MiddleName", { length: 128 }),
@@ -66,7 +66,45 @@ export const willInstructions = mysqlTable("will_instructions", {
   client2Email: varchar("client2Email", { length: 320 }),
   client2Nationality: varchar("client2Nationality", { length: 64 }),
 
-  // People
+  // ── Family Background ──────────────────────────────────────────────────────
+  client1MarriagePlans: varchar("client1MarriagePlans", { length: 8 }),        // yes/no
+  client1MarriagePlanDetails: text("client1MarriagePlanDetails"),
+  client1HasChildren: varchar("client1HasChildren", { length: 8 }),
+  client1ChildrenDetails: text("client1ChildrenDetails"),
+  client1FamilyCircumstances: text("client1FamilyCircumstances"),
+  client2MarriagePlans: varchar("client2MarriagePlans", { length: 8 }),
+  client2MarriagePlanDetails: text("client2MarriagePlanDetails"),
+  client2HasChildren: varchar("client2HasChildren", { length: 8 }),
+  client2ChildrenDetails: text("client2ChildrenDetails"),
+  client2FamilyCircumstances: text("client2FamilyCircumstances"),
+
+  // ── Additional Background ──────────────────────────────────────────────────
+  client1Residency: varchar("client1Residency", { length: 64 }),               // UK/Non-UK/Dual
+  client1DomiciledUK: varchar("client1DomiciledUK", { length: 8 }),
+  client1MentalCapacity: varchar("client1MentalCapacity", { length: 8 }),      // yes/no
+  client1MentalCapacityNotes: text("client1MentalCapacityNotes"),
+  client1ChildrenPastRelationships: varchar("client1ChildrenPastRelationships", { length: 8 }),
+  client1ChildrenPastDetails: text("client1ChildrenPastDetails"),
+  client2Residency: varchar("client2Residency", { length: 64 }),
+  client2DomiciledUK: varchar("client2DomiciledUK", { length: 8 }),
+  client2MentalCapacity: varchar("client2MentalCapacity", { length: 8 }),
+  client2MentalCapacityNotes: text("client2MentalCapacityNotes"),
+  client2ChildrenPastRelationships: varchar("client2ChildrenPastRelationships", { length: 8 }),
+  client2ChildrenPastDetails: text("client2ChildrenPastDetails"),
+
+  // ── Due Diligence ──────────────────────────────────────────────────────────
+  ddArrangedAppointment: varchar("ddArrangedAppointment", { length: 8 }),      // yes/no
+  ddArrangedAppointmentNotes: text("ddArrangedAppointmentNotes"),
+  ddKnowledgeOfEstate: varchar("ddKnowledgeOfEstate", { length: 8 }),
+  ddKnowledgeOfEstateNotes: text("ddKnowledgeOfEstateNotes"),
+  ddKnewBeneficiaries: varchar("ddKnewBeneficiaries", { length: 8 }),
+  ddKnewBeneficiariesNotes: text("ddKnewBeneficiariesNotes"),
+  ddSignsOfInfluence: varchar("ddSignsOfInfluence", { length: 8 }),
+  ddSignsOfInfluenceNotes: text("ddSignsOfInfluenceNotes"),
+  ddKnewAppointees: varchar("ddKnewAppointees", { length: 8 }),
+  ddKnewAppointeesNotes: text("ddKnewAppointeesNotes"),
+
+  // ── People ─────────────────────────────────────────────────────────────────
   executors: json("executors"),
   trustees: json("trustees"),
   guardians: json("guardians"),
@@ -75,7 +113,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   disasterClauseClient1: text("disasterClauseClient1"),
   disasterClauseClient2: text("disasterClauseClient2"),
 
-  // Property
+  // ── Property & Assets ──────────────────────────────────────────────────────
   propertyOwned: varchar("propertyOwned", { length: 8 }),
   propertyAddress: text("propertyAddress"),
   propertyOwnership: varchar("propertyOwnership", { length: 32 }),
@@ -83,36 +121,55 @@ export const willInstructions = mysqlTable("will_instructions", {
   propertyValue: varchar("propertyValue", { length: 32 }),
   hasOtherProperties: varchar("hasOtherProperties", { length: 8 }),
   otherProperties: text("otherProperties"),
+  assetsOutsideUK: varchar("assetsOutsideUK", { length: 8 }),                  // NEW
+  assetsOutsideUKDetails: text("assetsOutsideUKDetails"),                      // NEW
   bankAccounts: text("bankAccounts"),
   investments: text("investments"),
   pensionDetails: text("pensionDetails"),
-  lifeInsurance: text("lifeInsurance"),
-  businessInterests: text("businessInterests"),
   estimatedEstateValue: varchar("estimatedEstateValue", { length: 32 }),
 
-  // Wishes
+  // ── Life Insurance & Protection ────────────────────────────────────────────
+  hasLifeInsurance: varchar("hasLifeInsurance", { length: 8 }),                // NEW
+  lifeInsurancePolicies: json("lifeInsurancePolicies"),                        // NEW – array of policy objects
+  lifeInsuranceNotes: text("lifeInsuranceNotes"),                              // NEW
+
+  // ── Business Interests ─────────────────────────────────────────────────────
+  hasBusinessInterests: varchar("hasBusinessInterests", { length: 8 }),        // NEW
+  businessInterests: text("businessInterests"),
+  businessInterestsDetails: json("businessInterestsDetails"),                  // NEW – structured
+
+  // ── Legacies & Gifts ───────────────────────────────────────────────────────
   specificGifts: json("specificGifts"),
+
+  // ── Pets ───────────────────────────────────────────────────────────────────
+  hasPets: varchar("hasPets", { length: 8 }),                                  // NEW
+  petsDetails: text("petsDetails"),                                            // NEW
+  petsCarer: text("petsCarer"),                                                // NEW
+
+  // ── Wishes ─────────────────────────────────────────────────────────────────
   residuaryEstate: text("residuaryEstate"),
   residuaryBackup: text("residuaryBackup"),
   funeralType: varchar("funeralType", { length: 32 }),
   funeralWishes: text("funeralWishes"),
   organDonation: varchar("organDonation", { length: 8 }),
 
-  // Vulnerable & care
+  // ── Vulnerable & Care ──────────────────────────────────────────────────────
   hasVulnerableBeneficiary: varchar("hasVulnerableBeneficiary", { length: 8 }),
   vulnerableBeneficiaryDetails: text("vulnerableBeneficiaryDetails"),
   careConcerns: varchar("careConcerns", { length: 8 }),
   careConcernDetails: text("careConcernDetails"),
 
-  // Notes
-  specialNotes: text("specialNotes"),
+  // ── Disaster Clause & Notes ────────────────────────────────────────────────
+  disasterClauseNotes: text("disasterClauseNotes"),                            // NEW – general disaster clause notes
+  additionalNotes: text("additionalNotes"),                                    // NEW – replaces specialNotes for clarity
+  specialNotes: text("specialNotes"),                                          // kept for backward compat
 
-  // AI output
+  // ── AI Output ─────────────────────────────────────────────────────────────
   recommendationsJson: json("recommendationsJson"),
   aiRecommendationNarrative: text("aiRecommendationNarrative"),
   aiClientEmailDraft: text("aiClientEmailDraft"),
 
-  // Meta
+  // ── Meta ───────────────────────────────────────────────────────────────────
   status: mysqlEnum("status", ["draft", "submitted", "processing", "complete"]).default("submitted").notNull(),
   emailSent: int("emailSent").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

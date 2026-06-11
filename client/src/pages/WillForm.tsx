@@ -6,21 +6,31 @@ import FormHeader from "../components/form/FormHeader";
 import Step1Appointment from "../components/form/steps/Step1Appointment";
 import Step2Client1 from "../components/form/steps/Step2Client1";
 import Step3Client2 from "../components/form/steps/Step3Client2";
-import Step4Executors from "../components/form/steps/Step4Executors";
-import Step5Beneficiaries from "../components/form/steps/Step5Beneficiaries";
-import Step6Property from "../components/form/steps/Step6Property";
-import Step7Wishes from "../components/form/steps/Step7Wishes";
-import Step8Review from "../components/form/steps/Step8Review";
+import Step4FamilyBackground from "../components/form/steps/Step4FamilyBackground";
+import Step5AdditionalBackground from "../components/form/steps/Step5AdditionalBackground";
+import Step6DueDiligence from "../components/form/steps/Step6DueDiligence";
+import Step7Executors from "../components/form/steps/Step4Executors";
+import Step8Beneficiaries from "../components/form/steps/Step5Beneficiaries";
+import Step9Property from "../components/form/steps/Step6Property";
+import Step10LifeInsurance from "../components/form/steps/Step10LifeInsurance";
+import Step11BusinessInterests from "../components/form/steps/Step11BusinessInterests";
+import Step12Gifts from "../components/form/steps/Step12Gifts";
+import Step13Pets from "../components/form/steps/Step13Pets";
+import Step14Wishes from "../components/form/steps/Step14Wishes";
+import Step15DisasterClause from "../components/form/steps/Step15DisasterClause";
+import Step16Review from "../components/form/steps/Step8Review";
 import { useWillForm } from "../hooks/useWillForm";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
+const TOTAL_STEPS = FORM_STEPS.length;
 
 export default function WillForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const { formData, updateFormData, submitForm, isSubmitting } = useWillForm();
 
   const goNext = useCallback(() => {
-    setCurrentStep(s => Math.min(s + 1, FORM_STEPS.length));
+    setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS));
   }, []);
 
   const goPrev = useCallback(() => {
@@ -36,15 +46,23 @@ export default function WillForm() {
     formData.willType === "Mirror Wills";
 
   const stepComponents: Record<number, React.ReactNode> = {
-    1: <Step1Appointment data={formData} onChange={updateFormData} />,
-    2: <Step2Client1 data={formData} onChange={updateFormData} />,
-    3: <Step3Client2 data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    4: <Step4Executors data={formData} onChange={updateFormData} />,
-    5: <Step5Beneficiaries data={formData} onChange={updateFormData} />,
-    6: <Step6Property data={formData} onChange={updateFormData} />,
-    7: <Step7Wishes data={formData} onChange={updateFormData} />,
-    8: (
-      <Step8Review
+    1:  <Step1Appointment data={formData} onChange={updateFormData} />,
+    2:  <Step2Client1 data={formData} onChange={updateFormData} />,
+    3:  <Step3Client2 data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    4:  <Step4FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    5:  <Step5AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    6:  <Step6DueDiligence data={formData} onChange={updateFormData} />,
+    7:  <Step7Executors data={formData} onChange={updateFormData} />,
+    8:  <Step8Beneficiaries data={formData} onChange={updateFormData} />,
+    9:  <Step9Property data={formData} onChange={updateFormData} />,
+    10: <Step10LifeInsurance data={formData} onChange={updateFormData} />,
+    11: <Step11BusinessInterests data={formData} onChange={updateFormData} />,
+    12: <Step12Gifts data={formData} onChange={updateFormData} />,
+    13: <Step13Pets data={formData} onChange={updateFormData} />,
+    14: <Step14Wishes data={formData} onChange={updateFormData} />,
+    15: <Step15DisasterClause data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    16: (
+      <Step16Review
         data={formData}
         onEdit={goToStep}
         onSubmit={submitForm}
@@ -79,7 +97,7 @@ export default function WillForm() {
         </div>
 
         {/* Navigation */}
-        {currentStep < 8 && (
+        {currentStep < TOTAL_STEPS && (
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
             <Button
               variant="outline"
@@ -92,7 +110,7 @@ export default function WillForm() {
             </Button>
 
             <span className="text-sm text-muted-foreground">
-              Step {currentStep} of {FORM_STEPS.length}
+              Step {currentStep} of {TOTAL_STEPS}
             </span>
 
             <Button

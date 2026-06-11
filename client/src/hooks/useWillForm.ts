@@ -20,6 +20,24 @@ export type PersonEntry = {
 export type SpecificGift = {
   description: string;
   recipient: string;
+  value?: string;
+  isCharity?: boolean;
+  notes?: string;
+};
+
+export type LifeInsurancePolicy = {
+  provider: string;
+  policyNumber?: string;
+  sumAssured?: string;
+  inTrust?: boolean;
+  beneficiary?: string;
+  notes?: string;
+};
+
+export type BusinessInterestEntry = {
+  businessName: string;
+  natureOfBusiness: string;
+  ownershipPercentage?: string;
   notes?: string;
 };
 
@@ -71,12 +89,50 @@ export type WillFormData = {
   client2Email?: string;
   client2Nationality?: string;
 
-  // Step 4 — Executors / Trustees / Guardians
+  // Step 4 — Family Background
+  client1MarriagePlans?: string;
+  client1MarriagePlanDetails?: string;
+  client1HasChildren?: string;
+  client1ChildrenDetails?: string;
+  client1FamilyCircumstances?: string;
+  client2MarriagePlans?: string;
+  client2MarriagePlanDetails?: string;
+  client2HasChildren?: string;
+  client2ChildrenDetails?: string;
+  client2FamilyCircumstances?: string;
+
+  // Step 5 — Additional Background
+  client1Residency?: string;
+  client1DomiciledUK?: string;
+  client1MentalCapacity?: string;
+  client1MentalCapacityNotes?: string;
+  client1ChildrenPastRelationships?: string;
+  client1ChildrenPastDetails?: string;
+  client2Residency?: string;
+  client2DomiciledUK?: string;
+  client2MentalCapacity?: string;
+  client2MentalCapacityNotes?: string;
+  client2ChildrenPastRelationships?: string;
+  client2ChildrenPastDetails?: string;
+
+  // Step 6 — Due Diligence
+  ddArrangedAppointment?: string;
+  ddArrangedAppointmentNotes?: string;
+  ddKnowledgeOfEstate?: string;
+  ddKnowledgeOfEstateNotes?: string;
+  ddKnewBeneficiaries?: string;
+  ddKnewBeneficiariesNotes?: string;
+  ddSignsOfInfluence?: string;
+  ddSignsOfInfluenceNotes?: string;
+  ddKnewAppointees?: string;
+  ddKnewAppointeesNotes?: string;
+
+  // Step 7 — Executors / Trustees / Guardians
   executors?: PersonEntry[];
   trustees?: PersonEntry[];
   guardians?: PersonEntry[];
 
-  // Step 5 — Beneficiaries
+  // Step 8 — Beneficiaries
   beneficiaries?: PersonEntry[];
   childrenBenefitAge?: string;
   disasterClauseClient1?: string;
@@ -84,7 +140,7 @@ export type WillFormData = {
   hasVulnerableBeneficiary?: string;
   vulnerableBeneficiaryDetails?: string;
 
-  // Step 6 — Property & Assets
+  // Step 9 — Property & Assets
   propertyOwned?: string;
   propertyAddress?: string;
   propertyOwnership?: string;
@@ -92,24 +148,43 @@ export type WillFormData = {
   propertyValue?: string;
   hasOtherProperties?: string;
   otherProperties?: string;
+  assetsOutsideUK?: string;
+  assetsOutsideUKDetails?: string;
   bankAccounts?: string;
   investments?: string;
   pensionDetails?: string;
-  lifeInsurance?: string;
-  businessInterests?: string;
   estimatedEstateValue?: string;
   careConcerns?: string;
   careConcernDetails?: string;
 
-  // Step 7 — Wishes
+  // Step 10 — Life Insurance & Protection
+  hasLifeInsurance?: string;
+  lifeInsurancePolicies?: LifeInsurancePolicy[];
+  lifeInsuranceNotes?: string;
+
+  // Step 11 — Business Interests
+  hasBusinessInterests?: string;
+  businessInterests?: string;
+  businessInterestsDetails?: BusinessInterestEntry[];
+
+  // Step 12 — Legacies & Gifts
   specificGifts?: SpecificGift[];
+
+  // Step 13 — Pets
+  hasPets?: string;
+  petsDetails?: string;
+  petsCarer?: string;
+
+  // Step 14 — Wishes
   residuaryEstate?: string;
   residuaryBackup?: string;
   funeralType?: string;
   funeralWishes?: string;
   organDonation?: string;
 
-  // Step 8 — Notes
+  // Step 15 — Disaster Clause & Notes
+  disasterClauseNotes?: string;
+  additionalNotes?: string;
   specialNotes?: string;
 };
 
@@ -120,6 +195,8 @@ const initialData: WillFormData = {
   guardians: [],
   beneficiaries: [],
   specificGifts: [],
+  lifeInsurancePolicies: [],
+  businessInterestsDetails: [],
 };
 
 export function useWillForm() {

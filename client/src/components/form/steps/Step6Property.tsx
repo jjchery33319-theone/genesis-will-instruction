@@ -140,22 +140,7 @@ export default function Step6Property({ data, onChange }: Props) {
               placeholder="e.g. NHS pension, private pension with Aviva…"
             />
           </FieldRow>
-          <FieldRow label="Life Insurance Policies">
-            <Textarea
-              rows={3}
-              value={data.lifeInsurance ?? ""}
-              onChange={e => onChange({ lifeInsurance: e.target.value })}
-              placeholder="e.g. Legal & General policy, sum assured £200,000…"
-            />
-          </FieldRow>
-          <FieldRow label="Business Interests" hint="Sole trader, partnerships, company shares">
-            <Textarea
-              rows={3}
-              value={data.businessInterests ?? ""}
-              onChange={e => onChange({ businessInterests: e.target.value })}
-              placeholder="e.g. 50% share in ABC Ltd…"
-            />
-          </FieldRow>
+
           <FieldRow label="Estimated Total Estate Value (£)" hint="Approximate gross estate value">
             <Input
               value={data.estimatedEstateValue ?? ""}
@@ -163,6 +148,47 @@ export default function Step6Property({ data, onChange }: Props) {
               placeholder="e.g. 500000"
             />
           </FieldRow>
+        </div>
+      </FormCard>
+
+      {/* Overseas Assets */}
+      <FormCard
+        title="Assets Outside the UK"
+        subtitle="Property, bank accounts, or investments held outside the United Kingdom"
+        icon={<Landmark className="w-4 h-4" />}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={data.assetsOutsideUK === "yes"}
+              onCheckedChange={v => onChange({ assetsOutsideUK: v ? "yes" : "no" })}
+            />
+            <Label className="text-sm cursor-pointer">
+              Client has assets outside the UK
+            </Label>
+          </div>
+
+          {data.assetsOutsideUK === "yes" && (
+            <div
+              className="p-4 rounded-lg border space-y-3"
+              style={{ background: "oklch(0.99 0.01 85 / 0.5)", borderColor: "oklch(0.78 0.12 85 / 0.4)" }}
+            >
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "oklch(0.65 0.14 80)" }} />
+                <p className="text-sm" style={{ color: "oklch(0.28 0.07 155)" }}>
+                  <strong>Note:</strong> Assets held outside the UK may require a separate Will in the relevant jurisdiction. The client should be advised to seek local legal advice.
+                </p>
+              </div>
+              <FieldRow label="Details of Overseas Assets" hint="Country, type of asset, and approximate value">
+                <Textarea
+                  rows={4}
+                  value={data.assetsOutsideUKDetails ?? ""}
+                  onChange={e => onChange({ assetsOutsideUKDetails: e.target.value })}
+                  placeholder="e.g. Property in Spain (Costa del Sol) — approx. €150,000. Bank account in France…"
+                />
+              </FieldRow>
+            </div>
+          )}
         </div>
       </FormCard>
 

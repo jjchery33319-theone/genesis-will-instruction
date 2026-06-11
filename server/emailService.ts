@@ -124,6 +124,39 @@ function buildEmailHtml(record: WillInstruction): string {
   ` : ""}
 
   <div class="section">
+    <h2>Family Background</h2>
+    <div class="field"><span class="field-label">C1 Marriage Plans:</span><span class="field-value">${record.client1MarriagePlans === "yes" ? `Yes — ${record.client1MarriagePlanDetails ?? ""}` : record.client1MarriagePlans === "no" ? "No" : "—"}</span></div>
+    <div class="field"><span class="field-label">C1 Has Children:</span><span class="field-value">${record.client1HasChildren === "yes" ? `Yes — ${record.client1ChildrenDetails ?? ""}` : record.client1HasChildren === "no" ? "No" : "—"}</span></div>
+    ${record.client1FamilyCircumstances ? `<div class="field"><span class="field-label">C1 Family Circumstances:</span><span class="field-value">${record.client1FamilyCircumstances}</span></div>` : ""}
+    ${record.client2FirstName ? `
+    <div class="field"><span class="field-label">C2 Marriage Plans:</span><span class="field-value">${record.client2MarriagePlans === "yes" ? `Yes — ${record.client2MarriagePlanDetails ?? ""}` : record.client2MarriagePlans === "no" ? "No" : "—"}</span></div>
+    <div class="field"><span class="field-label">C2 Has Children:</span><span class="field-value">${record.client2HasChildren === "yes" ? `Yes — ${record.client2ChildrenDetails ?? ""}` : record.client2HasChildren === "no" ? "No" : "—"}</span></div>
+    ` : ""}
+  </div>
+
+  <div class="section">
+    <h2>Additional Background</h2>
+    <div class="field"><span class="field-label">C1 Residency:</span><span class="field-value">${record.client1Residency ?? "—"}</span></div>
+    <div class="field"><span class="field-label">C1 Domiciled UK:</span><span class="field-value">${record.client1DomiciledUK ?? "—"}</span></div>
+    <div class="field"><span class="field-label">C1 Mental Capacity:</span><span class="field-value">${record.client1MentalCapacity ?? "—"}</span></div>
+    ${record.client1MentalCapacityNotes ? `<div class="field"><span class="field-label">C1 Capacity Notes:</span><span class="field-value">${record.client1MentalCapacityNotes}</span></div>` : ""}
+    <div class="field"><span class="field-label">C1 Children (Past Rels):</span><span class="field-value">${record.client1ChildrenPastRelationships === "yes" ? `Yes — ${record.client1ChildrenPastDetails ?? ""}` : record.client1ChildrenPastRelationships === "no" ? "No" : "—"}</span></div>
+    ${record.client2FirstName ? `
+    <div class="field"><span class="field-label">C2 Residency:</span><span class="field-value">${record.client2Residency ?? "—"}</span></div>
+    <div class="field"><span class="field-label">C2 Mental Capacity:</span><span class="field-value">${record.client2MentalCapacity ?? "—"}</span></div>
+    ` : ""}
+  </div>
+
+  <div class="section" style="background:#fff8f8;">
+    <h2 style="color:#c0392b;">Due Diligence &amp; Compliance</h2>
+    <div class="field"><span class="field-label">Arranged Appointment:</span><span class="field-value">${record.ddArrangedAppointment ?? "—"}</span></div>
+    <div class="field"><span class="field-label">Knowledge of Estate:</span><span class="field-value">${record.ddKnowledgeOfEstate ?? "—"}</span></div>
+    <div class="field"><span class="field-label">Knew Beneficiaries:</span><span class="field-value">${record.ddKnewBeneficiaries ?? "—"}</span></div>
+    <div class="field"><span class="field-label">Signs of Influence:</span><span class="field-value" style="${record.ddSignsOfInfluence === "yes" ? "color:#c0392b;font-weight:bold;" : ""}">${record.ddSignsOfInfluence === "yes" ? `⚠ YES — ${record.ddSignsOfInfluenceNotes ?? ""}` : record.ddSignsOfInfluence === "no" ? "No" : "—"}</span></div>
+    <div class="field"><span class="field-label">Knew Appointees:</span><span class="field-value">${record.ddKnewAppointees ?? "—"}</span></div>
+  </div>
+
+  <div class="section">
     <h2>Executors, Trustees &amp; Guardians</h2>
     <div class="field"><span class="field-label">Executors:</span><span class="field-value">${formatPersonList(record.executors)}</span></div>
     <div class="field"><span class="field-label">Trustees:</span><span class="field-value">${formatPersonList(record.trustees)}</span></div>
@@ -138,6 +171,19 @@ function buildEmailHtml(record: WillInstruction): string {
   </div>
 
   <div class="section">
+    <h2>Life Insurance &amp; Protection</h2>
+    <div class="field"><span class="field-label">Has Life Insurance:</span><span class="field-value">${record.hasLifeInsurance === "yes" ? "Yes" : record.hasLifeInsurance === "no" ? "No" : "—"}</span></div>
+    ${record.hasLifeInsurance === "yes" && Array.isArray(record.lifeInsurancePolicies) && record.lifeInsurancePolicies.length > 0 ? (record.lifeInsurancePolicies as Record<string,string>[]).map((p, i) => `<div class="field"><span class="field-label">Policy ${i+1}:</span><span class="field-value">${p.provider}${p.sumAssured ? ` — £${p.sumAssured}` : ""}${p.inTrust ? " (In Trust)" : ""}</span></div>`).join("") : ""}
+    ${record.lifeInsuranceNotes ? `<div class="field"><span class="field-label">Notes:</span><span class="field-value">${record.lifeInsuranceNotes}</span></div>` : ""}
+  </div>
+
+  <div class="section">
+    <h2>Business Interests</h2>
+    <div class="field"><span class="field-label">Has Business Interests:</span><span class="field-value">${record.hasBusinessInterests === "yes" ? "Yes" : record.hasBusinessInterests === "no" ? "No" : "—"}</span></div>
+    ${record.hasBusinessInterests === "yes" && Array.isArray(record.businessInterestsDetails) && record.businessInterestsDetails.length > 0 ? (record.businessInterestsDetails as Record<string,string>[]).map((b, i) => `<div class="field"><span class="field-label">Business ${i+1}:</span><span class="field-value">${b.businessName} — ${b.natureOfBusiness}${b.ownershipPercentage ? ` (${b.ownershipPercentage}%)` : ""}</span></div>`).join("") : ""}
+  </div>
+
+  <div class="section">
     <h2>Property &amp; Assets</h2>
     <div class="field"><span class="field-label">Property Owned:</span><span class="field-value">${record.propertyOwned === "yes" ? "Yes" : "No"}</span></div>
     ${record.propertyOwned === "yes" ? `
@@ -147,7 +193,19 @@ function buildEmailHtml(record: WillInstruction): string {
     <div class="field"><span class="field-label">Estimated Value:</span><span class="field-value">${record.propertyValue ? `£${record.propertyValue}` : "—"}</span></div>
     ` : ""}
     <div class="field"><span class="field-label">Estimated Estate Value:</span><span class="field-value">${record.estimatedEstateValue ? `£${record.estimatedEstateValue}` : "—"}</span></div>
+    <div class="field"><span class="field-label">Assets Outside UK:</span><span class="field-value">${record.assetsOutsideUK === "yes" ? `Yes — ${record.assetsOutsideUKDetails ?? ""}` : record.assetsOutsideUK === "no" ? "No" : "—"}</span></div>
     <div class="field"><span class="field-label">Care Concerns:</span><span class="field-value">${record.careConcerns === "yes" ? `Yes — ${record.careConcernDetails ?? ""}` : "No"}</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Legacies &amp; Gifts</h2>
+    ${Array.isArray(record.specificGifts) && record.specificGifts.length > 0 ? (record.specificGifts as Record<string,string>[]).map((g, i) => `<div class="field"><span class="field-label">${g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`}:</span><span class="field-value">${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}</span></div>`).join("") : "<div class='field'><span class='field-value'>No specific gifts or legacies</span></div>"}
+  </div>
+
+  <div class="section">
+    <h2>Pets</h2>
+    <div class="field"><span class="field-label">Has Pets:</span><span class="field-value">${record.hasPets === "yes" ? `Yes — ${record.petsDetails ?? ""}` : record.hasPets === "no" ? "No" : "—"}</span></div>
+    ${record.petsCarer ? `<div class="field"><span class="field-label">Proposed Carer:</span><span class="field-value">${record.petsCarer}</span></div>` : ""}
   </div>
 
   <div class="section">
@@ -157,6 +215,14 @@ function buildEmailHtml(record: WillInstruction): string {
     <div class="field"><span class="field-label">Funeral Wishes:</span><span class="field-value">${record.funeralWishes ?? "—"}</span></div>
     <div class="field"><span class="field-label">Organ Donation:</span><span class="field-value">${record.organDonation ?? "—"}</span></div>
     ${record.specialNotes ? `<div class="field"><span class="field-label">Special Notes:</span><span class="field-value">${record.specialNotes}</span></div>` : ""}
+  </div>
+
+  <div class="section">
+    <h2>Disaster Clause &amp; Final Notes</h2>
+    ${record.disasterClauseClient1 ? `<div class="field"><span class="field-label">C1 Disaster Clause:</span><span class="field-value">${record.disasterClauseClient1}</span></div>` : ""}
+    ${record.disasterClauseClient2 ? `<div class="field"><span class="field-label">C2 Disaster Clause:</span><span class="field-value">${record.disasterClauseClient2}</span></div>` : ""}
+    ${record.disasterClauseNotes ? `<div class="field"><span class="field-label">Disaster Clause Notes:</span><span class="field-value">${record.disasterClauseNotes}</span></div>` : ""}
+    ${record.additionalNotes ? `<div class="field"><span class="field-label">Additional Notes:</span><span class="field-value">${record.additionalNotes}</span></div>` : ""}
   </div>
 
   ${recommendations.length > 0 ? `

@@ -26,6 +26,24 @@ const personSchema = z.object({
 const specificGiftSchema = z.object({
   description: z.string(),
   recipient: z.string(),
+  value: z.string().optional(),
+  isCharity: z.boolean().optional(),
+  notes: z.string().optional(),
+});
+
+const lifeInsurancePolicySchema = z.object({
+  provider: z.string(),
+  policyNumber: z.string().optional(),
+  sumAssured: z.string().optional(),
+  inTrust: z.boolean().optional(),
+  beneficiary: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const businessInterestSchema = z.object({
+  businessName: z.string(),
+  natureOfBusiness: z.string(),
+  ownershipPercentage: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -97,8 +115,6 @@ const willInstructionInputSchema = z.object({
   bankAccounts: z.string().optional(),
   investments: z.string().optional(),
   pensionDetails: z.string().optional(),
-  lifeInsurance: z.string().optional(),
-  businessInterests: z.string().optional(),
   estimatedEstateValue: z.string().optional(),
 
   // Gifts & wishes
@@ -114,6 +130,67 @@ const willInstructionInputSchema = z.object({
   vulnerableBeneficiaryDetails: z.string().optional(),
   careConcerns: z.string().optional(),
   careConcernDetails: z.string().optional(),
+
+  // Family Background
+  client1MarriagePlans: z.string().optional(),
+  client1MarriagePlanDetails: z.string().optional(),
+  client1HasChildren: z.string().optional(),
+  client1ChildrenDetails: z.string().optional(),
+  client1FamilyCircumstances: z.string().optional(),
+  client2MarriagePlans: z.string().optional(),
+  client2MarriagePlanDetails: z.string().optional(),
+  client2HasChildren: z.string().optional(),
+  client2ChildrenDetails: z.string().optional(),
+  client2FamilyCircumstances: z.string().optional(),
+
+  // Additional Background
+  client1Residency: z.string().optional(),
+  client1DomiciledUK: z.string().optional(),
+  client1MentalCapacity: z.string().optional(),
+  client1MentalCapacityNotes: z.string().optional(),
+  client1ChildrenPastRelationships: z.string().optional(),
+  client1ChildrenPastDetails: z.string().optional(),
+  client2Residency: z.string().optional(),
+  client2DomiciledUK: z.string().optional(),
+  client2MentalCapacity: z.string().optional(),
+  client2MentalCapacityNotes: z.string().optional(),
+  client2ChildrenPastRelationships: z.string().optional(),
+  client2ChildrenPastDetails: z.string().optional(),
+
+  // Due Diligence
+  ddArrangedAppointment: z.string().optional(),
+  ddArrangedAppointmentNotes: z.string().optional(),
+  ddKnowledgeOfEstate: z.string().optional(),
+  ddKnowledgeOfEstateNotes: z.string().optional(),
+  ddKnewBeneficiaries: z.string().optional(),
+  ddKnewBeneficiariesNotes: z.string().optional(),
+  ddSignsOfInfluence: z.string().optional(),
+  ddSignsOfInfluenceNotes: z.string().optional(),
+  ddKnewAppointees: z.string().optional(),
+  ddKnewAppointeesNotes: z.string().optional(),
+
+  // Overseas assets
+  assetsOutsideUK: z.string().optional(),
+  assetsOutsideUKDetails: z.string().optional(),
+
+  // Life Insurance
+  hasLifeInsurance: z.string().optional(),
+  lifeInsurancePolicies: z.array(lifeInsurancePolicySchema).optional(),
+  lifeInsuranceNotes: z.string().optional(),
+
+  // Business Interests
+  hasBusinessInterests: z.string().optional(),
+  businessInterests: z.string().optional(),
+  businessInterestsDetails: z.array(businessInterestSchema).optional(),
+
+  // Pets
+  hasPets: z.string().optional(),
+  petsDetails: z.string().optional(),
+  petsCarer: z.string().optional(),
+
+  // Disaster Clause & Notes
+  disasterClauseNotes: z.string().optional(),
+  additionalNotes: z.string().optional(),
 
   // Notes
   specialNotes: z.string().optional(),

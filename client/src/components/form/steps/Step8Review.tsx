@@ -228,7 +228,43 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
         </ReviewSection>
       )}
 
-      <ReviewSection title="Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={4} onEdit={onEdit}>
+      {/* Family Background */}
+      <ReviewSection title="Family Background" icon={<Users className="w-4 h-4" />} step={4} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="C1 Marriage Plans" value={data.client1MarriagePlans === "yes" ? `Yes — ${data.client1MarriagePlanDetails ?? ""}` : data.client1MarriagePlans === "no" ? "No" : undefined} />
+          <Field label="C1 Has Children" value={data.client1HasChildren === "yes" ? `Yes — ${data.client1ChildrenDetails ?? ""}` : data.client1HasChildren === "no" ? "No" : undefined} />
+          <Field label="C1 Family Circumstances" value={data.client1FamilyCircumstances} />
+          {data.client2FirstName && (
+            <>
+              <Field label="C2 Marriage Plans" value={data.client2MarriagePlans === "yes" ? `Yes — ${data.client2MarriagePlanDetails ?? ""}` : data.client2MarriagePlans === "no" ? "No" : undefined} />
+              <Field label="C2 Has Children" value={data.client2HasChildren === "yes" ? `Yes — ${data.client2ChildrenDetails ?? ""}` : data.client2HasChildren === "no" ? "No" : undefined} />
+            </>
+          )}
+        </div>
+      </ReviewSection>
+
+      {/* Additional Background */}
+      <ReviewSection title="Additional Background" icon={<User className="w-4 h-4" />} step={5} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="C1 Residency" value={data.client1Residency} />
+          <Field label="C1 Domiciled UK" value={data.client1DomiciledUK} />
+          <Field label="C1 Mental Capacity" value={data.client1MentalCapacity} />
+          <Field label="C1 Children Past Rels" value={data.client1ChildrenPastRelationships === "yes" ? `Yes — ${data.client1ChildrenPastDetails ?? ""}` : data.client1ChildrenPastRelationships === "no" ? "No" : undefined} />
+        </div>
+      </ReviewSection>
+
+      {/* Due Diligence */}
+      <ReviewSection title="Due Diligence" icon={<ShoppingBag className="w-4 h-4" />} step={6} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="Arranged Appointment" value={data.ddArrangedAppointment} />
+          <Field label="Knowledge of Estate" value={data.ddKnowledgeOfEstate} />
+          <Field label="Knew Beneficiaries" value={data.ddKnewBeneficiaries} />
+          <Field label="Signs of Influence" value={data.ddSignsOfInfluence === "yes" ? `⚠ YES — ${data.ddSignsOfInfluenceNotes ?? ""}` : data.ddSignsOfInfluence === "no" ? "No" : undefined} />
+          <Field label="Knew Appointees" value={data.ddKnewAppointees} />
+        </div>
+      </ReviewSection>
+
+      <ReviewSection title="Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={7} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Executors" value={formatPersons(data.executors)} />
           <Field label="Trustees" value={formatPersons(data.trustees)} />
@@ -236,7 +272,7 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Beneficiaries" icon={<Heart className="w-4 h-4" />} step={5} onEdit={onEdit}>
+      <ReviewSection title="Beneficiaries" icon={<Heart className="w-4 h-4" />} step={8} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Beneficiaries" value={formatPersons(data.beneficiaries)} />
           <Field label="Children Benefit Age" value={data.childrenBenefitAge ? `Age ${data.childrenBenefitAge}` : undefined} />
@@ -244,7 +280,7 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Property & Assets" icon={<Home className="w-4 h-4" />} step={6} onEdit={onEdit}>
+      <ReviewSection title="Property & Assets" icon={<Home className="w-4 h-4" />} step={9} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Property Owned" value={data.propertyOwned === "yes" ? "Yes" : "No"} />
           {data.propertyOwned === "yes" && (
@@ -254,20 +290,63 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
               <Field label="Estimated Value" value={data.propertyValue ? `£${data.propertyValue}` : undefined} />
             </>
           )}
+          <Field label="Assets Outside UK" value={data.assetsOutsideUK === "yes" ? `Yes — ${data.assetsOutsideUKDetails ?? ""}` : data.assetsOutsideUK === "no" ? "No" : undefined} />
           <Field label="Estimated Estate" value={data.estimatedEstateValue ? `£${data.estimatedEstateValue}` : undefined} />
           <Field label="Care Concerns" value={data.careConcerns === "yes" ? "Yes" : "No"} />
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Wishes & Funeral" icon={<Flower2 className="w-4 h-4" />} step={7} onEdit={onEdit}>
+      {/* Life Insurance */}
+      <ReviewSection title="Life Insurance" icon={<ShoppingBag className="w-4 h-4" />} step={10} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="Has Life Insurance" value={data.hasLifeInsurance === "yes" ? `Yes — ${data.lifeInsurancePolicies?.length ?? 0} policy/policies` : data.hasLifeInsurance === "no" ? "No" : undefined} />
+          <Field label="Notes" value={data.lifeInsuranceNotes} />
+        </div>
+      </ReviewSection>
+
+      {/* Business Interests */}
+      <ReviewSection title="Business Interests" icon={<Scale className="w-4 h-4" />} step={11} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="Has Business Interests" value={data.hasBusinessInterests === "yes" ? `Yes — ${data.businessInterestsDetails?.length ?? 0} business(es)` : data.hasBusinessInterests === "no" ? "No" : undefined} />
+        </div>
+      </ReviewSection>
+
+      {/* Gifts */}
+      <ReviewSection title="Legacies & Gifts" icon={<Gift className="w-4 h-4" />} step={12} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          {(data.specificGifts?.length ?? 0) > 0
+            ? data.specificGifts?.map((g, i) => (
+                <Field key={i} label={g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`} value={`${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}`} />
+              ))
+            : <span className="text-sm text-muted-foreground italic">No specific gifts</span>
+          }
+        </div>
+      </ReviewSection>
+
+      {/* Pets */}
+      <ReviewSection title="Pets" icon={<Heart className="w-4 h-4" />} step={13} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="Has Pets" value={data.hasPets === "yes" ? `Yes — ${data.petsDetails ?? ""}` : data.hasPets === "no" ? "No" : undefined} />
+          <Field label="Proposed Carer" value={data.petsCarer} />
+        </div>
+      </ReviewSection>
+
+      <ReviewSection title="Wishes & Funeral" icon={<Flower2 className="w-4 h-4" />} step={14} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Residuary Estate" value={data.residuaryEstate} />
           <Field label="Funeral Type" value={data.funeralType} />
           <Field label="Organ Donation" value={data.organDonation === "yes" ? "Yes" : data.organDonation === "no" ? "No" : undefined} />
-          {(data.specificGifts?.length ?? 0) > 0 && (
-            <Field label="Specific Gifts" value={`${data.specificGifts?.length} gift(s) specified`} />
-          )}
-          <Field label="Special Notes" value={data.specialNotes} />
+        </div>
+      </ReviewSection>
+
+      {/* Disaster Clause & Notes */}
+      <ReviewSection title="Disaster Clause & Notes" icon={<Calendar className="w-4 h-4" />} step={15} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <Field label="Disaster Clause (C1)" value={data.disasterClauseClient1} />
+          {data.client2FirstName && <Field label="Disaster Clause (C2)" value={data.disasterClauseClient2} />}
+          <Field label="Disaster Clause Notes" value={data.disasterClauseNotes} />
+          <Field label="Additional Notes" value={data.additionalNotes} />
+          <Field label="Consultant Notes" value={data.specialNotes} />
         </div>
       </ReviewSection>
 

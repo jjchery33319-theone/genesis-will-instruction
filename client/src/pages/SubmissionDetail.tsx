@@ -225,8 +225,8 @@ export default function SubmissionDetail() {
           <Field label="Bank Accounts" value={record.bankAccounts} />
           <Field label="Investments" value={record.investments} />
           <Field label="Pension Details" value={record.pensionDetails} />
-          <Field label="Life Insurance" value={record.lifeInsurance} />
-          <Field label="Business Interests" value={record.businessInterests} />
+          <Field label="Life Insurance" value={record.hasLifeInsurance === "yes" ? "Yes" : record.hasLifeInsurance === "no" ? "No" : null} />
+          <Field label="Business Interests" value={record.hasBusinessInterests === "yes" ? record.businessInterests : record.hasBusinessInterests === "no" ? "No" : null} />
           <Field label="Estimated Estate Value" value={record.estimatedEstateValue ? `£${record.estimatedEstateValue}` : null} />
           <Field label="Care Concerns" value={record.careConcerns === "yes" ? `Yes — ${record.careConcernDetails ?? ""}` : "No"} />
         </Section>

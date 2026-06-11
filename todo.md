@@ -50,3 +50,17 @@
 - [x] Vitest: reference number format
 - [x] Vitest: auth logout (existing template test)
 - [x] All 14 tests passing
+
+## New Sections (Phase 2 Extension)
+- [x] Family Background section (marriage plans, children, family circumstances)
+- [x] Additional Background section (residency, mental capacity, children from past relationships)
+- [x] Due Diligence section (5 compliance questions with Yes/No/Notes)
+- [x] Enhanced Property & Assets (assets outside UK)
+- [x] Life Insurance & Protection section (policy details)
+- [x] Business Interests section
+- [x] Legacies & Gifts section (monetary/physical gifts to individuals or charities)
+- [x] Pets section (provisions for pets)
+- [x] Disaster Clause & Notes section
+- [x] Database schema updated with all new fields
+- [x] Review screen updated with new sections
+- [x] Admin email updated with new sections

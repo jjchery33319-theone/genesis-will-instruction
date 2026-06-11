@@ -93,12 +93,20 @@ export const PROPERTY_OWNERSHIP_TYPES = [
 export const FUNERAL_TYPES = ["Burial", "Cremation", "No Preference"] as const;
 
 export const FORM_STEPS = [
-  { id: 1, title: "Appointment", subtitle: "Consultant & products" },
-  { id: 2, title: "Client 1", subtitle: "Personal details" },
-  { id: 3, title: "Client 2", subtitle: "Partner details" },
-  { id: 4, title: "Executors", subtitle: "Trustees & guardians" },
-  { id: 5, title: "Beneficiaries", subtitle: "Shares & conditions" },
-  { id: 6, title: "Property", subtitle: "Assets overview" },
-  { id: 7, title: "Wishes", subtitle: "Gifts & funeral" },
-  { id: 8, title: "Review", subtitle: "Preview & submit" },
+  { id: 1,  title: "Appointment",    subtitle: "Consultant & products" },
+  { id: 2,  title: "Client 1",       subtitle: "Personal details" },
+  { id: 3,  title: "Client 2",       subtitle: "Partner details" },
+  { id: 4,  title: "Family",         subtitle: "Background & children" },
+  { id: 5,  title: "Background",     subtitle: "Residency & capacity" },
+  { id: 6,  title: "Due Diligence",  subtitle: "Compliance questions" },
+  { id: 7,  title: "Executors",      subtitle: "Trustees & guardians" },
+  { id: 8,  title: "Beneficiaries",  subtitle: "Shares & conditions" },
+  { id: 9,  title: "Property",       subtitle: "Assets & overseas" },
+  { id: 10, title: "Life Insurance", subtitle: "Policies & protection" },
+  { id: 11, title: "Business",       subtitle: "Business interests" },
+  { id: 12, title: "Gifts",          subtitle: "Legacies & charities" },
+  { id: 13, title: "Pets",           subtitle: "Pet provisions" },
+  { id: 14, title: "Wishes",         subtitle: "Funeral & residuary" },
+  { id: 15, title: "Disaster & Notes", subtitle: "Clause & final notes" },
+  { id: 16, title: "Review",         subtitle: "Preview & submit" },
 ] as const;
