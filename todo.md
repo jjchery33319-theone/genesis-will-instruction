@@ -75,3 +75,12 @@
 - [x] Update willConstants FORM_STEPS to reflect new order
 - [x] Update WillForm.tsx step routing to match new order
 - [x] Update DB schema and server router for new fields
+
+## Auto-Save Feature (Phase 4)
+- [x] Auto-save form data to localStorage on every field change (debounced 1s)
+- [x] Show auto-save status indicator (saving... / saved / unsaved changes)
+- [x] On page load: detect saved draft and show restore banner with timestamp
+- [x] Restore button: reload all form state from localStorage and resume at saved step
+- [x] Discard button: clear localStorage draft and start fresh
+- [x] Clear localStorage draft on successful form submission
+- [x] Handle localStorage quota errors gracefully
