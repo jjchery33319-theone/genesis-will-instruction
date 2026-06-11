@@ -25,7 +25,6 @@ export default function Step14Wishes({ data, onChange }: Props) {
           <FieldRow
             label="Residuary Estate — Who inherits the remainder?"
             hint="The residuary estate is everything left after specific gifts and debts have been paid"
-            required
           >
             <Textarea
               rows={3}

@@ -65,9 +65,9 @@ const willInstructionInputSchema = z.object({
 
   // Client 1
   client1Prefix: z.string().optional(),
-  client1FirstName: z.string().min(1, "First name is required"),
+  client1FirstName: z.string().optional(),
   client1MiddleName: z.string().optional(),
-  client1LastName: z.string().min(1, "Last name is required"),
+  client1LastName: z.string().optional(),
   client1Dob: z.string().optional(),
   client1AddressLine1: z.string().optional(),
   client1City: z.string().optional(),

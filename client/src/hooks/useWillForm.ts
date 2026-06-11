@@ -375,12 +375,7 @@ export function useWillForm() {
   }, []);
 
   const submitForm = useCallback(async () => {
-    const data = {
-      ...formData,
-      client1FirstName: formData.client1FirstName ?? "",
-      client1LastName: formData.client1LastName ?? "",
-    };
-    submitMutation.mutate(data);
+    submitMutation.mutate(formData);
   }, [formData, submitMutation]);
 
   return {
