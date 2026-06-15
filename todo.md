@@ -103,13 +103,13 @@
 - [x] Update DB schema and server router
 
 ## Draft & Mirror Wills Features (Phase 7)
-- [ ] Add `status` column to will_instructions table (draft / submitted)
-- [ ] Add `saveDraft` tRPC procedure (upsert with status=draft)
-- [ ] Add `listDrafts` tRPC procedure
-- [ ] Add `deleteDraft` tRPC procedure
-- [ ] Add `getDraft` tRPC procedure (load draft by id)
-- [ ] Mirror Wills: "Appoint each other as Executor" button in Step4Executors
-- [ ] Save Draft button on WillForm (visible on every step)
-- [ ] Resume draft from URL param (?draftId=xxx)
-- [ ] Admin Dashboard: Drafts tab listing all in-progress instructions
-- [ ] Drafts tab: Resume and Delete actions per draft
+- [x] Add `status` column to will_instructions table (draft / submitted)
+- [x] Add `saveDraft` tRPC procedure (upsert with status=draft)
+- [x] Add `listDrafts` tRPC procedure
+- [x] Add `deleteDraft` tRPC procedure
+- [x] Add `getDraft` tRPC procedure (load draft by id)
+- [x] Mirror Wills: "Appoint each other as Executor" button in Step4Executors
+- [x] Save Draft button on WillForm (visible on every step)
+- [x] Resume draft from URL param (?draftId=xxx)
+- [x] Admin Dashboard: Drafts tab listing all in-progress instructions
+- [x] Drafts tab: Resume and Delete actions per draft

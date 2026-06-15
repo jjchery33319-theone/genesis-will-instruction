@@ -46,7 +46,7 @@ export function FieldRow({ label, required, hint, children, className }: FieldRo
     <div className={cn("space-y-1.5", className)}>
       <label className="text-sm font-medium text-foreground flex items-center gap-1">
         {label}
-        {required && <span className="text-destructive">*</span>}
+        {/* required asterisk removed — all fields are optional */}
       </label>
       {children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
