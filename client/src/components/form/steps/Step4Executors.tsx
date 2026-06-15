@@ -1,7 +1,7 @@
 import { WillFormData, PersonEntry } from "../../../hooks/useWillForm";
 import { FormCard, SectionDivider } from "../FormCard";
 import { PersonList, QuickFillSource } from "../PersonFields";
-import { Scale, Shield, Baby, Zap } from "lucide-react";
+import { Scale, Shield, Baby, Zap, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -189,6 +189,43 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
         <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: "oklch(0.97 0.015 155)", color: "oklch(0.28 0.07 155)" }}>
           <strong>Guidance:</strong> Executors manage the estate after death. You can appoint up to 4. Common choices include a spouse/partner, adult children, or a trusted friend. Use the <strong>Copy from…</strong> dropdown on each entry to auto-fill from previously entered clients or people.
         </div>
+
+        {isMirrorWill && (() => {
+          const c1Full = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ");
+          const c2Full = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ");
+          if (!c1Full || !c2Full) return null;
+          const appointEachOther = () => {
+            const person1 = clientToPersonEntry(data, 1, "Spouse / Partner");
+            const person2 = clientToPersonEntry(data, 2, "Spouse / Partner");
+            const c1Execs = data.client1Executors ?? [];
+            const c2Execs = data.client2Executors ?? [];
+            const hasC2InC1 = c1Execs.some(e => e.firstName === person2.firstName && e.lastName === person2.lastName);
+            const hasC1InC2 = c2Execs.some(e => e.firstName === person1.firstName && e.lastName === person1.lastName);
+            onChange({
+              client1Executors: hasC2InC1 ? c1Execs : [...c1Execs, person2],
+              client2Executors: hasC1InC2 ? c2Execs : [...c2Execs, person1],
+            });
+          };
+          return (
+            <div className="mb-4 p-3 rounded-xl flex items-center gap-3" style={{ background: "oklch(0.96 0.04 85)", border: "1.5px solid oklch(0.78 0.12 85 / 0.7)" }}>
+              <Users className="w-5 h-5 shrink-0" style={{ color: "oklch(0.55 0.12 85)" }} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>Mirror Wills — Appoint Each Other</div>
+                <div className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.07 155)" }}>For Mirror Wills it is common for each client to appoint the other as their primary executor.</div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                className="shrink-0 text-xs font-semibold"
+                style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
+                onClick={appointEachOther}
+              >
+                <Zap className="w-3.5 h-3.5 mr-1" />
+                Appoint Each Other
+              </Button>
+            </div>
+          );
+        })()}
 
         <ClientExecutorSection
           label={`Primary Executor for ${c1Name}`}

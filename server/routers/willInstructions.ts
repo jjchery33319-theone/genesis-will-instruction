@@ -364,6 +364,130 @@ export const willInstructionsRouter = router({
         .limit(1);
       return record ?? null;
     }),
+
+  // ─── Draft procedures ────────────────────────────────────────────────────
+
+  saveDraft: publicProcedure
+    .input(willInstructionInputSchema.extend({
+      draftId: z.number().optional(),
+      currentStep: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const { draftId, currentStep, ...formData } = input;
+
+      const draftData = {
+        ...formData,
+        productsOrdered: formData.productsOrdered ?? [],
+        executors: formData.executors ?? [],
+        reservedExecutors: formData.reservedExecutors ?? [],
+        trustees: formData.trustees ?? [],
+        guardians: formData.guardians ?? [],
+        reservedGuardians: formData.reservedGuardians ?? [],
+        beneficiaries: formData.beneficiaries ?? [],
+        specificGifts: formData.specificGifts ?? [],
+        client1Executors: formData.client1Executors ?? [],
+        client1ReservedExecutors: formData.client1ReservedExecutors ?? [],
+        client2Executors: formData.client2Executors ?? [],
+        client2ReservedExecutors: formData.client2ReservedExecutors ?? [],
+        client1Guardians: formData.client1Guardians ?? [],
+        client1ReservedGuardians: formData.client1ReservedGuardians ?? [],
+        client2Guardians: formData.client2Guardians ?? [],
+        client2ReservedGuardians: formData.client2ReservedGuardians ?? [],
+        client1Beneficiaries: formData.client1Beneficiaries ?? [],
+        client2Beneficiaries: formData.client2Beneficiaries ?? [],
+        client1SpecificGifts: formData.client1SpecificGifts ?? [],
+        client2SpecificGifts: formData.client2SpecificGifts ?? [],
+        client1ChildrenUnder18: formData.client1ChildrenUnder18 ?? [],
+        client1ChildrenOver18: formData.client1ChildrenOver18 ?? [],
+        client2ChildrenUnder18: formData.client2ChildrenUnder18 ?? [],
+        client2ChildrenOver18: formData.client2ChildrenOver18 ?? [],
+        status: "draft" as const,
+        currentStep: currentStep ?? 1,
+        emailSent: 0,
+      };
+
+      if (draftId) {
+        // Update existing draft
+        await db
+          .update(willInstructions)
+          .set({ ...draftData, updatedAt: new Date() })
+          .where(eq(willInstructions.id, draftId));
+        return { success: true, draftId };
+      } else {
+        // Create new draft with a reference number
+        const referenceNumber = `GEP-DRAFT-${Date.now().toString(36).toUpperCase()}`;
+        await db.insert(willInstructions).values({ ...draftData, referenceNumber });
+        const [record] = await db
+          .select({ id: willInstructions.id })
+          .from(willInstructions)
+          .where(eq(willInstructions.referenceNumber, referenceNumber))
+          .limit(1);
+        return { success: true, draftId: record?.id };
+      }
+    }),
+
+  listDrafts: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    return db
+      .select({
+        id: willInstructions.id,
+        referenceNumber: willInstructions.referenceNumber,
+        client1FirstName: willInstructions.client1FirstName,
+        client1LastName: willInstructions.client1LastName,
+        client2FirstName: willInstructions.client2FirstName,
+        client2LastName: willInstructions.client2LastName,
+        consultantName: willInstructions.consultantName,
+        willType: willInstructions.willType,
+        currentStep: willInstructions.currentStep,
+        updatedAt: willInstructions.updatedAt,
+        createdAt: willInstructions.createdAt,
+      })
+      .from(willInstructions)
+      .where(eq(willInstructions.status, "draft"))
+      .orderBy(desc(willInstructions.updatedAt));
+  }),
+
+  getDraft: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [record] = await db
+        .select()
+        .from(willInstructions)
+        .where(eq(willInstructions.id, input.id))
+        .limit(1);
+      if (!record || record.status !== "draft") return null;
+      return record;
+    }),
+
+  deleteDraft: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db
+        .delete(willInstructions)
+        .where(eq(willInstructions.id, input.id));
+      return { success: true };
+    }),
+
+  // Update status of a submitted instruction
+  updateStatus: publicProcedure
+    .input(z.object({ id: z.number(), status: z.enum(["submitted", "processing", "complete"]) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db
+        .update(willInstructions)
+        .set({ status: input.status, updatedAt: new Date() })
+        .where(eq(willInstructions.id, input.id));
+      return { success: true };
+    }),
 });
 
 // ─── AI Recommendation Engine ────────────────────────────────────────────────

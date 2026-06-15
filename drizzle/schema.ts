@@ -192,6 +192,7 @@ export const willInstructions = mysqlTable("will_instructions", {
 
   // ── Meta ───────────────────────────────────────────────────────────────────
   status: mysqlEnum("status", ["draft", "submitted", "processing", "complete"]).default("submitted").notNull(),
+  currentStep: int("currentStep").notNull().default(1),
   emailSent: int("emailSent").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

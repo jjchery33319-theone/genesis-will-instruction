@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { trpc } from "../lib/trpc";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 
 export type PersonEntry = {
@@ -412,7 +412,83 @@ export function useWillForm() {
   }, []);
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  const submitMutation = trpc.will.submit.useMutation({
+  // ── Server-side draft ID ──────────────────────────────────────────────────
+  const [serverDraftId, setServerDraftId] = useState<number | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+
+  // Resume from URL param (?draftId=123)
+  const searchString = useSearch();
+  const urlDraftId = new URLSearchParams(searchString).get("draftId");
+  const resumeQuery = trpc.will.getDraft.useQuery(
+    { id: Number(urlDraftId) },
+    { enabled: !!urlDraftId && !serverDraftId, retry: false }
+  );
+
+  useEffect(() => {
+    if (resumeQuery.data && !serverDraftId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d = resumeQuery.data as any;
+      const restored: WillFormData = {
+        ...(d as WillFormData),
+        productsOrdered: (d.productsOrdered as string[] | null) ?? [],
+        executors: (d.executors as PersonEntry[] | null) ?? [],
+        reservedExecutors: (d.reservedExecutors as PersonEntry[] | null) ?? [],
+        trustees: (d.trustees as PersonEntry[] | null) ?? [],
+        guardians: (d.guardians as PersonEntry[] | null) ?? [],
+        reservedGuardians: (d.reservedGuardians as PersonEntry[] | null) ?? [],
+        beneficiaries: (d.beneficiaries as PersonEntry[] | null) ?? [],
+        specificGifts: (d.specificGifts as SpecificGift[] | null) ?? [],
+        client1Executors: (d.client1Executors as PersonEntry[] | null) ?? [],
+        client1ReservedExecutors: (d.client1ReservedExecutors as PersonEntry[] | null) ?? [],
+        client2Executors: (d.client2Executors as PersonEntry[] | null) ?? [],
+        client2ReservedExecutors: (d.client2ReservedExecutors as PersonEntry[] | null) ?? [],
+        client1Guardians: (d.client1Guardians as PersonEntry[] | null) ?? [],
+        client1ReservedGuardians: (d.client1ReservedGuardians as PersonEntry[] | null) ?? [],
+        client2Guardians: (d.client2Guardians as PersonEntry[] | null) ?? [],
+        client2ReservedGuardians: (d.client2ReservedGuardians as PersonEntry[] | null) ?? [],
+        client1Beneficiaries: (d.client1Beneficiaries as PersonEntry[] | null) ?? [],
+        client2Beneficiaries: (d.client2Beneficiaries as PersonEntry[] | null) ?? [],
+        client1SpecificGifts: (d.client1SpecificGifts as SpecificGift[] | null) ?? [],
+        client2SpecificGifts: (d.client2SpecificGifts as SpecificGift[] | null) ?? [],
+        client1ChildrenUnder18: (d.client1ChildrenUnder18 as ChildEntry[] | null) ?? [],
+        client1ChildrenOver18: (d.client1ChildrenOver18 as ChildEntry[] | null) ?? [],
+        client2ChildrenUnder18: (d.client2ChildrenUnder18 as ChildEntry[] | null) ?? [],
+        client2ChildrenOver18: (d.client2ChildrenOver18 as ChildEntry[] | null) ?? [],
+      };
+      setFormData(restored);
+      setCurrentStep(d.currentStep ?? 1);
+      setServerDraftId(d.id);
+      setHasDraft(false);
+      toast.success("Draft loaded — continue where you left off.");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeQuery.data]);
+
+  const saveDraftMutation = trpc.will.saveDraft.useMutation({
+    onSuccess: (data) => {
+      if (data.draftId && !serverDraftId) setServerDraftId(data.draftId);
+    },
+    onError: () => {
+      toast.error("Could not save draft to server. Your local auto-save is still active.");
+    },
+  });
+
+  const saveAsDraft = useCallback(async () => {
+    setIsSavingDraft(true);
+    try {
+      const result = await saveDraftMutation.mutateAsync({
+        ...formData,
+        draftId: serverDraftId ?? undefined,
+        currentStep,
+      });
+      if (result.draftId) setServerDraftId(result.draftId);
+      toast.success("Draft saved — you can resume this instruction from the Admin Dashboard.");
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [formData, serverDraftId, currentStep, saveDraftMutation]);
+
+    const submitMutation = trpc.will.submit.useMutation({
     onSuccess: (data) => {
       clearDraft(); // wipe the draft on successful submission
       toast.success("Will instruction submitted successfully!");
@@ -440,7 +516,7 @@ export function useWillForm() {
     updateFormData,
     submitForm,
     isSubmitting: submitMutation.isPending,
-    // Step management (now owned by hook for auto-save step tracking)
+    // Step management
     currentStep,
     goToStep,
     // Auto-save state
@@ -449,5 +525,10 @@ export function useWillForm() {
     draftInfo,
     restoreDraft,
     discardDraft,
+    // Server-side draft
+    saveAsDraft,
+    isSavingDraft,
+    serverDraftId,
+    isLoadingResume: resumeQuery.isLoading && !!urlDraftId,
   };
 }

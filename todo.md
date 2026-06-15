@@ -101,3 +101,15 @@
 - [x] Update Step8Review with new structure
 - [x] Update email service with new structure
 - [x] Update DB schema and server router
+
+## Draft & Mirror Wills Features (Phase 7)
+- [ ] Add `status` column to will_instructions table (draft / submitted)
+- [ ] Add `saveDraft` tRPC procedure (upsert with status=draft)
+- [ ] Add `listDrafts` tRPC procedure
+- [ ] Add `deleteDraft` tRPC procedure
+- [ ] Add `getDraft` tRPC procedure (load draft by id)
+- [ ] Mirror Wills: "Appoint each other as Executor" button in Step4Executors
+- [ ] Save Draft button on WillForm (visible on every step)
+- [ ] Resume draft from URL param (?draftId=xxx)
+- [ ] Admin Dashboard: Drafts tab listing all in-progress instructions
+- [ ] Drafts tab: Resume and Delete actions per draft

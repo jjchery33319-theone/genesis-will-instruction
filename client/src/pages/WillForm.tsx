@@ -20,7 +20,7 @@ import Step14DisasterClause from "../components/form/steps/Step15DisasterClause"
 import Step15Review from "../components/form/steps/Step8Review";
 import { useWillForm } from "../hooks/useWillForm";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RotateCcw, Trash2, Save, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Trash2, Save, CheckCircle2, AlertCircle, Clock, Loader2 } from "lucide-react";
 
 const TOTAL_STEPS = FORM_STEPS.length;
 
@@ -136,6 +136,9 @@ export default function WillForm() {
     draftInfo,
     restoreDraft,
     discardDraft,
+    saveAsDraft,
+    isSavingDraft,
+    isLoadingResume,
   } = useWillForm();
 
   const goNext = useCallback(() => {
@@ -232,9 +235,21 @@ export default function WillForm() {
               Previous
             </Button>
 
-            <span className="text-sm text-muted-foreground">
-              Step {currentStep} of {TOTAL_STEPS}
-            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={saveAsDraft}
+                disabled={isSavingDraft}
+                className="gap-2 text-xs"
+                style={{ borderColor: "oklch(0.75 0.14 85)", color: "oklch(0.35 0.10 85)" }}
+              >
+                {isSavingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Save Draft
+              </Button>
+              <span className="text-sm text-muted-foreground hidden sm:inline">
+                Step {currentStep} of {TOTAL_STEPS}
+              </span>
+            </div>
 
             <Button
               onClick={goNext}
