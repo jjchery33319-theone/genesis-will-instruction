@@ -205,31 +205,33 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Client 1" icon={<User className="w-4 h-4" />} step={2} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Full Name" value={client1Name || undefined} />
-          <Field label="Date of Birth" value={data.client1Dob} />
-          <Field label="Address" value={[data.client1AddressLine1, data.client1City, data.client1Postcode].filter(Boolean).join(", ") || undefined} />
-          <Field label="Marital Status" value={data.client1MaritalStatus} />
-          <Field label="Email" value={data.client1Email} />
-          <Field label="Mobile" value={data.client1Mobile} />
+      <ReviewSection title="Clients" icon={<Users className="w-4 h-4" />} step={2} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+            <Field label="Full Name" value={client1Name || undefined} />
+            <Field label="Date of Birth" value={data.client1Dob} />
+            <Field label="Address" value={[data.client1AddressLine1, data.client1City, data.client1Postcode].filter(Boolean).join(", ") || undefined} />
+            <Field label="Marital Status" value={data.client1MaritalStatus} />
+            <Field label="Email" value={data.client1Email} />
+            <Field label="Mobile" value={data.client1Mobile} />
+          </div>
+          {client2Name && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+              <Field label="Full Name" value={client2Name} />
+              <Field label="Date of Birth" value={data.client2Dob} />
+              <Field label="Address" value={data.client2SameAddressAsClient1 ? "Same as Client 1" : [data.client2AddressLine1, data.client2City, data.client2Postcode].filter(Boolean).join(", ") || undefined} />
+              <Field label="Marital Status" value={data.client2MaritalStatus} />
+              <Field label="Email" value={data.client2Email} />
+              <Field label="Mobile" value={data.client2Mobile} />
+            </div>
+          )}
         </div>
       </ReviewSection>
 
-      {client2Name && (
-        <ReviewSection title="Client 2" icon={<Users className="w-4 h-4" />} step={3} onEdit={onEdit}>
-          <div className="space-y-1.5">
-            <Field label="Full Name" value={client2Name} />
-            <Field label="Date of Birth" value={data.client2Dob} />
-            <Field label="Address" value={[data.client2AddressLine1, data.client2City, data.client2Postcode].filter(Boolean).join(", ") || undefined} />
-            <Field label="Marital Status" value={data.client2MaritalStatus} />
-            <Field label="Email" value={data.client2Email} />
-          </div>
-        </ReviewSection>
-      )}
-
       {/* Family Background */}
-      <ReviewSection title="Family Background" icon={<Users className="w-4 h-4" />} step={4} onEdit={onEdit}>
+      <ReviewSection title="Family Background" icon={<Users className="w-4 h-4" />} step={3} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="C1 Marriage Plans" value={data.client1MarriagePlans === "yes" ? `Yes — ${data.client1MarriagePlanDetails ?? ""}` : data.client1MarriagePlans === "no" ? "No" : undefined} />
           <Field label="C1 Has Children" value={data.client1HasChildren === "yes" ? `Yes (${data.client1TotalChildren ?? ""} total)` : data.client1HasChildren === "no" ? "No" : undefined} />
@@ -258,7 +260,7 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
       </ReviewSection>
 
       {/* Additional Background */}
-      <ReviewSection title="Additional Background" icon={<User className="w-4 h-4" />} step={5} onEdit={onEdit}>
+      <ReviewSection title="Additional Background" icon={<User className="w-4 h-4" />} step={4} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="C1 Residency" value={data.client1Residency} />
           <Field label="C1 Domiciled UK" value={data.client1DomiciledUK} />
@@ -268,7 +270,7 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
       </ReviewSection>
 
       {/* Due Diligence */}
-      <ReviewSection title="Due Diligence" icon={<ShoppingBag className="w-4 h-4" />} step={6} onEdit={onEdit}>
+      <ReviewSection title="Due Diligence" icon={<ShoppingBag className="w-4 h-4" />} step={5} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Arranged Appointment" value={data.ddArrangedAppointment} />
           <Field label="Knowledge of Estate" value={data.ddKnowledgeOfEstate} />
@@ -278,21 +280,31 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={7} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Primary Executors" value={formatPersons(data.executors)} />
-          {(data.reservedExecutors?.length ?? 0) > 0 && (
-            <Field label="Reserved Executors" value={formatPersons(data.reservedExecutors)} />
+      <ReviewSection title="Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={6} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+            <Field label="Primary Executors" value={formatPersons(data.client1Executors?.length ? data.client1Executors : data.executors)} />
+            {(data.client1ReservedExecutors?.length ?? 0) > 0 && <Field label="Reserved Executors" value={formatPersons(data.client1ReservedExecutors)} />}
+            <Field label="Primary Guardians" value={formatPersons(data.client1Guardians?.length ? data.client1Guardians : data.guardians)} />
+            {(data.client1ReservedGuardians?.length ?? 0) > 0 && <Field label="Reserved Guardians" value={formatPersons(data.client1ReservedGuardians)} />}
+          </div>
+          {client2Name && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+              <Field label="Primary Executors" value={formatPersons(data.client2Executors)} />
+              {(data.client2ReservedExecutors?.length ?? 0) > 0 && <Field label="Reserved Executors" value={formatPersons(data.client2ReservedExecutors)} />}
+              <Field label="Primary Guardians" value={formatPersons(data.client2Guardians)} />
+              {(data.client2ReservedGuardians?.length ?? 0) > 0 && <Field label="Reserved Guardians" value={formatPersons(data.client2ReservedGuardians)} />}
+            </div>
           )}
-          <Field label="Trustees" value={formatPersons(data.trustees)} />
-          <Field label="Primary Guardians" value={formatPersons(data.guardians)} />
-          {(data.reservedGuardians?.length ?? 0) > 0 && (
-            <Field label="Reserved Guardians" value={formatPersons(data.reservedGuardians)} />
-          )}
+        </div>
+        <div className="mt-3 pt-3 border-t border-border">
+          <Field label="Trustees (Shared)" value={formatPersons(data.trustees)} />
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Property & Assets" icon={<Home className="w-4 h-4" />} step={8} onEdit={onEdit}>
+      <ReviewSection title="Property & Assets" icon={<Home className="w-4 h-4" />} step={7} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Property Owned" value={data.propertyOwned === "yes" ? "Yes" : "No"} />
           {data.propertyOwned === "yes" && (
@@ -316,7 +328,7 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
       </ReviewSection>
 
       {/* Life Insurance */}
-      <ReviewSection title="Life Insurance" icon={<ShoppingBag className="w-4 h-4" />} step={9} onEdit={onEdit}>
+      <ReviewSection title="Life Insurance" icon={<ShoppingBag className="w-4 h-4" />} step={8} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Has Life Insurance" value={data.hasLifeInsurance === "yes" ? `Yes — ${data.lifeInsurancePolicies?.length ?? 0} policy/policies` : data.hasLifeInsurance === "no" ? "No" : undefined} />
           <Field label="Notes" value={data.lifeInsuranceNotes} />
@@ -324,50 +336,84 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
       </ReviewSection>
 
       {/* Business Interests */}
-      <ReviewSection title="Business Interests" icon={<Scale className="w-4 h-4" />} step={10} onEdit={onEdit}>
+      <ReviewSection title="Business Interests" icon={<Scale className="w-4 h-4" />} step={9} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Has Business Interests" value={data.hasBusinessInterests === "yes" ? `Yes — ${data.businessInterestsDetails?.length ?? 0} business(es)` : data.hasBusinessInterests === "no" ? "No" : undefined} />
         </div>
       </ReviewSection>
 
       {/* Pets */}
-      <ReviewSection title="Pets" icon={<Heart className="w-4 h-4" />} step={11} onEdit={onEdit}>
+      <ReviewSection title="Pets" icon={<Heart className="w-4 h-4" />} step={10} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Has Pets" value={data.hasPets === "yes" ? `Yes — ${data.petsDetails ?? ""}` : data.hasPets === "no" ? "No" : undefined} />
           <Field label="Proposed Carer" value={data.petsCarer} />
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Beneficiaries" icon={<Heart className="w-4 h-4" />} step={12} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Beneficiaries" value={formatPersons(data.beneficiaries)} />
-          <Field label="Children Benefit Age" value={data.childrenBenefitAge ? `Age ${data.childrenBenefitAge}` : undefined} />
-          <Field label="Vulnerable Beneficiary" value={data.hasVulnerableBeneficiary === "yes" ? `Yes — ${data.vulnerableBeneficiaryDetails ?? ""}` : "No"} />
+      {/* Funeral Wishes — per client */}
+      <ReviewSection title="Funeral Wishes" icon={<Flower2 className="w-4 h-4" />} step={11} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+            <Field label="Funeral Type" value={data.client1FuneralType ?? data.funeralType} />
+            <Field label="Wishes" value={data.client1FuneralWishes ?? data.funeralWishes} />
+            <Field label="Organ Donation" value={(data.client1OrganDonation ?? data.organDonation) === "yes" ? "Yes" : (data.client1OrganDonation ?? data.organDonation) === "no" ? "No" : undefined} />
+          </div>
+          {client2Name && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+              <Field label="Funeral Type" value={data.client2FuneralType} />
+              <Field label="Wishes" value={data.client2FuneralWishes} />
+              <Field label="Organ Donation" value={data.client2OrganDonation === "yes" ? "Yes" : data.client2OrganDonation === "no" ? "No" : undefined} />
+            </div>
+          )}
         </div>
       </ReviewSection>
 
-      {/* Gifts */}
-      <ReviewSection title="Legacies & Gifts" icon={<Gift className="w-4 h-4" />} step={13} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          {(data.specificGifts?.length ?? 0) > 0
-            ? data.specificGifts?.map((g, i) => (
-                <Field key={i} label={g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`} value={`${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}`} />
-              ))
-            : <span className="text-sm text-muted-foreground italic">No specific gifts</span>
-          }
+      {/* Gifts — per client */}
+      <ReviewSection title="Legacies & Gifts" icon={<Gift className="w-4 h-4" />} step={12} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+            {(data.client1SpecificGifts?.length ?? 0) > 0
+              ? data.client1SpecificGifts?.map((g, i) => <Field key={i} label={g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`} value={`${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}`} />)
+              : <span className="text-sm text-muted-foreground italic">No specific gifts</span>}
+          </div>
+          {client2Name && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+              {(data.client2SpecificGifts?.length ?? 0) > 0
+                ? data.client2SpecificGifts?.map((g, i) => <Field key={i} label={g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`} value={`${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}`} />)
+                : <span className="text-sm text-muted-foreground italic">No specific gifts</span>}
+            </div>
+          )}
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Wishes & Funeral" icon={<Flower2 className="w-4 h-4" />} step={14} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Residuary Estate" value={data.residuaryEstate} />
-          <Field label="Funeral Type" value={data.funeralType} />
-          <Field label="Organ Donation" value={data.organDonation === "yes" ? "Yes" : data.organDonation === "no" ? "No" : undefined} />
+      {/* Beneficiaries — per client */}
+      <ReviewSection title="Beneficiaries & Residuary Estate" icon={<Heart className="w-4 h-4" />} step={13} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+            <Field label="Residuary Estate" value={data.client1ResidualEstate ?? data.residuaryEstate} />
+            <Field label="Beneficiaries" value={formatPersons(data.client1Beneficiaries?.length ? data.client1Beneficiaries : data.beneficiaries)} />
+            <Field label="Children Benefit Age" value={data.client1ChildrenBenefitAge ? `Age ${data.client1ChildrenBenefitAge}` : undefined} />
+            {data.client1HasVulnerableBeneficiary === "yes" && <Field label="Vulnerable Beneficiary" value={`Yes — ${data.client1VulnerableBeneficiaryDetails ?? ""}`} />}
+          </div>
+          {client2Name && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+              <Field label="Residuary Estate" value={data.client2ResidualEstate} />
+              <Field label="Beneficiaries" value={formatPersons(data.client2Beneficiaries)} />
+              <Field label="Children Benefit Age" value={data.client2ChildrenBenefitAge ? `Age ${data.client2ChildrenBenefitAge}` : undefined} />
+              {data.client2HasVulnerableBeneficiary === "yes" && <Field label="Vulnerable Beneficiary" value={`Yes — ${data.client2VulnerableBeneficiaryDetails ?? ""}`} />}
+            </div>
+          )}
         </div>
       </ReviewSection>
 
       {/* Disaster Clause & Notes */}
-      <ReviewSection title="Disaster Clause & Notes" icon={<Calendar className="w-4 h-4" />} step={15} onEdit={onEdit}>
+      <ReviewSection title="Disaster Clause & Notes" icon={<Calendar className="w-4 h-4" />} step={14} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Disaster Clause (C1)" value={data.disasterClauseClient1} />
           {data.client2FirstName && <Field label="Disaster Clause (C2)" value={data.disasterClauseClient2} />}

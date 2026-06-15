@@ -86,18 +86,18 @@
 - [x] Handle localStorage quota errors gracefully
 
 ## Structural Rebuild (Phase 6)
-- [ ] Merge Client 1 and Client 2 onto one step (side by side with tabs or stacked sections)
-- [ ] Client 2 address: "Same as Client 1" toggle
-- [ ] Hide "plans to marry" question when marital status is Married/Civil Partnership
-- [ ] Executors: split into Client 1 Primary, Client 1 Reserved, Client 2 Primary, Client 2 Reserved
-- [ ] Guardians: split into Client 1 Guardians, Client 1 Reserved, Client 2 Guardians, Client 2 Reserved
-- [ ] Funeral Wishes: split into Client 1 and Client 2 sections on same step
-- [ ] Gifts/Legacies: split into Client 1 and Client 2 sections on same step
-- [ ] Residuary Estate: split into Client 1 and Client 2 on Beneficiaries step
-- [ ] Named Beneficiaries: split into Client 1 and Client 2 on Beneficiaries step
-- [ ] Update useWillForm state for all new per-client arrays
-- [ ] Update FORM_STEPS to remove redundant Client 2 step
-- [ ] Update WillForm routing
-- [ ] Update Step8Review with new structure
-- [ ] Update email service with new structure
-- [ ] Update DB schema and server router
+- [x] Merge Client 1 and Client 2 onto one step (side by side with tabs or stacked sections)
+- [x] Client 2 address: "Same as Client 1" toggle
+- [x] Hide "plans to marry" question when marital status is Married/Civil Partnership
+- [x] Executors: split into Client 1 Primary, Client 1 Reserved, Client 2 Primary, Client 2 Reserved
+- [x] Guardians: split into Client 1 Guardians, Client 1 Reserved, Client 2 Guardians, Client 2 Reserved
+- [x] Funeral Wishes: split into Client 1 and Client 2 sections on same step
+- [x] Gifts/Legacies: split into Client 1 and Client 2 sections on same step
+- [x] Residuary Estate: split into Client 1 and Client 2 on Beneficiaries step
+- [x] Named Beneficiaries: split into Client 1 and Client 2 on Beneficiaries step
+- [x] Update useWillForm state for all new per-client arrays
+- [x] Update FORM_STEPS to remove redundant Client 2 step
+- [x] Update WillForm routing
+- [x] Update Step8Review with new structure
+- [x] Update email service with new structure
+- [x] Update DB schema and server router

@@ -158,16 +158,71 @@ function buildEmailHtml(record: WillInstruction): string {
 
   <div class="section">
     <h2>Executors, Trustees &amp; Guardians</h2>
-    <div class="field"><span class="field-label">Executors:</span><span class="field-value">${formatPersonList(record.executors)}</span></div>
-    <div class="field"><span class="field-label">Trustees:</span><span class="field-value">${formatPersonList(record.trustees)}</span></div>
-    <div class="field"><span class="field-label">Guardians:</span><span class="field-value">${formatPersonList(record.guardians)}</span></div>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="width:50%;vertical-align:top;padding-right:16px;">
+        <strong style="color:#c9a84c;">Client 1</strong><br/>
+        <div class="field"><span class="field-label">Primary Executors:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client1Executors ?? record.executors)}</span></div>
+        <div class="field"><span class="field-label">Reserved Executors:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client1ReservedExecutors)}</span></div>
+        <div class="field"><span class="field-label">Primary Guardians:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client1Guardians ?? record.guardians)}</span></div>
+        <div class="field"><span class="field-label">Reserved Guardians:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client1ReservedGuardians)}</span></div>
+      </td>${client2Name ? `<td style="width:50%;vertical-align:top;padding-left:16px;border-left:1px solid #e8f0ec;">
+        <strong style="color:#c9a84c;">Client 2</strong><br/>
+        <div class="field"><span class="field-label">Primary Executors:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client2Executors)}</span></div>
+        <div class="field"><span class="field-label">Reserved Executors:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client2ReservedExecutors)}</span></div>
+        <div class="field"><span class="field-label">Primary Guardians:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client2Guardians)}</span></div>
+        <div class="field"><span class="field-label">Reserved Guardians:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client2ReservedGuardians)}</span></div>
+      </td>` : ""}</tr>
+    </table>
+    <div class="field" style="margin-top:12px;"><span class="field-label">Trustees (Shared):</span><span class="field-value">${formatPersonList(record.trustees)}</span></div>
   </div>
 
   <div class="section">
-    <h2>Beneficiaries</h2>
-    <div class="field"><span class="field-label">Beneficiaries:</span><span class="field-value">${formatPersonList(record.beneficiaries)}</span></div>
-    <div class="field"><span class="field-label">Children Benefit Age:</span><span class="field-value">${record.childrenBenefitAge ?? "—"}</span></div>
-    <div class="field"><span class="field-label">Vulnerable Beneficiary:</span><span class="field-value">${record.hasVulnerableBeneficiary === "yes" ? `Yes — ${record.vulnerableBeneficiaryDetails ?? ""}` : "No"}</span></div>
+    <h2>Funeral Wishes</h2>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="width:50%;vertical-align:top;padding-right:16px;">
+        <strong style="color:#c9a84c;">Client 1</strong><br/>
+        <div class="field"><span class="field-label">Funeral Type:</span><span class="field-value">${(record as Record<string,unknown>).client1FuneralType ?? record.funeralType ?? "—"}</span></div>
+        <div class="field"><span class="field-label">Wishes:</span><span class="field-value">${(record as Record<string,unknown>).client1FuneralWishes ?? record.funeralWishes ?? "—"}</span></div>
+        <div class="field"><span class="field-label">Organ Donation:</span><span class="field-value">${((record as Record<string,unknown>).client1OrganDonation ?? record.organDonation) === "yes" ? "Yes" : ((record as Record<string,unknown>).client1OrganDonation ?? record.organDonation) === "no" ? "No" : "—"}</span></div>
+      </td>${client2Name ? `<td style="width:50%;vertical-align:top;padding-left:16px;border-left:1px solid #e8f0ec;">
+        <strong style="color:#c9a84c;">Client 2</strong><br/>
+        <div class="field"><span class="field-label">Funeral Type:</span><span class="field-value">${(record as Record<string,unknown>).client2FuneralType ?? "—"}</span></div>
+        <div class="field"><span class="field-label">Wishes:</span><span class="field-value">${(record as Record<string,unknown>).client2FuneralWishes ?? "—"}</span></div>
+        <div class="field"><span class="field-label">Organ Donation:</span><span class="field-value">${(record as Record<string,unknown>).client2OrganDonation === "yes" ? "Yes" : (record as Record<string,unknown>).client2OrganDonation === "no" ? "No" : "—"}</span></div>
+      </td>` : ""}</tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Legacies &amp; Gifts</h2>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="width:50%;vertical-align:top;padding-right:16px;">
+        <strong style="color:#c9a84c;">Client 1</strong><br/>
+        ${Array.isArray((record as Record<string,unknown>).client1SpecificGifts) && ((record as Record<string,unknown>).client1SpecificGifts as unknown[]).length > 0 ? ((record as Record<string,unknown>).client1SpecificGifts as Record<string,string>[]).map((g,i) => `<div class="field"><span class="field-label">${g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`}:</span><span class="field-value">${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}</span></div>`).join("") : "<span style='color:#888;font-size:13px;'>No specific gifts</span>"}
+      </td>${client2Name ? `<td style="width:50%;vertical-align:top;padding-left:16px;border-left:1px solid #e8f0ec;">
+        <strong style="color:#c9a84c;">Client 2</strong><br/>
+        ${Array.isArray((record as Record<string,unknown>).client2SpecificGifts) && ((record as Record<string,unknown>).client2SpecificGifts as unknown[]).length > 0 ? ((record as Record<string,unknown>).client2SpecificGifts as Record<string,string>[]).map((g,i) => `<div class="field"><span class="field-label">${g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`}:</span><span class="field-value">${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}</span></div>`).join("") : "<span style='color:#888;font-size:13px;'>No specific gifts</span>"}
+      </td>` : ""}</tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Beneficiaries &amp; Residuary Estate</h2>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="width:50%;vertical-align:top;padding-right:16px;">
+        <strong style="color:#c9a84c;">Client 1</strong><br/>
+        <div class="field"><span class="field-label">Residuary Estate:</span><span class="field-value">${(record as Record<string,unknown>).client1ResidualEstate ?? record.residuaryEstate ?? "—"}</span></div>
+        <div class="field"><span class="field-label">Beneficiaries:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client1Beneficiaries ?? record.beneficiaries)}</span></div>
+        <div class="field"><span class="field-label">Children Benefit Age:</span><span class="field-value">${(record as Record<string,unknown>).client1ChildrenBenefitAge ?? record.childrenBenefitAge ?? "—"}</span></div>
+        ${(record as Record<string,unknown>).client1HasVulnerableBeneficiary === "yes" ? `<div class="field"><span class="field-label">Vulnerable Beneficiary:</span><span class="field-value">Yes — ${(record as Record<string,unknown>).client1VulnerableBeneficiaryDetails ?? ""}</span></div>` : ""}
+      </td>${client2Name ? `<td style="width:50%;vertical-align:top;padding-left:16px;border-left:1px solid #e8f0ec;">
+        <strong style="color:#c9a84c;">Client 2</strong><br/>
+        <div class="field"><span class="field-label">Residuary Estate:</span><span class="field-value">${(record as Record<string,unknown>).client2ResidualEstate ?? "—"}</span></div>
+        <div class="field"><span class="field-label">Beneficiaries:</span><span class="field-value">${formatPersonList((record as Record<string,unknown>).client2Beneficiaries)}</span></div>
+        <div class="field"><span class="field-label">Children Benefit Age:</span><span class="field-value">${(record as Record<string,unknown>).client2ChildrenBenefitAge ?? "—"}</span></div>
+        ${(record as Record<string,unknown>).client2HasVulnerableBeneficiary === "yes" ? `<div class="field"><span class="field-label">Vulnerable Beneficiary:</span><span class="field-value">Yes — ${(record as Record<string,unknown>).client2VulnerableBeneficiaryDetails ?? ""}</span></div>` : ""}
+      </td>` : ""}</tr>
+    </table>
   </div>
 
   <div class="section">
@@ -197,10 +252,7 @@ function buildEmailHtml(record: WillInstruction): string {
     <div class="field"><span class="field-label">Care Concerns:</span><span class="field-value">${record.careConcerns === "yes" ? `Yes — ${record.careConcernDetails ?? ""}` : "No"}</span></div>
   </div>
 
-  <div class="section">
-    <h2>Legacies &amp; Gifts</h2>
-    ${Array.isArray(record.specificGifts) && record.specificGifts.length > 0 ? (record.specificGifts as Record<string,string>[]).map((g, i) => `<div class="field"><span class="field-label">${g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`}:</span><span class="field-value">${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}</span></div>`).join("") : "<div class='field'><span class='field-value'>No specific gifts or legacies</span></div>"}
-  </div>
+
 
   <div class="section">
     <h2>Pets</h2>
@@ -208,14 +260,7 @@ function buildEmailHtml(record: WillInstruction): string {
     ${record.petsCarer ? `<div class="field"><span class="field-label">Proposed Carer:</span><span class="field-value">${record.petsCarer}</span></div>` : ""}
   </div>
 
-  <div class="section">
-    <h2>Wishes</h2>
-    <div class="field"><span class="field-label">Residuary Estate:</span><span class="field-value">${record.residuaryEstate ?? "—"}</span></div>
-    <div class="field"><span class="field-label">Funeral Type:</span><span class="field-value">${record.funeralType ?? "—"}</span></div>
-    <div class="field"><span class="field-label">Funeral Wishes:</span><span class="field-value">${record.funeralWishes ?? "—"}</span></div>
-    <div class="field"><span class="field-label">Organ Donation:</span><span class="field-value">${record.organDonation ?? "—"}</span></div>
-    ${record.specialNotes ? `<div class="field"><span class="field-label">Special Notes:</span><span class="field-value">${record.specialNotes}</span></div>` : ""}
-  </div>
+
 
   <div class="section">
     <h2>Disaster Clause &amp; Final Notes</h2>
