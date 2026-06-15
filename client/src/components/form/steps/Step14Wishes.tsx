@@ -1,11 +1,11 @@
 import { WillFormData } from "../../../hooks/useWillForm";
-import { FormCard, FieldRow, SectionDivider } from "../FormCard";
+import { FormCard, FieldRow } from "../FormCard";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { FUNERAL_TYPES } from "../../../../../shared/willConstants";
-import { Flower2, BookOpen } from "lucide-react";
+import { Flower2 } from "lucide-react";
 
 interface Props {
   data: WillFormData;
@@ -15,39 +15,6 @@ interface Props {
 export default function Step14Wishes({ data, onChange }: Props) {
   return (
     <div className="space-y-5">
-      {/* Residuary Estate */}
-      <FormCard
-        title="Residuary Estate"
-        subtitle="Who inherits the remainder of the estate after all gifts, debts, and expenses have been settled"
-        icon={<BookOpen className="w-4 h-4" />}
-      >
-        <div className="space-y-4">
-          <FieldRow
-            label="Residuary Estate — Who inherits the remainder?"
-            hint="The residuary estate is everything left after specific gifts and debts have been paid"
-          >
-            <Textarea
-              rows={3}
-              value={data.residuaryEstate ?? ""}
-              onChange={e => onChange({ residuaryEstate: e.target.value })}
-              placeholder="e.g. To my spouse absolutely, or if they predecease me, equally between my children…"
-            />
-          </FieldRow>
-
-          <FieldRow
-            label="Backup / Substitution Clause"
-            hint="What happens if the primary residuary beneficiary predeceases the client?"
-          >
-            <Textarea
-              rows={3}
-              value={data.residuaryBackup ?? ""}
-              onChange={e => onChange({ residuaryBackup: e.target.value })}
-              placeholder="e.g. If my spouse predeceases me, I leave the residue equally between my children…"
-            />
-          </FieldRow>
-        </div>
-      </FormCard>
-
       {/* Funeral Wishes */}
       <FormCard
         title="Funeral Wishes"

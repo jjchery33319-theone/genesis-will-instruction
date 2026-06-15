@@ -188,6 +188,12 @@ const willInstructionInputSchema = z.object({
   assetsOutsideUK: z.string().optional(),
   assetsOutsideUKDetails: z.string().optional(),
 
+  // Client 2 financial assets
+  client2BankAccounts: z.string().optional(),
+  client2Investments: z.string().optional(),
+  client2PensionDetails: z.string().optional(),
+  client2EstimatedEstateValue: z.string().optional(),
+
   // Life Insurance
   hasLifeInsurance: z.string().optional(),
   lifeInsurancePolicies: z.array(lifeInsurancePolicySchema).optional(),

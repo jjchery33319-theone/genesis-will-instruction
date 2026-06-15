@@ -158,14 +158,14 @@ export default function WillForm() {
     4:  <Step4FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
     5:  <Step5AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
     6:  <Step6DueDiligence data={formData} onChange={updateFormData} />,
-    7:  <Step7Executors data={formData} onChange={updateFormData} />,
+    7:  <Step7Executors data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
     8:  <Step9Property data={formData} onChange={updateFormData} />,
     9:  <Step10LifeInsurance data={formData} onChange={updateFormData} />,
     10: <Step11BusinessInterests data={formData} onChange={updateFormData} />,
     11: <Step13Pets data={formData} onChange={updateFormData} />,
-    12: <Step8Beneficiaries data={formData} onChange={updateFormData} />,
+    12: <Step14Wishes data={formData} onChange={updateFormData} />,
     13: <Step12Gifts data={formData} onChange={updateFormData} />,
-    14: <Step14Wishes data={formData} onChange={updateFormData} />,
+    14: <Step8Beneficiaries data={formData} onChange={updateFormData} />,
     15: <Step15DisasterClause data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
     16: (
       <Step16Review

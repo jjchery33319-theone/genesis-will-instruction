@@ -104,9 +104,9 @@ export const FORM_STEPS = [
   { id: 9,  title: "Life Insurance", subtitle: "Policies & protection" },
   { id: 10, title: "Business",       subtitle: "Business interests" },
   { id: 11, title: "Pets",           subtitle: "Pet provisions" },
-  { id: 12, title: "Beneficiaries",  subtitle: "Shares & conditions" },
+  { id: 12, title: "Funeral Wishes", subtitle: "Ceremony & organ donation" },
   { id: 13, title: "Gifts",          subtitle: "Legacies & charities" },
-  { id: 14, title: "Wishes",         subtitle: "Funeral & residuary" },
+  { id: 14, title: "Beneficiaries",  subtitle: "Shares & conditions" },
   { id: 15, title: "Disaster & Notes", subtitle: "Clause & final notes" },
   { id: 16, title: "Review",         subtitle: "Preview & submit" },
 ] as const;

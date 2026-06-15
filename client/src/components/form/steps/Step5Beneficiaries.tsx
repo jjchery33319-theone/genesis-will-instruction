@@ -1,17 +1,58 @@
 import { WillFormData } from "../../../hooks/useWillForm";
 import { FormCard, FieldRow, SectionDivider } from "../FormCard";
-import { PersonList } from "../PersonFields";
+import { PersonList, QuickFillSource } from "../PersonFields";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { CHILDREN_BENEFIT_AGES } from "../../../../../shared/willConstants";
-import { Heart, AlertTriangle } from "lucide-react";
+import { Heart, AlertTriangle, BookOpen } from "lucide-react";
 
 interface Props {
   data: WillFormData;
   onChange: (updates: Partial<WillFormData>) => void;
+}
+
+function buildBeneficiaryQuickFillSources(data: WillFormData): QuickFillSource[] {
+  const sources: QuickFillSource[] = [];
+  const c1Name = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ");
+  const c2Name = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ");
+  if (c1Name.trim()) {
+    sources.push({
+      label: `Client 1 — ${c1Name}`,
+      person: {
+        prefix: data.client1Prefix,
+        firstName: data.client1FirstName ?? "",
+        lastName: data.client1LastName ?? "",
+        dob: data.client1Dob,
+        phone: data.client1DaytimePhone ?? data.client1Mobile,
+        email: data.client1Email,
+        address: [data.client1AddressLine1, data.client1City, data.client1Postcode].filter(Boolean).join(", "),
+        relationship: "Client 1",
+      },
+    });
+  }
+  if (c2Name.trim()) {
+    sources.push({
+      label: `Client 2 — ${c2Name}`,
+      person: {
+        prefix: data.client2Prefix,
+        firstName: data.client2FirstName ?? "",
+        lastName: data.client2LastName ?? "",
+        dob: data.client2Dob,
+        phone: data.client2DaytimePhone ?? data.client2Mobile,
+        email: data.client2Email,
+        address: [data.client2AddressLine1, data.client2City, data.client2Postcode].filter(Boolean).join(", "),
+        relationship: "Client 2",
+      },
+    });
+  }
+  (data.executors ?? []).forEach((e, i) => {
+    const name = [e.firstName, e.lastName].filter(Boolean).join(" ");
+    if (name.trim()) sources.push({ label: `Executor ${i + 1} — ${name}`, person: e });
+  });
+  return sources;
 }
 
 export default function Step5Beneficiaries({ data, onChange }: Props) {
@@ -19,15 +60,58 @@ export default function Step5Beneficiaries({ data, onChange }: Props) {
   const isMirrorWill =
     data.productsOrdered?.includes("mirror_wills") || data.willType === "Mirror Wills";
 
+  const quickFillSources = buildBeneficiaryQuickFillSources(data);
+
   return (
     <div className="space-y-5">
+
+      {/* ── Residuary Estate ──────────────────────────────────────────────── */}
       <FormCard
-        title="Beneficiaries"
+        title="Residuary Estate"
+        subtitle="Who inherits the remainder of the estate after all specific gifts, debts, and expenses have been settled"
+        icon={<BookOpen className="w-4 h-4" />}
+      >
+        <div
+          className="mb-3 p-3 rounded-lg text-sm"
+          style={{ background: "oklch(0.97 0.015 155)", color: "oklch(0.28 0.07 155)" }}
+        >
+          <strong>Guidance:</strong> The residuary estate is everything left over after specific gifts have been distributed and all debts and expenses paid. This is typically the largest part of the estate.
+        </div>
+        <div className="space-y-4">
+          <FieldRow
+            label="Residuary Estate — Who inherits the remainder?"
+            hint="e.g. To my spouse absolutely, or if they predecease me, equally between my children"
+          >
+            <Textarea
+              rows={3}
+              value={data.residuaryEstate ?? ""}
+              onChange={e => onChange({ residuaryEstate: e.target.value })}
+              placeholder="e.g. To my spouse absolutely, or if they predecease me, equally between my children…"
+            />
+          </FieldRow>
+
+          <FieldRow
+            label="Backup / Substitution Clause"
+            hint="What happens if the primary residuary beneficiary predeceases the client?"
+          >
+            <Textarea
+              rows={3}
+              value={data.residuaryBackup ?? ""}
+              onChange={e => onChange({ residuaryBackup: e.target.value })}
+              placeholder="e.g. If my spouse predeceases me, I leave the residue equally between my children…"
+            />
+          </FieldRow>
+        </div>
+      </FormCard>
+
+      {/* ── Named Beneficiaries ───────────────────────────────────────────── */}
+      <FormCard
+        title="Named Beneficiaries"
         subtitle="The people or organisations who will inherit from the estate"
         icon={<Heart className="w-4 h-4" />}
       >
         <div className="mb-3 p-3 rounded-lg text-sm" style={{ background: "oklch(0.97 0.015 155)", color: "oklch(0.28 0.07 155)" }}>
-          <strong>Guidance:</strong> List all beneficiaries and their share of the estate. Shares should total 100%. You can specify equal shares (e.g. "Equal share") or percentages (e.g. "50%"). Include the relationship to the client.
+          <strong>Guidance:</strong> List all beneficiaries and their share of the estate. Shares should total 100%. You can specify equal shares (e.g. "Equal share") or percentages (e.g. "50%"). Use the <strong>Copy from…</strong> dropdown to reuse a previously entered person.
         </div>
 
         <PersonList
@@ -37,6 +121,7 @@ export default function Step5Beneficiaries({ data, onChange }: Props) {
           showVulnerable
           addLabel="Add Beneficiary"
           emptyMessage="No beneficiaries added yet."
+          quickFillSources={quickFillSources}
         />
 
         <SectionDivider title="Children's Benefit Age" />
@@ -61,39 +146,9 @@ export default function Step5Beneficiaries({ data, onChange }: Props) {
             </Select>
           </FieldRow>
         </div>
-
-        <SectionDivider title="Disaster Clause" />
-
-        <div className="grid grid-cols-1 gap-4">
-          <FieldRow
-            label="Disaster Clause — Client 1"
-            hint="Who should inherit if all named beneficiaries predecease the client?"
-          >
-            <Textarea
-              rows={3}
-              value={data.disasterClauseClient1 ?? ""}
-              onChange={e => onChange({ disasterClauseClient1: e.target.value })}
-              placeholder="e.g. If all named beneficiaries predecease me, I leave my estate to…"
-            />
-          </FieldRow>
-
-          {isMirrorWill && (
-            <FieldRow
-              label="Disaster Clause — Client 2"
-              hint="Who should inherit if all named beneficiaries predecease Client 2?"
-            >
-              <Textarea
-                rows={3}
-                value={data.disasterClauseClient2 ?? ""}
-                onChange={e => onChange({ disasterClauseClient2: e.target.value })}
-                placeholder="e.g. If all named beneficiaries predecease me, I leave my estate to…"
-              />
-            </FieldRow>
-          )}
-        </div>
       </FormCard>
 
-      {/* Vulnerable Beneficiary */}
+      {/* ── Vulnerable Beneficiary ────────────────────────────────────────── */}
       <FormCard
         title="Vulnerable Beneficiary"
         subtitle="Does any beneficiary have a disability, mental health condition, or other vulnerability?"

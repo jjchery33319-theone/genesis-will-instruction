@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { PROPERTY_OWNERSHIP_TYPES } from "../../../../../shared/willConstants";
-import { Home, Landmark, AlertCircle } from "lucide-react";
+import { Home, Landmark, AlertCircle, User } from "lucide-react";
 
 interface Props {
   data: WillFormData;
@@ -17,6 +17,10 @@ export default function Step6Property({ data, onChange }: Props) {
   const ownsProperty = data.propertyOwned === "yes";
   const hasOtherProperties = data.hasOtherProperties === "yes";
   const hasCareConerns = data.careConcerns === "yes";
+
+  const c1Name = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ") || "Client 1";
+  const c2Name = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ") || "Client 2";
+  const hasClient2 = !!(data.client2FirstName || data.client2LastName);
 
   return (
     <div className="space-y-5">
@@ -39,7 +43,7 @@ export default function Step6Property({ data, onChange }: Props) {
 
           {ownsProperty && (
             <div className="space-y-4 pt-2">
-              <FieldRow label="Property Address" required>
+              <FieldRow label="Property Address">
                 <Textarea
                   rows={2}
                   value={data.propertyAddress ?? ""}
@@ -142,12 +146,16 @@ export default function Step6Property({ data, onChange }: Props) {
         </div>
       </FormCard>
 
-      {/* Financial Assets */}
+      {/* Financial Assets — Client 1 */}
       <FormCard
-        title="Financial Assets"
-        subtitle="Overview of the client's financial assets for estate planning purposes"
+        title={`Financial Assets — ${c1Name}`}
+        subtitle={`Bank accounts, investments, pensions and estate value for ${c1Name}`}
         icon={<Landmark className="w-4 h-4" />}
       >
+        <div className="flex items-center gap-2 mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.28 0.07 155)" }}>
+          <User className="w-3.5 h-3.5" />
+          {c1Name}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldRow label="Bank / Building Society Accounts" hint="List main accounts and approximate balances">
             <Textarea
@@ -173,7 +181,6 @@ export default function Step6Property({ data, onChange }: Props) {
               placeholder="e.g. NHS pension, private pension with Aviva…"
             />
           </FieldRow>
-
           <FieldRow label="Estimated Total Estate Value (£)" hint="Approximate gross estate value">
             <Input
               value={data.estimatedEstateValue ?? ""}
@@ -183,6 +190,53 @@ export default function Step6Property({ data, onChange }: Props) {
           </FieldRow>
         </div>
       </FormCard>
+
+      {/* Financial Assets — Client 2 (only shown when Client 2 exists) */}
+      {hasClient2 && (
+        <FormCard
+          title={`Financial Assets — ${c2Name}`}
+          subtitle={`Bank accounts, investments, pensions and estate value for ${c2Name}`}
+          icon={<Landmark className="w-4 h-4" />}
+        >
+          <div className="flex items-center gap-2 mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.28 0.07 155)" }}>
+            <User className="w-3.5 h-3.5" />
+            {c2Name}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FieldRow label="Bank / Building Society Accounts" hint="List main accounts and approximate balances">
+              <Textarea
+                rows={3}
+                value={data.client2BankAccounts ?? ""}
+                onChange={e => onChange({ client2BankAccounts: e.target.value })}
+                placeholder="e.g. Lloyds current account, Nationwide savings…"
+              />
+            </FieldRow>
+            <FieldRow label="Investments / Stocks & Shares" hint="ISAs, shares, bonds, etc.">
+              <Textarea
+                rows={3}
+                value={data.client2Investments ?? ""}
+                onChange={e => onChange({ client2Investments: e.target.value })}
+                placeholder="e.g. Cash ISA with Halifax…"
+              />
+            </FieldRow>
+            <FieldRow label="Pension Details" hint="Workplace and personal pensions">
+              <Textarea
+                rows={3}
+                value={data.client2PensionDetails ?? ""}
+                onChange={e => onChange({ client2PensionDetails: e.target.value })}
+                placeholder="e.g. Teacher's pension, SIPP with Vanguard…"
+              />
+            </FieldRow>
+            <FieldRow label="Estimated Total Estate Value (£)" hint="Approximate gross estate value">
+              <Input
+                value={data.client2EstimatedEstateValue ?? ""}
+                onChange={e => onChange({ client2EstimatedEstateValue: e.target.value })}
+                placeholder="e.g. 350000"
+              />
+            </FieldRow>
+          </div>
+        </FormCard>
+      )}
 
       {/* Overseas Assets */}
       <FormCard

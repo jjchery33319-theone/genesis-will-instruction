@@ -143,6 +143,12 @@ export const willInstructions = mysqlTable("will_instructions", {
   pensionDetails: text("pensionDetails"),
   estimatedEstateValue: varchar("estimatedEstateValue", { length: 32 }),
 
+  // ── Client 2 Financial Assets (separate from Client 1) ────────────────────
+  client2BankAccounts: text("client2BankAccounts"),
+  client2Investments: text("client2Investments"),
+  client2PensionDetails: text("client2PensionDetails"),
+  client2EstimatedEstateValue: varchar("client2EstimatedEstateValue", { length: 32 }),
+
   // ── Life Insurance & Protection ────────────────────────────────────────────
   hasLifeInsurance: varchar("hasLifeInsurance", { length: 8 }),                // NEW
   lifeInsurancePolicies: json("lifeInsurancePolicies"),                        // NEW – array of policy objects

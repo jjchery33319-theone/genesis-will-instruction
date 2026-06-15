@@ -183,6 +183,12 @@ export type WillFormData = {
   careConcerns?: string;
   careConcernDetails?: string;
 
+  // Client 2 financial assets (separate from Client 1)
+  client2BankAccounts?: string;
+  client2Investments?: string;
+  client2PensionDetails?: string;
+  client2EstimatedEstateValue?: string;
+
   // Step 10 — Life Insurance & Protection
   hasLifeInsurance?: string;
   lifeInsurancePolicies?: LifeInsurancePolicy[];
