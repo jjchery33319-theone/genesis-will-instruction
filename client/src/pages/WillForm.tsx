@@ -4,21 +4,20 @@ import { FORM_STEPS } from "../../../shared/willConstants";
 import StepIndicator from "../components/form/StepIndicator";
 import FormHeader from "../components/form/FormHeader";
 import Step1Appointment from "../components/form/steps/Step1Appointment";
-import Step2Client1 from "../components/form/steps/Step2Client1";
-import Step3Client2 from "../components/form/steps/Step3Client2";
-import Step4FamilyBackground from "../components/form/steps/Step4FamilyBackground";
-import Step5AdditionalBackground from "../components/form/steps/Step5AdditionalBackground";
-import Step6DueDiligence from "../components/form/steps/Step6DueDiligence";
-import Step7Executors from "../components/form/steps/Step4Executors";
-import Step8Beneficiaries from "../components/form/steps/Step5Beneficiaries";
-import Step9Property from "../components/form/steps/Step6Property";
-import Step10LifeInsurance from "../components/form/steps/Step10LifeInsurance";
-import Step11BusinessInterests from "../components/form/steps/Step11BusinessInterests";
+import Step2Clients from "../components/form/steps/Step2Clients";
+import Step3FamilyBackground from "../components/form/steps/Step4FamilyBackground";
+import Step4AdditionalBackground from "../components/form/steps/Step5AdditionalBackground";
+import Step5DueDiligence from "../components/form/steps/Step6DueDiligence";
+import Step6Executors from "../components/form/steps/Step4Executors";
+import Step7Property from "../components/form/steps/Step6Property";
+import Step8LifeInsurance from "../components/form/steps/Step10LifeInsurance";
+import Step9BusinessInterests from "../components/form/steps/Step11BusinessInterests";
+import Step10Pets from "../components/form/steps/Step13Pets";
+import Step11FuneralWishes from "../components/form/steps/Step14Wishes";
 import Step12Gifts from "../components/form/steps/Step12Gifts";
-import Step13Pets from "../components/form/steps/Step13Pets";
-import Step14Wishes from "../components/form/steps/Step14Wishes";
-import Step15DisasterClause from "../components/form/steps/Step15DisasterClause";
-import Step16Review from "../components/form/steps/Step8Review";
+import Step13Beneficiaries from "../components/form/steps/Step5Beneficiaries";
+import Step14DisasterClause from "../components/form/steps/Step15DisasterClause";
+import Step15Review from "../components/form/steps/Step8Review";
 import { useWillForm } from "../hooks/useWillForm";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, RotateCcw, Trash2, Save, CheckCircle2, AlertCircle, Clock } from "lucide-react";
@@ -153,22 +152,21 @@ export default function WillForm() {
 
   const stepComponents: Record<number, React.ReactNode> = {
     1:  <Step1Appointment data={formData} onChange={updateFormData} />,
-    2:  <Step2Client1 data={formData} onChange={updateFormData} />,
-    3:  <Step3Client2 data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    4:  <Step4FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    5:  <Step5AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    6:  <Step6DueDiligence data={formData} onChange={updateFormData} />,
-    7:  <Step7Executors data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    8:  <Step9Property data={formData} onChange={updateFormData} />,
-    9:  <Step10LifeInsurance data={formData} onChange={updateFormData} />,
-    10: <Step11BusinessInterests data={formData} onChange={updateFormData} />,
-    11: <Step13Pets data={formData} onChange={updateFormData} />,
-    12: <Step14Wishes data={formData} onChange={updateFormData} />,
-    13: <Step12Gifts data={formData} onChange={updateFormData} />,
-    14: <Step8Beneficiaries data={formData} onChange={updateFormData} />,
-    15: <Step15DisasterClause data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    16: (
-      <Step16Review
+    2:  <Step2Clients data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    3:  <Step3FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    4:  <Step4AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    5:  <Step5DueDiligence data={formData} onChange={updateFormData} />,
+    6:  <Step6Executors data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    7:  <Step7Property data={formData} onChange={updateFormData} />,
+    8:  <Step8LifeInsurance data={formData} onChange={updateFormData} />,
+    9:  <Step9BusinessInterests data={formData} onChange={updateFormData} />,
+    10: <Step10Pets data={formData} onChange={updateFormData} />,
+    11: <Step11FuneralWishes data={formData} onChange={updateFormData} />,
+    12: <Step12Gifts data={formData} onChange={updateFormData} />,
+    13: <Step13Beneficiaries data={formData} onChange={updateFormData} />,
+    14: <Step14DisasterClause data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+    15: (
+      <Step15Review
         data={formData}
         onEdit={goToStep}
         onSubmit={submitForm}

@@ -84,6 +84,9 @@ export type WillFormData = {
   client1Email?: string;
   client1Nationality?: string;
 
+  // Client 2 same address toggle
+  client2SameAddressAsClient1?: boolean;
+
   // Step 3 — Client 2
   client2Prefix?: string;
   client2FirstName?: string;
@@ -148,14 +151,36 @@ export type WillFormData = {
   ddKnewAppointees?: string;
   ddKnewAppointeesNotes?: string;
 
-  // Step 7 — Executors / Trustees / Guardians
+  // Step 7 — Executors / Trustees / Guardians (per-client)
+  client1Executors?: PersonEntry[];
+  client1ReservedExecutors?: PersonEntry[];
+  client2Executors?: PersonEntry[];
+  client2ReservedExecutors?: PersonEntry[];
+  trustees?: PersonEntry[];
+  client1Guardians?: PersonEntry[];
+  client1ReservedGuardians?: PersonEntry[];
+  client2Guardians?: PersonEntry[];
+  client2ReservedGuardians?: PersonEntry[];
+  // Legacy shared fields
   executors?: PersonEntry[];
   reservedExecutors?: PersonEntry[];
-  trustees?: PersonEntry[];
   guardians?: PersonEntry[];
   reservedGuardians?: PersonEntry[];
 
-  // Step 8 — Beneficiaries
+  // Step 8 — Beneficiaries (per-client)
+  client1Beneficiaries?: PersonEntry[];
+  client1ResidualEstate?: string;
+  client1ResidualBackup?: string;
+  client1ChildrenBenefitAge?: string;
+  client1HasVulnerableBeneficiary?: string;
+  client1VulnerableBeneficiaryDetails?: string;
+  client2Beneficiaries?: PersonEntry[];
+  client2ResidualEstate?: string;
+  client2ResidualBackup?: string;
+  client2ChildrenBenefitAge?: string;
+  client2HasVulnerableBeneficiary?: string;
+  client2VulnerableBeneficiaryDetails?: string;
+  // Legacy shared fields
   beneficiaries?: PersonEntry[];
   childrenBenefitAge?: string;
   disasterClauseClient1?: string;
@@ -199,7 +224,9 @@ export type WillFormData = {
   businessInterests?: string;
   businessInterestsDetails?: BusinessInterestEntry[];
 
-  // Step 12 — Legacies & Gifts
+  // Step 12 — Legacies & Gifts (per-client)
+  client1SpecificGifts?: SpecificGift[];
+  client2SpecificGifts?: SpecificGift[];
   specificGifts?: SpecificGift[];
 
   // Step 13 — Pets
@@ -207,7 +234,14 @@ export type WillFormData = {
   petsDetails?: string;
   petsCarer?: string;
 
-  // Step 14 — Wishes
+  // Step 14 — Funeral Wishes (per-client)
+  client1FuneralType?: string;
+  client1FuneralWishes?: string;
+  client1OrganDonation?: string;
+  client2FuneralType?: string;
+  client2FuneralWishes?: string;
+  client2OrganDonation?: string;
+  // Legacy shared fields
   residuaryEstate?: string;
   residuaryBackup?: string;
   funeralType?: string;
@@ -222,12 +256,29 @@ export type WillFormData = {
 
 const initialData: WillFormData = {
   productsOrdered: [],
+  // Per-client executors
+  client1Executors: [],
+  client1ReservedExecutors: [],
+  client2Executors: [],
+  client2ReservedExecutors: [],
+  trustees: [],
+  // Per-client guardians
+  client1Guardians: [],
+  client1ReservedGuardians: [],
+  client2Guardians: [],
+  client2ReservedGuardians: [],
+  // Legacy
   executors: [],
   reservedExecutors: [],
-  trustees: [],
   guardians: [],
   reservedGuardians: [],
+  // Per-client beneficiaries
+  client1Beneficiaries: [],
+  client2Beneficiaries: [],
   beneficiaries: [],
+  // Per-client gifts
+  client1SpecificGifts: [],
+  client2SpecificGifts: [],
   specificGifts: [],
   lifeInsurancePolicies: [],
   businessInterestsDetails: [],

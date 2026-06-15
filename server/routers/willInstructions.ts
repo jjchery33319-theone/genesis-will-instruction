@@ -95,10 +95,24 @@ const willInstructionInputSchema = z.object({
   client2Email: z.string().optional(),
   client2Nationality: z.string().optional(),
 
-  // Executors, trustees, guardians, beneficiaries
+  // Client 2 same address
+  client2SameAddressAsClient1: z.boolean().optional(),
+
+  // Per-client executors
+  client1Executors: z.array(personSchema).optional(),
+  client1ReservedExecutors: z.array(personSchema).optional(),
+  client2Executors: z.array(personSchema).optional(),
+  client2ReservedExecutors: z.array(personSchema).optional(),
+  // Per-client guardians
+  client1Guardians: z.array(personSchema).optional(),
+  client1ReservedGuardians: z.array(personSchema).optional(),
+  client2Guardians: z.array(personSchema).optional(),
+  client2ReservedGuardians: z.array(personSchema).optional(),
+  // Shared trustees
+  trustees: z.array(personSchema).optional(),
+  // Legacy shared fields
   executors: z.array(personSchema).optional(),
   reservedExecutors: z.array(personSchema).optional(),
-  trustees: z.array(personSchema).optional(),
   guardians: z.array(personSchema).optional(),
   reservedGuardians: z.array(personSchema).optional(),
   beneficiaries: z.array(personSchema).optional(),
@@ -122,7 +136,33 @@ const willInstructionInputSchema = z.object({
   pensionDetails: z.string().optional(),
   estimatedEstateValue: z.string().optional(),
 
-  // Gifts & wishes
+  // Per-client beneficiaries
+  client1Beneficiaries: z.array(personSchema).optional(),
+  client1ResidualEstate: z.string().optional(),
+  client1ResidualBackup: z.string().optional(),
+  client1ChildrenBenefitAge: z.string().optional(),
+  client1HasVulnerableBeneficiary: z.string().optional(),
+  client1VulnerableBeneficiaryDetails: z.string().optional(),
+  client2Beneficiaries: z.array(personSchema).optional(),
+  client2ResidualEstate: z.string().optional(),
+  client2ResidualBackup: z.string().optional(),
+  client2ChildrenBenefitAge: z.string().optional(),
+  client2HasVulnerableBeneficiary: z.string().optional(),
+  client2VulnerableBeneficiaryDetails: z.string().optional(),
+
+  // Per-client gifts
+  client1SpecificGifts: z.array(specificGiftSchema).optional(),
+  client2SpecificGifts: z.array(specificGiftSchema).optional(),
+
+  // Per-client funeral wishes
+  client1FuneralType: z.string().optional(),
+  client1FuneralWishes: z.string().optional(),
+  client1OrganDonation: z.string().optional(),
+  client2FuneralType: z.string().optional(),
+  client2FuneralWishes: z.string().optional(),
+  client2OrganDonation: z.string().optional(),
+
+  // Legacy shared gifts & wishes
   specificGifts: z.array(specificGiftSchema).optional(),
   residuaryEstate: z.string().optional(),
   residuaryBackup: z.string().optional(),
@@ -240,6 +280,18 @@ export const willInstructionsRouter = router({
         reservedGuardians: input.reservedGuardians ?? [],
         beneficiaries: input.beneficiaries ?? [],
         specificGifts: input.specificGifts ?? [],
+        client1Executors: input.client1Executors ?? [],
+        client1ReservedExecutors: input.client1ReservedExecutors ?? [],
+        client2Executors: input.client2Executors ?? [],
+        client2ReservedExecutors: input.client2ReservedExecutors ?? [],
+        client1Guardians: input.client1Guardians ?? [],
+        client1ReservedGuardians: input.client1ReservedGuardians ?? [],
+        client2Guardians: input.client2Guardians ?? [],
+        client2ReservedGuardians: input.client2ReservedGuardians ?? [],
+        client1Beneficiaries: input.client1Beneficiaries ?? [],
+        client2Beneficiaries: input.client2Beneficiaries ?? [],
+        client1SpecificGifts: input.client1SpecificGifts ?? [],
+        client2SpecificGifts: input.client2SpecificGifts ?? [],
         client1ChildrenUnder18: input.client1ChildrenUnder18 ?? [],
         client1ChildrenOver18: input.client1ChildrenOver18 ?? [],
         client2ChildrenUnder18: input.client2ChildrenUnder18 ?? [],
