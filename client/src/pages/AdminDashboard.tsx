@@ -1,12 +1,61 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc";
 import { Link, useLocation } from "wouter";
-import { Loader2, FileText, Eye, Plus, LayoutDashboard, FileEdit, Trash2, PlayCircle, Clock } from "lucide-react";
+import {
+  Loader2, FileText, Eye, Plus, LayoutDashboard, FileEdit,
+  Trash2, PlayCircle, Clock, CheckCircle2, XCircle, ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PRODUCTS } from "../../../shared/willConstants";
 import { toast } from "sonner";
+
+type SubmissionStatus = "submitted" | "processing" | "complete" | "cancelled";
+
+const STATUS_CONFIG: Record<SubmissionStatus, { label: string; bg: string; color: string; icon: React.ReactNode }> = {
+  submitted: {
+    label: "Submitted",
+    bg: "oklch(0.78 0.12 85)",
+    color: "oklch(0.2 0.05 155)",
+    icon: <Clock className="w-3 h-3" />,
+  },
+  processing: {
+    label: "Processing",
+    bg: "oklch(0.7 0.15 250)",
+    color: "white",
+    icon: <PlayCircle className="w-3 h-3" />,
+  },
+  complete: {
+    label: "Complete",
+    bg: "oklch(0.55 0.15 145)",
+    color: "white",
+    icon: <CheckCircle2 className="w-3 h-3" />,
+  },
+  cancelled: {
+    label: "Cancelled",
+    bg: "oklch(0.6 0.18 25)",
+    color: "white",
+    icon: <XCircle className="w-3 h-3" />,
+  },
+};
 
 function getProductLabel(id: string) {
   return PRODUCTS.find(p => p.id === id)?.label ?? id;
@@ -35,19 +84,46 @@ function timeAgo(date: Date | string | null | undefined) {
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
+
   const { data: submissions, isLoading: loadingSubmissions } = trpc.will.list.useQuery();
-  const { data: drafts, isLoading: loadingDrafts, refetch: refetchDrafts } = trpc.will.listDrafts.useQuery();
+  const { data: drafts, isLoading: loadingDrafts } = trpc.will.listDrafts.useQuery();
+
+  // Delete confirmation dialog state
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+
+  // ── Mutations ────────────────────────────────────────────────────────────────
   const deleteDraftMutation = trpc.will.deleteDraft.useMutation({
     onSuccess: () => {
       toast.success("Draft deleted.");
-      refetchDrafts();
+      utils.will.listDrafts.invalidate();
     },
     onError: () => toast.error("Failed to delete draft."),
   });
 
-  const handleResumeDraft = (draftId: number) => {
-    navigate(`/?draftId=${draftId}`);
-  };
+  const deleteSubmissionMutation = trpc.will.deleteSubmission.useMutation({
+    onSuccess: () => {
+      toast.success("Submission deleted.");
+      utils.will.list.invalidate();
+      setDeleteTarget(null);
+    },
+    onError: () => {
+      toast.error("Failed to delete submission.");
+      setDeleteTarget(null);
+    },
+  });
+
+  const updateStatusMutation = trpc.will.updateStatus.useMutation({
+    onSuccess: (_data, variables) => {
+      const cfg = STATUS_CONFIG[variables.status as SubmissionStatus];
+      toast.success(`Status updated to "${cfg?.label ?? variables.status}".`);
+      utils.will.list.invalidate();
+    },
+    onError: () => toast.error("Failed to update status."),
+  });
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+  const handleResumeDraft = (draftId: number) => navigate(`/?draftId=${draftId}`);
 
   const handleDeleteDraft = (draftId: number) => {
     if (confirm("Delete this draft? This cannot be undone.")) {
@@ -55,6 +131,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteSubmission = (id: number, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDeleteSubmission = () => {
+    if (deleteTarget) deleteSubmissionMutation.mutate({ id: deleteTarget.id });
+  };
+
+  const handleStatusChange = (id: number, status: SubmissionStatus) => {
+    updateStatusMutation.mutate({ id, status });
+  };
+
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen" style={{ background: "oklch(0.97 0.01 155)" }}>
       {/* Header */}
@@ -95,7 +184,7 @@ export default function AdminDashboard() {
             { label: "Total Submitted", value: submissions?.length ?? 0 },
             { label: "Drafts In Progress", value: drafts?.length ?? 0 },
             { label: "This Month", value: submissions?.filter(s => new Date(s.createdAt).getMonth() === new Date().getMonth()).length ?? 0 },
-            { label: "With LPAs", value: submissions?.filter(s => Array.isArray(s.productsOrdered) && (s.productsOrdered as string[]).some((p: string) => p.includes("lpa") || p === "both_lpas")).length ?? 0 },
+            { label: "Complete", value: submissions?.filter(s => s.status === "complete").length ?? 0 },
           ].map(stat => (
             <div key={stat.label} className="bg-white rounded-xl border border-border p-4 text-center">
               <p className="text-2xl font-bold genesis-green-text">{stat.value}</p>
@@ -165,12 +254,16 @@ export default function AdminDashboard() {
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Products</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Date</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Status</th>
-                        <th className="px-4 py-3"></th>
+                        <th className="px-4 py-3 text-right font-semibold text-muted-foreground text-xs uppercase tracking-wide">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {submissions.map((sub, index) => {
                         const products = Array.isArray(sub.productsOrdered) ? sub.productsOrdered as string[] : [];
+                        const status = (sub.status ?? "submitted") as SubmissionStatus;
+                        const statusCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.submitted;
+                        const clientName = `${sub.client1FirstName ?? ""} ${sub.client1LastName ?? ""}`.trim() || "Unknown";
+
                         return (
                           <tr
                             key={sub.id}
@@ -183,9 +276,7 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="font-medium text-foreground">
-                                {sub.client1FirstName} {sub.client1LastName}
-                              </span>
+                              <span className="font-medium text-foreground">{clientName}</span>
                             </td>
                             <td className="px-4 py-3 text-muted-foreground">{sub.consultantName ?? "—"}</td>
                             <td className="px-4 py-3">
@@ -207,21 +298,65 @@ export default function AdminDashboard() {
                               </div>
                             </td>
                             <td className="px-4 py-3 text-muted-foreground text-xs">{formatDate(sub.createdAt)}</td>
+
+                            {/* ── Status dropdown ── */}
                             <td className="px-4 py-3">
-                              <Badge
-                                className="text-xs capitalize"
-                                style={{ background: "oklch(0.78 0.12 85)", color: "oklch(0.2 0.05 155)" }}
-                              >
-                                {sub.status}
-                              </Badge>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    style={{ background: statusCfg.bg, color: statusCfg.color }}
+                                    disabled={updateStatusMutation.isPending}
+                                  >
+                                    {statusCfg.icon}
+                                    {statusCfg.label}
+                                    <ChevronDown className="w-3 h-3 opacity-70" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-44">
+                                  <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Change status to</div>
+                                  <DropdownMenuSeparator />
+                                  {(Object.entries(STATUS_CONFIG) as [SubmissionStatus, typeof STATUS_CONFIG[SubmissionStatus]][])
+                                    .filter(([s]) => s !== status)
+                                    .map(([s, cfg]) => (
+                                      <DropdownMenuItem
+                                        key={s}
+                                        className="gap-2 cursor-pointer"
+                                        onClick={() => handleStatusChange(sub.id, s)}
+                                      >
+                                        <span
+                                          className="flex items-center justify-center w-5 h-5 rounded-full text-[10px]"
+                                          style={{ background: cfg.bg, color: cfg.color }}
+                                        >
+                                          {cfg.icon}
+                                        </span>
+                                        {cfg.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </td>
+
+                            {/* ── Actions ── */}
                             <td className="px-4 py-3">
-                              <Link href={`/admin/submission/${sub.id}`}>
-                                <Button variant="ghost" size="sm" className="gap-1.5 h-7 text-xs">
-                                  <Eye className="w-3 h-3" />
-                                  View
+                              <div className="flex items-center justify-end gap-1">
+                                <Link href={`/admin/submission/${sub.id}`}>
+                                  <Button variant="ghost" size="sm" className="gap-1.5 h-7 text-xs">
+                                    <Eye className="w-3 h-3" />
+                                    View
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => handleDeleteSubmission(sub.id, clientName)}
+                                  disabled={deleteSubmissionMutation.isPending}
+                                  title="Delete submission"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
-                              </Link>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -273,7 +408,7 @@ export default function AdminDashboard() {
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Consultant</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Step</th>
                         <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Last Saved</th>
-                        <th className="px-4 py-3"></th>
+                        <th className="px-4 py-3 text-right font-semibold text-muted-foreground text-xs uppercase tracking-wide">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -292,28 +427,22 @@ export default function AdminDashboard() {
                             <span className="font-medium text-foreground">
                               {draft.client1FirstName || draft.client1LastName
                                 ? `${draft.client1FirstName ?? ""} ${draft.client1LastName ?? ""}`.trim()
-                                : <span className="text-muted-foreground italic">No name yet</span>
-                              }
+                                : <span className="text-muted-foreground italic">Not started</span>}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">{draft.consultantName ?? "—"}</td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="w-3 h-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">
-                                Step {draft.currentStep ?? 1} of 15
-                              </span>
-                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              Step {draft.currentStep ?? 1}
+                            </Badge>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs">
-                            {timeAgo(draft.updatedAt)}
-                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{timeAgo(draft.updatedAt)}</td>
                           <td className="px-4 py-3">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center justify-end gap-1">
                               <Button
+                                variant="ghost"
                                 size="sm"
                                 className="gap-1.5 h-7 text-xs"
-                                style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
                                 onClick={() => handleResumeDraft(draft.id)}
                               >
                                 <PlayCircle className="w-3 h-3" />
@@ -322,11 +451,12 @@ export default function AdminDashboard() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="gap-1.5 h-7 text-xs text-destructive hover:text-destructive"
+                                className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 onClick={() => handleDeleteDraft(draft.id)}
                                 disabled={deleteDraftMutation.isPending}
+                                title="Delete draft"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </div>
                           </td>
@@ -340,6 +470,32 @@ export default function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the submission for{" "}
+              <strong>{deleteTarget?.name}</strong>. This action cannot be undone and the data will be lost forever.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSubmission}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSubmissionMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Delete permanently"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

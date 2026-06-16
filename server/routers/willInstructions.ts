@@ -491,9 +491,21 @@ export const willInstructionsRouter = router({
       return { success: true };
     }),
 
+  // Delete a submitted instruction (admin only)
+  deleteSubmission: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db
+        .delete(willInstructions)
+        .where(eq(willInstructions.id, input.id));
+      return { success: true };
+    }),
+
   // Update status of a submitted instruction
   updateStatus: publicProcedure
-    .input(z.object({ id: z.number(), status: z.enum(["submitted", "processing", "complete"]) }))
+    .input(z.object({ id: z.number(), status: z.enum(["submitted", "processing", "complete", "cancelled"]) }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");

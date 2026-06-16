@@ -191,7 +191,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   aiClientEmailDraft: text("aiClientEmailDraft"),
 
   // ── Meta ───────────────────────────────────────────────────────────────────
-  status: mysqlEnum("status", ["draft", "submitted", "processing", "complete"]).default("submitted").notNull(),
+  status: mysqlEnum("status", ["draft", "submitted", "processing", "complete", "cancelled"]).default("submitted").notNull(),
   currentStep: int("currentStep").notNull().default(1),
   emailSent: int("emailSent").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
