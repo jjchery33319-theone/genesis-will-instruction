@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { trpc } from "../lib/trpc";
 import { useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ export type LifeInsurancePolicy = {
   provider: string;
   policyNumber?: string;
   sumAssured?: string;
+  termRemaining?: string;
   inTrust?: boolean;
   beneficiary?: string;
   notes?: string;
@@ -288,130 +289,12 @@ const initialData: WillFormData = {
   client2ChildrenOver18: [],
 };
 
-// ─── Auto-save constants ──────────────────────────────────────────────────────
-const STORAGE_KEY = "genesis_will_draft";
-const STORAGE_STEP_KEY = "genesis_will_draft_step";
-const STORAGE_TS_KEY = "genesis_will_draft_ts";
-const DEBOUNCE_MS = 1000;
-
-export type AutoSaveStatus = "idle" | "saving" | "saved" | "error";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function loadDraft(): { data: WillFormData; step: number; savedAt: Date } | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const stepRaw = localStorage.getItem(STORAGE_STEP_KEY);
-    const tsRaw = localStorage.getItem(STORAGE_TS_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as WillFormData;
-    const step = stepRaw ? parseInt(stepRaw, 10) : 1;
-    const savedAt = tsRaw ? new Date(tsRaw) : new Date();
-    return { data, step, savedAt };
-  } catch {
-    return null;
-  }
-}
-
-function saveDraft(data: WillFormData, step: number): boolean {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    localStorage.setItem(STORAGE_STEP_KEY, String(step));
-    localStorage.setItem(STORAGE_TS_KEY, new Date().toISOString());
-    return true;
-  } catch (e) {
-    // localStorage quota exceeded or unavailable
-    console.warn("[AutoSave] Could not save draft:", e);
-    return false;
-  }
-}
-
-function clearDraft(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STORAGE_STEP_KEY);
-    localStorage.removeItem(STORAGE_TS_KEY);
-  } catch {
-    // ignore
-  }
-}
-
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useWillForm() {
   const [formData, setFormData] = useState<WillFormData>(initialData);
   const [currentStep, setCurrentStep] = useState(1);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle");
-  const [hasDraft, setHasDraft] = useState(false);
-  const [draftInfo, setDraftInfo] = useState<{ savedAt: Date; step: number } | null>(null);
   const [, navigate] = useLocation();
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isFirstRender = useRef(true);
 
-  // ── Check for existing draft on mount ──────────────────────────────────────
-  useEffect(() => {
-    const draft = loadDraft();
-    if (draft) {
-      // Only show restore prompt if there's meaningful data (client name filled)
-      const hasMeaningfulData = !!(draft.data.client1FirstName || draft.data.client1LastName || draft.data.consultantName);
-      if (hasMeaningfulData) {
-        setHasDraft(true);
-        setDraftInfo({ savedAt: draft.savedAt, step: draft.step });
-      }
-    }
-  }, []);
-
-  // ── Debounced auto-save whenever formData or currentStep changes ───────────
-  useEffect(() => {
-    // Skip the very first render to avoid immediately overwriting a draft
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    // Don't auto-save if we're showing the restore prompt (hasDraft = true means
-    // the user hasn't decided yet — we don't want to overwrite with empty state)
-    if (hasDraft) return;
-
-    setAutoSaveStatus("saving");
-
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      const ok = saveDraft(formData, currentStep);
-      setAutoSaveStatus(ok ? "saved" : "error");
-      if (!ok) {
-        // Notify consultant once so they know the draft won't persist
-        toast.warning("Auto-save unavailable — please submit soon to avoid losing data.", { id: "autosave-error", duration: 6000 });
-      }
-    }, DEBOUNCE_MS);
-
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
-  }, [formData, currentStep, hasDraft]);
-
-  // ── Restore draft ──────────────────────────────────────────────────────────
-  const restoreDraft = useCallback(() => {
-    const draft = loadDraft();
-    if (draft) {
-      setFormData(draft.data);
-      setCurrentStep(draft.step);
-      setHasDraft(false);
-      setDraftInfo(null);
-      setAutoSaveStatus("saved");
-      toast.success("Draft restored — you can continue where you left off.");
-    }
-  }, []);
-
-  // ── Discard draft ──────────────────────────────────────────────────────────
-  const discardDraft = useCallback(() => {
-    clearDraft();
-    setHasDraft(false);
-    setDraftInfo(null);
-    setFormData(initialData);
-    setCurrentStep(1);
-    setAutoSaveStatus("idle");
-    toast.info("Draft discarded. Starting a fresh instruction.");
-  }, []);
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
   // ── Server-side draft ID ──────────────────────────────────────────────────
   const [serverDraftId, setServerDraftId] = useState<number | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -458,7 +341,6 @@ export function useWillForm() {
       setFormData(restored);
       setCurrentStep(d.currentStep ?? 1);
       setServerDraftId(d.id);
-      setHasDraft(false);
       toast.success("Draft loaded — continue where you left off.");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -469,7 +351,7 @@ export function useWillForm() {
       if (data.draftId && !serverDraftId) setServerDraftId(data.draftId);
     },
     onError: () => {
-      toast.error("Could not save draft to server. Your local auto-save is still active.");
+      toast.error("Could not save draft to server. Please try again.");
     },
   });
 
@@ -488,9 +370,8 @@ export function useWillForm() {
     }
   }, [formData, serverDraftId, currentStep, saveDraftMutation]);
 
-    const submitMutation = trpc.will.submit.useMutation({
+  const submitMutation = trpc.will.submit.useMutation({
     onSuccess: (data) => {
-      clearDraft(); // wipe the draft on successful submission
       toast.success("Will instruction submitted successfully!");
       navigate(`/success/${data.referenceNumber}`);
     },
@@ -519,12 +400,6 @@ export function useWillForm() {
     // Step management
     currentStep,
     goToStep,
-    // Auto-save state
-    autoSaveStatus,
-    hasDraft,
-    draftInfo,
-    restoreDraft,
-    discardDraft,
     // Server-side draft
     saveAsDraft,
     isSavingDraft,

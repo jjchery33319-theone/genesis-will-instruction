@@ -17,6 +17,7 @@ const emptyPolicy = (): LifeInsurancePolicy => ({
   provider: "",
   policyNumber: "",
   sumAssured: "",
+  termRemaining: "",
   inTrust: false,
   beneficiary: "",
   notes: "",
@@ -114,6 +115,13 @@ export default function Step10LifeInsurance({ data, onChange }: Props) {
                       value={policy.sumAssured ?? ""}
                       onChange={e => updatePolicy(index, { sumAssured: e.target.value })}
                       placeholder="e.g. 250000"
+                    />
+                  </FieldRow>
+                  <FieldRow label="Term Remaining" hint="Years or months left on the policy">
+                    <Input
+                      value={policy.termRemaining ?? ""}
+                      onChange={e => updatePolicy(index, { termRemaining: e.target.value })}
+                      placeholder="e.g. 15 years, 8 months"
                     />
                   </FieldRow>
                   <FieldRow label="Named Beneficiary">

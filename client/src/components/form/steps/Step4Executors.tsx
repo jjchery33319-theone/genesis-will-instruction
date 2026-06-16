@@ -25,7 +25,7 @@ function clientToPersonEntry(data: WillFormData, clientNum: 1 | 2, relationship:
   };
 }
 
-function buildQuickFillSources(data: WillFormData, excludeField?: string): QuickFillSource[] {
+function buildQuickFillSources(data: WillFormData): QuickFillSource[] {
   const sources: QuickFillSource[] = [];
   const c1Name = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ");
   const c2Name = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ");
@@ -65,7 +65,7 @@ function ClientExecutorSection({
   data: WillFormData;
   onChange: (updates: Partial<WillFormData>) => void;
   isMirrorWill?: boolean;
-  mirrorClientNum?: 1 | 2; // which client to suggest as executor for this section
+  mirrorClientNum?: 1 | 2;
   quickFillSources: QuickFillSource[];
 }) {
   const mirrorName = mirrorClientNum
@@ -75,13 +75,15 @@ function ClientExecutorSection({
       ].filter(Boolean).join(" ")
     : "";
 
-  const addMirrorClient = () => {
+  // Add mirror client at position #1 (front of the list)
+  const addMirrorClientFirst = () => {
     if (!mirrorClientNum) return;
     const person = clientToPersonEntry(data, mirrorClientNum, "Spouse / Partner");
     if (!person.firstName) return;
     const existing = data[primaryKey] ?? [];
-    const has = existing.some(e => e.firstName === person.firstName && e.lastName === person.lastName);
-    if (!has) onChange({ [primaryKey]: [...existing, person] } as Partial<WillFormData>);
+    // Remove if already present, then prepend
+    const without = existing.filter(e => !(e.firstName === person.firstName && e.lastName === person.lastName));
+    onChange({ [primaryKey]: [person, ...without] } as Partial<WillFormData>);
   };
 
   return (
@@ -95,10 +97,10 @@ function ClientExecutorSection({
           size="sm"
           className="text-xs gap-1.5 mb-1"
           style={{ borderColor: "oklch(0.78 0.12 85 / 0.6)", color: "oklch(0.28 0.07 155)" }}
-          onClick={addMirrorClient}
+          onClick={addMirrorClientFirst}
         >
           <Zap className="w-3.5 h-3.5" />
-          Add {mirrorName} as Primary Executor
+          Add {mirrorName} as First Executor
         </Button>
       )}
 
@@ -156,7 +158,7 @@ function ClientGuardianSection({
         showShare={false}
         showVulnerable={false}
         addLabel="Add Primary Guardian"
-        emptyMessage="Leave blank if no minor children."
+        emptyMessage="No primary guardians added yet."
         quickFillSources={quickFillSources}
       />
       <div className="text-xs font-medium text-muted-foreground mt-3 mb-1">Reserved / Substitute Guardian(s)</div>
@@ -178,6 +180,11 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
   const c1Name = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ") || "Client 1";
   const c2Name = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ") || "Client 2";
 
+  // Guardians are only relevant when there are minor children entered
+  const hasMinorChildren =
+    (data.client1ChildrenUnder18?.length ?? 0) > 0 ||
+    (data.client2ChildrenUnder18?.length ?? 0) > 0;
+
   return (
     <div className="space-y-5">
       {/* ── Executors ─────────────────────────────────────────────────────── */}
@@ -194,34 +201,38 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
           const c1Full = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ");
           const c2Full = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ");
           if (!c1Full || !c2Full) return null;
-          const appointEachOther = () => {
+
+          // "Appoint each other as First Executor" — places the partner at position #1
+          const appointEachOtherFirst = () => {
             const person1 = clientToPersonEntry(data, 1, "Spouse / Partner");
             const person2 = clientToPersonEntry(data, 2, "Spouse / Partner");
             const c1Execs = data.client1Executors ?? [];
             const c2Execs = data.client2Executors ?? [];
-            const hasC2InC1 = c1Execs.some(e => e.firstName === person2.firstName && e.lastName === person2.lastName);
-            const hasC1InC2 = c2Execs.some(e => e.firstName === person1.firstName && e.lastName === person1.lastName);
+            // Remove if already present, then prepend
+            const c1Without = c1Execs.filter(e => !(e.firstName === person2.firstName && e.lastName === person2.lastName));
+            const c2Without = c2Execs.filter(e => !(e.firstName === person1.firstName && e.lastName === person1.lastName));
             onChange({
-              client1Executors: hasC2InC1 ? c1Execs : [...c1Execs, person2],
-              client2Executors: hasC1InC2 ? c2Execs : [...c2Execs, person1],
+              client1Executors: [person2, ...c1Without],
+              client2Executors: [person1, ...c2Without],
             });
           };
+
           return (
             <div className="mb-4 p-3 rounded-xl flex items-center gap-3" style={{ background: "oklch(0.96 0.04 85)", border: "1.5px solid oklch(0.78 0.12 85 / 0.7)" }}>
               <Users className="w-5 h-5 shrink-0" style={{ color: "oklch(0.55 0.12 85)" }} />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>Mirror Wills — Appoint Each Other</div>
-                <div className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.07 155)" }}>For Mirror Wills it is common for each client to appoint the other as their primary executor.</div>
+                <div className="text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>Mirror Wills — Appoint Each Other as First Executor</div>
+                <div className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.07 155)" }}>For Mirror Wills it is common for each client to appoint the other as their <strong>first</strong> (primary) executor. This places the partner at position #1 in each other's executor list.</div>
               </div>
               <Button
                 type="button"
                 size="sm"
                 className="shrink-0 text-xs font-semibold"
                 style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
-                onClick={appointEachOther}
+                onClick={appointEachOtherFirst}
               >
                 <Zap className="w-3.5 h-3.5 mr-1" />
-                Appoint Each Other
+                Appoint as First Executor
               </Button>
             </div>
           );
@@ -272,36 +283,38 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
         />
       </FormCard>
 
-      {/* ── Guardians ─────────────────────────────────────────────────────── */}
-      <FormCard
-        title="Guardians for Minor Children"
-        subtitle="The person(s) who will care for any minor children if both parents die"
-        icon={<Baby className="w-4 h-4" />}
-      >
-        <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: "oklch(0.97 0.015 155)", color: "oklch(0.28 0.07 155)" }}>
-          <strong>Guidance:</strong> Only relevant if the client has children under 18. Each client can appoint different guardians. Use <strong>Copy from…</strong> to reuse a previously entered person.
-        </div>
+      {/* ── Guardians — only shown when minor children have been entered ───── */}
+      {hasMinorChildren && (
+        <FormCard
+          title="Guardians for Minor Children"
+          subtitle="The person(s) who will care for any minor children if both parents die"
+          icon={<Baby className="w-4 h-4" />}
+        >
+          <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: "oklch(0.97 0.015 155)", color: "oklch(0.28 0.07 155)" }}>
+            <strong>Guidance:</strong> Each client can appoint different guardians. Use <strong>Copy from…</strong> to reuse a previously entered person.
+          </div>
 
-        <ClientGuardianSection
-          label={`Guardians for ${c1Name}`}
-          primaryKey="client1Guardians"
-          reservedKey="client1ReservedGuardians"
-          data={data}
-          onChange={onChange}
-          quickFillSources={quickFillSources}
-        />
-
-        {isMirrorWill && (
           <ClientGuardianSection
-            label={`Guardians for ${c2Name}`}
-            primaryKey="client2Guardians"
-            reservedKey="client2ReservedGuardians"
+            label={`Guardians for ${c1Name}`}
+            primaryKey="client1Guardians"
+            reservedKey="client1ReservedGuardians"
             data={data}
             onChange={onChange}
             quickFillSources={quickFillSources}
           />
-        )}
-      </FormCard>
+
+          {isMirrorWill && (
+            <ClientGuardianSection
+              label={`Guardians for ${c2Name}`}
+              primaryKey="client2Guardians"
+              reservedKey="client2ReservedGuardians"
+              data={data}
+              onChange={onChange}
+              quickFillSources={quickFillSources}
+            />
+          )}
+        </FormCard>
+      )}
     </div>
   );
 }

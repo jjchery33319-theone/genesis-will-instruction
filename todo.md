@@ -113,3 +113,11 @@
 - [x] Resume draft from URL param (?draftId=xxx)
 - [x] Admin Dashboard: Drafts tab listing all in-progress instructions
 - [x] Drafts tab: Resume and Delete actions per draft
+
+## Phase 8 Fixes
+- [x] Removed all required/mandatory field asterisks globally from FormCard.tsx
+- [x] Mirror Wills executor — "Appoint as First Executor" button places partner at position #1 in each other's executor list
+- [x] Guardians section — only shown when minor children (under-18) have been entered in Family Background
+- [x] Financial assets Client 2 — confirmed rendering correctly (conditional on client2 name being present)
+- [x] Life Insurance — added "Term Remaining" field to each policy entry (UI + Zod schema + TypeScript type)
+- [x] Removed localStorage auto-save (debounced useEffect, saveDraft helpers, AutoSaveBadge, DraftRestoreBanner) — manual Save Draft button retained

@@ -35,6 +35,7 @@ const lifeInsurancePolicySchema = z.object({
   provider: z.string(),
   policyNumber: z.string().optional(),
   sumAssured: z.string().optional(),
+  termRemaining: z.string().optional(),
   inTrust: z.boolean().optional(),
   beneficiary: z.string().optional(),
   notes: z.string().optional(),
