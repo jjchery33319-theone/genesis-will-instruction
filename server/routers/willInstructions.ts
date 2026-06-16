@@ -7,6 +7,8 @@ import { nanoid } from "nanoid";
 import { invokeLLM } from "../_core/llm";
 import { ADMIN_EMAILS } from "../../shared/willConstants";
 import { sendAdminEmail } from "../emailService";
+import { uploadToOneDrive } from "../oneDriveService";
+import { formatWillDocument, buildFilename } from "../willDocumentFormatter";
 
 // Zod schema for a person (executor/trustee/guardian/beneficiary)
 const personSchema = z.object({
@@ -317,6 +319,17 @@ export const willInstructionsRouter = router({
       sendAdminEmail(record).catch(err =>
         console.error("[Email] Failed to send admin notification:", err)
       );
+
+      // Upload to OneDrive (non-blocking)
+      const docContent = formatWillDocument(record);
+      const filename = buildFilename(record);
+      uploadToOneDrive(filename, docContent)
+        .then(({ webUrl }) =>
+          console.log(`[OneDrive] Uploaded ${filename} → ${webUrl}`)
+        )
+        .catch(err =>
+          console.error("[OneDrive] Failed to upload instruction:", err)
+        );
 
       return { success: true, referenceNumber, id: record.id, recommendations, narrative, clientEmailDraft };
     }),

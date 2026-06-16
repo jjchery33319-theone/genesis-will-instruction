@@ -121,3 +121,12 @@
 - [x] Financial assets Client 2 — confirmed rendering correctly (conditional on client2 name being present)
 - [x] Life Insurance — added "Term Remaining" field to each policy entry (UI + Zod schema + TypeScript type)
 - [x] Removed localStorage auto-save (debounced useEffect, saveDraft helpers, AutoSaveBadge, DraftRestoreBanner) — manual Save Draft button retained
+
+## OneDrive Integration (Phase 9)
+- [x] Install @azure/msal-node and @microsoft/microsoft-graph-client packages
+- [x] Build oneDriveService.ts — MSAL client-credentials token acquisition + Graph API upload helper
+- [x] Build willDocumentFormatter.ts — converts WillInstruction record to a clean plain-text document
+- [x] Wire upload into submit procedure (non-blocking, like email — failure does not block submission)
+- [x] Azure credentials stored as secrets (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET, ONEDRIVE_FOLDER_PATH)
+- [x] Vitest: credential validation test + document formatter tests (5 tests, all passing)
+- [x] Total tests: 19 passing
