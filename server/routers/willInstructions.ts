@@ -315,21 +315,22 @@ export const willInstructionsRouter = router({
         .where(eq(willInstructions.referenceNumber, referenceNumber))
         .limit(1);
 
-      // Send admin emails (non-blocking)
-      sendAdminEmail(record).catch(err =>
-        console.error("[Email] Failed to send admin notification:", err)
-      );
-
-      // Upload to OneDrive (non-blocking)
+      // Upload to OneDrive then send admin email with the link (both non-blocking)
       const docContent = formatWillDocument(record);
       const filename = buildFilename(record);
       uploadToOneDrive(filename, docContent)
-        .then(({ webUrl }) =>
-          console.log(`[OneDrive] Uploaded ${filename} → ${webUrl}`)
-        )
-        .catch(err =>
-          console.error("[OneDrive] Failed to upload instruction:", err)
-        );
+        .then(({ webUrl }) => {
+          console.log(`[OneDrive] Uploaded ${filename} \u2192 ${webUrl}`);
+          // Send admin email with the OneDrive link included
+          return sendAdminEmail(record, webUrl);
+        })
+        .catch(err => {
+          console.error("[OneDrive] Upload failed, sending email without link:", err);
+          // Still send the email even if OneDrive upload failed
+          sendAdminEmail(record).catch(e =>
+            console.error("[Email] Failed to send admin notification:", e)
+          );
+        });
 
       return { success: true, referenceNumber, id: record.id, recommendations, narrative, clientEmailDraft };
     }),

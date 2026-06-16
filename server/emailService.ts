@@ -51,7 +51,7 @@ function formatPersonList(persons: unknown): string {
 }
 
 // ─── HTML Builder ─────────────────────────────────────────────────────────────
-function buildEmailHtml(record: WillInstruction): string {
+function buildEmailHtml(record: WillInstruction, oneDriveUrl?: string): string {
   const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim();
   const client2Name = record.client2FirstName
     ? `${record.client2Prefix ?? ""} ${record.client2FirstName} ${record.client2LastName ?? ""}`.trim()
@@ -91,6 +91,11 @@ function buildEmailHtml(record: WillInstruction): string {
     <p>Will Instruction — New Submission</p>
     <div class="ref-badge">Ref: ${record.referenceNumber}</div>
   </div>
+
+  ${oneDriveUrl ? `<div style="background:#f0f7f3;border-bottom:3px solid #c9a84c;padding:18px 40px;text-align:center;">
+    <a href="${oneDriveUrl}" style="display:inline-block;background:#1a3a2a;color:#c9a84c;font-family:Georgia,serif;font-size:14px;font-weight:bold;padding:11px 30px;border-radius:4px;text-decoration:none;letter-spacing:0.5px;">&#128196;&nbsp; View Full Document on OneDrive</a>
+    <p style="margin:8px 0 0;font-size:11px;color:#5a8a6a;">Document automatically uploaded to your Will Instructions folder</p>
+  </div>` : ''}
 
   <div class="section">
     <h2>Appointment Details</h2>
@@ -307,7 +312,7 @@ function buildEmailHtml(record: WillInstruction): string {
 }
 
 // ─── Plain-text fallback ──────────────────────────────────────────────────────
-function buildEmailText(record: WillInstruction): string {
+function buildEmailText(record: WillInstruction, oneDriveUrl?: string): string {
   const client1Name = `${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim();
   return [
     `GENESIS ESTATE PLANNING — NEW WILL INSTRUCTION`,
@@ -319,18 +324,19 @@ function buildEmailText(record: WillInstruction): string {
     `Products: ${formatProductsList(record.productsOrdered)}`,
     ``,
     `Please log in to the admin dashboard to view the full instruction and AI recommendations.`,
+    ...(oneDriveUrl ? [``, `OneDrive Document: ${oneDriveUrl}`] : []),
   ].join("\n");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
-export async function sendAdminEmail(record: WillInstruction): Promise<void> {
+export async function sendAdminEmail(record: WillInstruction, oneDriveUrl?: string): Promise<void> {
   const transporter = createTransporter();
   if (!transporter) return;
 
   const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim();
   const subject = `[Genesis EP] New Will Instruction — ${client1Name} | Ref: ${record.referenceNumber}`;
-  const html = buildEmailHtml(record);
-  const text = buildEmailText(record);
+  const html = buildEmailHtml(record, oneDriveUrl);
+  const text = buildEmailText(record, oneDriveUrl);
   const fromAddress = process.env.GMAIL_USER!;
 
   for (const recipient of ADMIN_EMAILS) {
