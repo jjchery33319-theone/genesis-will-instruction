@@ -113,15 +113,16 @@ export default function WillForm() {
 
         {/* Navigation */}
         {currentStep < TOTAL_STEPS && (
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+          <div className="flex items-center justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border gap-2">
             <Button
               variant="outline"
               onClick={goPrev}
               disabled={currentStep === 1}
-              className="gap-2"
+              className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4"
             >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Back</span>
             </Button>
 
             <div className="flex items-center gap-2">
@@ -129,24 +130,25 @@ export default function WillForm() {
                 variant="outline"
                 onClick={saveAsDraft}
                 disabled={isSavingDraft}
-                className="gap-2 text-xs"
+                className="gap-1.5 text-xs px-2.5 sm:px-3"
                 style={{ borderColor: "oklch(0.75 0.14 85)", color: "oklch(0.35 0.10 85)" }}
               >
                 {isSavingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                Save Draft
+                <span>Save Draft</span>
               </Button>
-              <span className="text-sm text-muted-foreground hidden sm:inline">
+              <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
                 Step {currentStep} of {TOTAL_STEPS}
               </span>
             </div>
 
             <Button
               onClick={goNext}
-              className="gap-2"
+              className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4"
               style={{ background: "oklch(0.28 0.07 155)", color: "oklch(0.97 0.03 90)" }}
             >
-              Next
-              <ChevronRight className="w-4 h-4" />
+              <span className="hidden sm:inline">Next</span>
+              <span className="sm:hidden">Next</span>
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </Button>
           </div>
         )}
