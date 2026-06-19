@@ -303,7 +303,7 @@ function buildEmailHtml(record: WillInstruction, oneDriveUrl?: string): string {
   `}
 
   <div class="footer">
-    <p>Genesis Estate Planning | genesisestateplanning.info</p>
+    <p>Genesis Wills and Estate Planning | genesisestateplanning.info</p>
     <p>This is an automated notification. Reference: ${record.referenceNumber}</p>
   </div>
 </div>
@@ -343,7 +343,7 @@ export async function sendAdminEmail(record: WillInstruction, oneDriveUrl?: stri
   for (const recipient of ADMIN_EMAILS) {
     try {
       const info = await transporter.sendMail({
-        from: `"Genesis Estate Planning" <${fromAddress}>`,
+        from: `"Genesis Wills and Estate Planning" <${fromAddress}>`,
         to: recipient,
         subject,
         text,

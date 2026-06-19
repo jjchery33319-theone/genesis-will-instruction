@@ -80,7 +80,7 @@ export default function SubmissionDetail() {
         <div className="container max-w-4xl py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src="/manus-storage/genesis-logo_48897107.png" alt="Genesis Estate Planning" className="h-10 w-10 object-contain rounded-lg" />
+              <img src="/manus-storage/genesis-logo_48897107.png" alt="Genesis Wills and Estate Planning" className="h-10 w-10 object-contain rounded-lg" />
               <div>
                 <h1 className="font-serif text-lg font-semibold text-white">Submission Detail</h1>
                 <p className="text-xs" style={{ color: "oklch(0.78 0.12 85)" }}>Ref: {record.referenceNumber}</p>

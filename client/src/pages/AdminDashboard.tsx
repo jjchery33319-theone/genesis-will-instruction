@@ -161,13 +161,13 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-4">
               <img
                 src="/manus-storage/genesis-logo_48897107.png"
-                alt="Genesis Estate Planning"
+                alt="Genesis Wills and Estate Planning"
                 className="h-12 w-12 object-contain rounded-lg"
               />
               <div>
                 <h1 className="font-serif text-xl font-semibold text-white">Admin Dashboard</h1>
                 <p className="text-sm" style={{ color: "oklch(0.78 0.12 85)" }}>
-                  Genesis Estate Planning
+                  Genesis Wills and Estate Planning
                 </p>
               </div>
             </div>

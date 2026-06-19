@@ -577,7 +577,7 @@ async function generateAIRecommendations(input: z.infer<typeof willInstructionIn
     recommendations.push({
       id: "storage",
       title: "Secure Will Storage",
-      reason: `Storing the original Will with Genesis Estate Planning ensures it is safe, accessible, and cannot be lost, damaged, or contested. Without secure storage, a Will can be misplaced or destroyed.`,
+      reason: `Storing the original Will with Genesis Wills and Estate Planning ensures it is safe, accessible, and cannot be lost, damaged, or contested. Without secure storage, a Will can be misplaced or destroyed.`,
       priority: "medium",
     });
   }
@@ -612,7 +612,7 @@ async function generateAIRecommendations(input: z.infer<typeof willInstructionIn
   const clientName = `${input.client1Prefix ?? ""} ${input.client1FirstName} ${input.client1LastName}`.trim();
   const consultantName = input.consultantName ?? "your consultant";
 
-  const prompt = `You are a senior estate planning advisor at Genesis Estate Planning. Based on the following client profile and identified recommendations, write two things:
+  const prompt = `You are a senior estate planning advisor at Genesis Wills and Estate Planning. Based on the following client profile and identified recommendations, write two things:
 
 1. An INTERNAL RECOMMENDATION NARRATIVE for the admin team (professional, detailed, 2-3 paragraphs).
 2. A PROFESSIONAL CLIENT EMAIL DRAFT ready to be sent to the client (warm, clear, non-technical, signed by the consultant).
@@ -631,7 +631,7 @@ The client email should:
 - Open with a warm greeting using the client's name
 - Briefly explain why each recommendation matters in plain English
 - Invite the client to discuss further with their consultant
-- Be signed by ${consultantName}, Genesis Estate Planning
+- Be signed by ${consultantName}, Genesis Wills and Estate Planning
 - Be professional but approachable`;
 
   try {
@@ -670,7 +670,7 @@ The client email should:
 
   // Fallback narrative
   const fallbackNarrative = `Based on the instruction taken for ${clientName}, the following estate planning enhancements are recommended:\n\n${recommendations.map(r => `${r.title}: ${r.reason}`).join("\n\n")}`;
-  const fallbackEmail = `Dear ${clientName},\n\nThank you for choosing Genesis Estate Planning. Following your recent consultation with ${consultantName}, we would like to bring some additional estate planning options to your attention that may be of significant benefit to you.\n\n${recommendations.map(r => `${r.title}: ${r.reason}`).join("\n\n")}\n\nWe would be delighted to discuss any of these options with you at your convenience. Please do not hesitate to contact us.\n\nYours sincerely,\n${consultantName}\nGenesis Estate Planning\n0330 118 0937`;
+  const fallbackEmail = `Dear ${clientName},\n\nThank you for choosing Genesis Wills and Estate Planning. Following your recent consultation with ${consultantName}, we would like to bring some additional estate planning options to your attention that may be of significant benefit to you.\n\n${recommendations.map(r => `${r.title}: ${r.reason}`).join("\n\n")}\n\nWe would be delighted to discuss any of these options with you at your convenience. Please do not hesitate to contact us.\n\nYours sincerely,\n${consultantName}\nGenesis Wills and Estate Planning\n0330 118 0937`;
 
   return { recommendations, narrative: fallbackNarrative, clientEmailDraft: fallbackEmail };
 }

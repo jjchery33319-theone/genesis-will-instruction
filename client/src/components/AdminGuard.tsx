@@ -51,12 +51,12 @@ export default function AdminGuard({ children }: AdminGuardProps) {
         <div className="flex flex-col items-center gap-3 mb-8">
           <img
             src="/manus-storage/genesis-logo_48897107.png"
-            alt="Genesis Estate Planning"
+            alt="Genesis Wills and Estate Planning"
             className="h-14 w-14 object-contain rounded-xl"
           />
           <div className="text-center">
             <h1 className="font-serif text-xl font-semibold genesis-green-text">Admin Access</h1>
-            <p className="text-sm text-muted-foreground mt-1">Genesis Estate Planning</p>
+            <p className="text-sm text-muted-foreground mt-1">Genesis Wills and Estate Planning</p>
           </div>
         </div>
 
