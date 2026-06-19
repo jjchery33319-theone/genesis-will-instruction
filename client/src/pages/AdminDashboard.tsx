@@ -156,29 +156,30 @@ export default function AdminDashboard() {
     <div className="min-h-screen" style={{ background: "oklch(0.97 0.01 155)" }}>
       {/* Header */}
       <header className="genesis-gradient shadow-lg">
-        <div className="container max-w-6xl py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container max-w-6xl py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <img
                 src="/manus-storage/genesis-logo_48897107.png"
                 alt="Genesis Wills and Estate Planning"
-                className="h-12 w-12 object-contain rounded-lg"
+                className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 object-contain rounded-lg"
               />
-              <div>
-                <h1 className="font-serif text-xl font-semibold text-white">Admin Dashboard</h1>
-                <p className="text-sm" style={{ color: "oklch(0.78 0.12 85)" }}>
+              <div className="min-w-0">
+                <h1 className="font-serif text-sm sm:text-xl font-semibold text-white truncate">Admin Dashboard</h1>
+                <p className="text-xs sm:text-sm" style={{ color: "oklch(0.78 0.12 85)" }}>
                   Genesis Wills and Estate Planning
                 </p>
               </div>
             </div>
-            <Link href="/">
+            <Link href="/" className="flex-shrink-0">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent"
+                className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
               >
-                <Plus className="w-4 h-4" />
-                New Instruction
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">New Instruction</span>
+                <span className="sm:hidden">New</span>
               </Button>
             </Link>
           </div>
@@ -294,13 +295,13 @@ export default function AdminDashboard() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b" style={{ background: "oklch(0.98 0.005 155)" }}>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Reference</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Client</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Consultant</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Products</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Date</th>
-                        <th className="text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Status</th>
-                        <th className="px-4 py-3 text-right font-semibold text-muted-foreground text-xs uppercase tracking-wide">Actions</th>
+                        <th className="text-left px-3 sm:px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Reference</th>
+                        <th className="text-left px-3 sm:px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Client</th>
+                        <th className="hidden md:table-cell text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Consultant</th>
+                        <th className="hidden lg:table-cell text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Products</th>
+                        <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Date</th>
+                        <th className="text-left px-3 sm:px-4 py-3 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Status</th>
+                        <th className="px-3 sm:px-4 py-3 text-right font-semibold text-muted-foreground text-xs uppercase tracking-wide">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -316,16 +317,16 @@ export default function AdminDashboard() {
                             className="border-b last:border-0 hover:bg-muted/20 transition-colors"
                             style={{ background: index % 2 === 0 ? "white" : "oklch(0.99 0.003 155)" }}
                           >
-                            <td className="px-4 py-3">
+                            <td className="px-3 sm:px-4 py-3">
                               <span className="font-mono text-xs font-semibold" style={{ color: "oklch(0.65 0.14 80)" }}>
                                 {sub.referenceNumber}
                               </span>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 sm:px-4 py-3">
                               <span className="font-medium text-foreground">{clientName}</span>
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground">{sub.consultantName ?? "—"}</td>
-                            <td className="px-4 py-3">
+                            <td className="hidden md:table-cell px-4 py-3 text-muted-foreground">{sub.consultantName ?? "—"}</td>
+                            <td className="hidden lg:table-cell px-4 py-3">
                               <div className="flex flex-wrap gap-1">
                                 {products.slice(0, 2).map(id => (
                                   <Badge
@@ -343,7 +344,7 @@ export default function AdminDashboard() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-muted-foreground text-xs">{formatDate(sub.createdAt)}</td>
+                            <td className="hidden sm:table-cell px-4 py-3 text-muted-foreground text-xs">{formatDate(sub.createdAt)}</td>
 
                             {/* ── Status dropdown ── */}
                             <td className="px-4 py-3">

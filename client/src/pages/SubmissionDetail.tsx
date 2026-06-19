@@ -24,8 +24,8 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 function Field({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
-    <div className="flex gap-2 text-sm">
-      <span className="font-medium text-muted-foreground min-w-[180px] flex-shrink-0">{label}:</span>
+    <div className="flex flex-col sm:flex-row sm:gap-2 text-sm">
+      <span className="font-medium text-muted-foreground sm:min-w-[180px] flex-shrink-0">{label}:</span>
       <span className="text-foreground">{value}</span>
     </div>
   );
@@ -77,26 +77,27 @@ export default function SubmissionDetail() {
     <div className="min-h-screen" style={{ background: "oklch(0.97 0.01 155)" }}>
       {/* Header */}
       <header className="genesis-gradient shadow-lg">
-        <div className="container max-w-4xl py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src="/manus-storage/genesis-logo_48897107.png" alt="Genesis Wills and Estate Planning" className="h-10 w-10 object-contain rounded-lg" />
-              <div>
-                <h1 className="font-serif text-lg font-semibold text-white">Submission Detail</h1>
+        <div className="container max-w-4xl py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <img src="/manus-storage/genesis-logo_48897107.png" alt="Genesis Wills and Estate Planning" className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 object-contain rounded-lg" />
+              <div className="min-w-0">
+                <h1 className="font-serif text-sm sm:text-lg font-semibold text-white truncate">Submission Detail</h1>
                 <p className="text-xs" style={{ color: "oklch(0.78 0.12 85)" }}>Ref: {record.referenceNumber}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <a href={`/api/submissions/${id}/pdf`} download>
-                <Button variant="outline" size="sm" className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
-                  <FileDown className="w-4 h-4" />
-                  Download PDF
+                <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3">
+                  <FileDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Download PDF</span>
+                  <span className="sm:hidden">PDF</span>
                 </Button>
               </a>
               <Link href="/admin">
-                <Button variant="outline" size="sm" className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
+                <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3">
+                  <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Back</span>
                 </Button>
               </Link>
             </div>

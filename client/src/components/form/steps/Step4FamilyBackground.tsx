@@ -64,7 +64,7 @@ function ChildCard({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <Label className="text-xs text-muted-foreground mb-1 block">First Name *</Label>
           <Input
@@ -83,7 +83,7 @@ function ChildCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <Label className="text-xs text-muted-foreground mb-1 block">Date of Birth</Label>
           <Input
