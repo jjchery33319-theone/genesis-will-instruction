@@ -67,14 +67,14 @@ export default function Step7Wishes({ data, onChange }: Props) {
                 </Button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FieldRow label="Description of Gift" required>
+                <FieldRow label="Description of Gift">
                   <Input
                     value={gift.description}
                     onChange={e => updateGift(index, "description", e.target.value)}
                     placeholder="e.g. My gold watch, £5,000 cash, my car…"
                   />
                 </FieldRow>
-                <FieldRow label="Recipient" required>
+                <FieldRow label="Recipient">
                   <Input
                     value={gift.recipient}
                     onChange={e => updateGift(index, "recipient", e.target.value)}
@@ -109,7 +109,6 @@ export default function Step7Wishes({ data, onChange }: Props) {
           <FieldRow
             label="Residuary Estate — Who inherits the remainder?"
             hint="The residuary estate is everything left after specific gifts and debts have been paid"
-            required
           >
             <Textarea
               rows={3}

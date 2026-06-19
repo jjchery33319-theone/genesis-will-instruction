@@ -96,7 +96,7 @@ export default function Step10LifeInsurance({ data, onChange }: Props) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FieldRow label="Insurance Provider" required>
+                  <FieldRow label="Insurance Provider">
                     <Input
                       value={policy.provider}
                       onChange={e => updatePolicy(index, { provider: e.target.value })}
