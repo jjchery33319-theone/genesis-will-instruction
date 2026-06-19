@@ -25,10 +25,12 @@ function safeArr(v: unknown): unknown[] {
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
-export function generateWillPdf(record: WillInstruction): Buffer {
+export function generateWillPdf(record: WillInstruction): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
   const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true });
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+  doc.on("error", reject);
 
   const pageW = doc.page.width - 100; // usable width
 
@@ -291,5 +293,6 @@ export function generateWillPdf(record: WillInstruction): Buffer {
   }
 
   doc.end();
-  return Buffer.concat(chunks);
+  doc.on("end", () => resolve(Buffer.concat(chunks)));
+  }); // end Promise
 }

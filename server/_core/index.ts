@@ -49,7 +49,7 @@ async function startServer() {
       if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
-      const pdfBuffer = generateWillPdf(rows[0]);
+      const pdfBuffer = await generateWillPdf(rows[0]);
       const filename = `Genesis_${rows[0].referenceNumber ?? id}.pdf`;
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
