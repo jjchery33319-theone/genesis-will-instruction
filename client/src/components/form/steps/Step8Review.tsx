@@ -434,7 +434,7 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
             <h3 className="font-serif text-sm font-semibold genesis-green-text">Ready to Submit</h3>
             <p className="text-xs text-muted-foreground mt-1">
               Submitting will save this instruction, generate AI-powered estate planning recommendations,
-              and automatically notify the admin team at Genesis Estate Planning.
+              and automatically notify the admin team at Genesis Wills and Estate Planning.
             </p>
           </div>
         </div>

@@ -100,7 +100,7 @@ function buildClientEmailHtml(record: WillInstruction): string {
                 <tr>
                   <td>
                     <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;">
-                      Genesis Estate Planning
+                      Genesis Wills and Estate Planning
                     </p>
                     <p style="margin:4px 0 0;font-size:13px;color:#b8d4c2;">Will Instruction Confirmation</p>
                   </td>
@@ -116,7 +116,7 @@ function buildClientEmailHtml(record: WillInstruction): string {
                 Dear ${client1Name},
               </p>
               <p style="margin:0;font-size:14px;color:#374151;line-height:1.7;">
-                Thank you for your appointment with Genesis Estate Planning. We are pleased to confirm that your Will instruction has been received and is now being processed by our team.
+                Thank you for your appointment with us at Genesis Wills and Estate Planning. We are pleased to confirm that your Will instruction has been received from your adviser and is now being processed by our admin team.
               </p>
             </td>
           </tr>
@@ -166,7 +166,7 @@ function buildClientEmailHtml(record: WillInstruction): string {
               <p style="margin:0 0 14px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">What Happens Next</p>
               <table width="100%" cellpadding="0" cellspacing="0">
                 ${[
-                  ["1", "Instruction Review", "Our team will review your completed Will instruction and prepare your draft documents."],
+                  ["1", "Instruction Review", "Our team will review your completed Will instruction and prepare your Welcome pack which is a summary of the information taken during the appointment (it is for you to review to make sure all information is correct before production of your draft)."],
                   ["2", "Recommendations Follow-Up", "You will receive a separate email with the full details of the estate planning recommendations discussed during your appointment."],
                   ["3", "Draft Documents", "Your draft Will (and any other documents ordered) will be sent to you for review and approval."],
                   ["4", "Signing & Execution", "Once approved, we will guide you through the signing process to make your Will legally valid."],
@@ -208,7 +208,7 @@ function buildClientEmailHtml(record: WillInstruction): string {
           <tr>
             <td style="background:#1a4d35;padding:20px 32px;">
               <p style="margin:0;font-size:11px;color:#b8d4c2;text-align:center;line-height:1.6;">
-                Genesis Estate Planning &nbsp;|&nbsp; Will Instruction Confirmation &nbsp;|&nbsp; Ref: ${ref}
+                Genesis Wills and Estate Planning &nbsp;|&nbsp; Will Instruction Confirmation &nbsp;|&nbsp; Ref: ${ref}
               </p>
               <p style="margin:6px 0 0;font-size:10px;color:#6b9e80;text-align:center;">
                 This email is intended solely for the named recipient. If you have received this in error, please disregard it.
@@ -237,7 +237,7 @@ function buildClientEmailText(record: WillInstruction): string {
   return [
     `Dear ${client1Name},`,
     ``,
-    `Thank you for your appointment with Genesis Estate Planning. Your Will instruction has been received and is being processed.`,
+    `Thank you for your appointment with us at Genesis Wills and Estate Planning. We are pleased to confirm that your Will instruction has been received from your adviser and is now being processed by our admin team.`,
     ``,
     `REFERENCE NUMBER: ${ref}`,
     `Please quote this reference in all correspondence with us.`,
@@ -257,14 +257,14 @@ function buildClientEmailText(record: WillInstruction): string {
       : [`You will receive a follow-up email containing the full details of the recommendations discussed during your appointment.`]),
     ``,
     `WHAT HAPPENS NEXT`,
-    `1. Our team will review your instruction and prepare your draft documents.`,
+    `1. Our team will review your completed Will instruction and prepare your Welcome pack which is a summary of the information taken during the appointment (it is for you to review to make sure all information is correct before production of your draft).`,
     `2. You will receive a separate email with the full estate planning recommendations.`,
     `3. Your draft Will will be sent to you for review and approval.`,
     `4. Once approved, we will guide you through the signing process.`,
     ``,
     `If you have any questions, please contact your consultant or reply to this email.`,
     ``,
-    `Genesis Estate Planning`,
+    `Genesis Wills and Estate Planning`,
   ].join("\n");
 }
 
@@ -280,14 +280,14 @@ export async function sendClientConfirmationEmail(record: WillInstruction): Prom
   if (!transporter) return;
 
   const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim() || "Client";
-  const subject = `Your Will Instruction Confirmation — Ref: ${safe(record.referenceNumber)} | Genesis Estate Planning`;
+  const subject = `Your Will Instruction Confirmation — Ref: ${safe(record.referenceNumber)} | Genesis Wills and Estate Planning`;
   const html = buildClientEmailHtml(record);
   const text = buildClientEmailText(record);
   const fromAddress = process.env.GMAIL_USER!;
 
   try {
     const info = await transporter.sendMail({
-      from: `"Genesis Estate Planning" <${fromAddress}>`,
+      from: `"Genesis Wills and Estate Planning" <${fromAddress}>`,
       to: clientEmail,
       subject,
       text,
@@ -300,7 +300,7 @@ export async function sendClientConfirmationEmail(record: WillInstruction): Prom
     if (client2Email && client2Email !== clientEmail) {
       const c2Name = `${record.client2Prefix ?? ""} ${record.client2FirstName ?? ""} ${record.client2LastName ?? ""}`.trim() || "Client 2";
       await transporter.sendMail({
-        from: `"Genesis Estate Planning" <${fromAddress}>`,
+        from: `"Genesis Wills and Estate Planning" <${fromAddress}>`,
         to: client2Email,
         subject,
         text: text.replace(`Dear ${client1Name}`, `Dear ${c2Name}`),

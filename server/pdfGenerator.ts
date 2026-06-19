@@ -37,7 +37,7 @@ export function generateWillPdf(record: WillInstruction): Promise<Buffer> {
   // ── Cover / Header ─────────────────────────────────────────────────────────
   doc.rect(0, 0, doc.page.width, 110).fill(GREEN);
   doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(20)
-    .text("Genesis Estate Planning", 50, 30);
+    .text("Genesis Wills and Estate Planning", 50, 30);
   doc.font("Helvetica").fontSize(11).fillColor(GOLD)
     .text("Will Instruction Summary", 50, 56);
   doc.fillColor("#ffffff").fontSize(9)
@@ -288,7 +288,7 @@ export function generateWillPdf(record: WillInstruction): Promise<Buffer> {
     const footerY = doc.page.height - 35;
     doc.rect(0, footerY - 5, doc.page.width, 40).fill(GREEN);
     doc.fillColor("#ffffff").font("Helvetica").fontSize(7.5)
-      .text(`Genesis Estate Planning  |  Will Instruction — ${safe(record.referenceNumber)}  |  CONFIDENTIAL`, 50, footerY, { width: pageW - 60, align: "left" });
+      .text(`Genesis Wills and Estate Planning  |  Will Instruction — ${safe(record.referenceNumber)}  |  CONFIDENTIAL`, 50, footerY, { width: pageW - 60, align: "left" });
     doc.text(`Page ${i + 1} of ${totalPages}`, 50, footerY, { width: pageW, align: "right" });
   }
 
