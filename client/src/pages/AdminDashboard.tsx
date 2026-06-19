@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "../lib/trpc";
 import { Link, useLocation } from "wouter";
 import {
   Loader2, FileText, Eye, Plus, LayoutDashboard, FileEdit,
-  Trash2, PlayCircle, Clock, CheckCircle2, XCircle, ChevronDown,
+  Trash2, PlayCircle, Clock, CheckCircle2, XCircle, ChevronDown, FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +91,14 @@ export default function AdminDashboard() {
 
   // Delete confirmation dialog state
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<SubmissionStatus | "all">("all");
+
+  // Filtered submissions based on active status filter
+  const filteredSubmissions = useMemo(() => {
+    if (!submissions) return [];
+    if (statusFilter === "all") return submissions;
+    return submissions.filter(s => (s.status ?? "submitted") === statusFilter);
+  }, [submissions, statusFilter]);
 
   // ── Mutations ────────────────────────────────────────────────────────────────
   const deleteDraftMutation = trpc.will.deleteDraft.useMutation({
@@ -218,12 +226,44 @@ export default function AdminDashboard() {
 
           {/* ── Submissions Tab ── */}
           <TabsContent value="submissions">
+            {/* Status filter bar */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <button
+                onClick={() => setStatusFilter("all")}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  statusFilter === "all"
+                    ? "border-transparent text-white"
+                    : "border-border bg-white text-muted-foreground hover:border-muted-foreground"
+                }`}
+                style={statusFilter === "all" ? { background: "oklch(0.28 0.07 155)" } : {}}
+              >
+                All ({submissions?.length ?? 0})
+              </button>
+              {(Object.entries(STATUS_CONFIG) as [SubmissionStatus, typeof STATUS_CONFIG[SubmissionStatus]][]).map(([s, cfg]) => {
+                const count = submissions?.filter(sub => (sub.status ?? "submitted") === s).length ?? 0;
+                const isActive = statusFilter === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      isActive ? "border-transparent" : "border-border bg-white text-muted-foreground hover:opacity-80"
+                    }`}
+                    style={isActive ? { background: cfg.bg, color: cfg.color } : {}}
+                  >
+                    {cfg.icon}
+                    {cfg.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="bg-white rounded-xl border border-border overflow-hidden">
               <div className="px-5 py-4 border-b" style={{ background: "oklch(0.97 0.015 155)" }}>
                 <div className="flex items-center gap-2">
                   <LayoutDashboard className="w-4 h-4 genesis-green-text" />
                   <h2 className="font-serif text-base font-semibold genesis-green-text">
-                    All Submissions ({submissions?.length ?? 0})
+                    {statusFilter === "all" ? `All Submissions (${submissions?.length ?? 0})` : `${STATUS_CONFIG[statusFilter].label} (${filteredSubmissions.length})`}
                   </h2>
                 </div>
               </div>
@@ -243,6 +283,12 @@ export default function AdminDashboard() {
                     </Button>
                   </Link>
                 </div>
+              ) : filteredSubmissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <FileText className="w-8 h-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">No {STATUS_CONFIG[statusFilter as SubmissionStatus]?.label ?? ""} submissions</p>
+                  <button onClick={() => setStatusFilter("all")} className="mt-2 text-xs underline" style={{ color: "oklch(0.28 0.07 155)" }}>Show all</button>
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -258,7 +304,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {submissions.map((sub, index) => {
+                      {filteredSubmissions.map((sub, index) => {
                         const products = Array.isArray(sub.productsOrdered) ? sub.productsOrdered as string[] : [];
                         const status = (sub.status ?? "submitted") as SubmissionStatus;
                         const statusCfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.submitted;
@@ -346,6 +392,11 @@ export default function AdminDashboard() {
                                     View
                                   </Button>
                                 </Link>
+                                <a href={`/api/submissions/${sub.id}/pdf`} download title="Download PDF">
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-muted">
+                                    <FileDown className="w-3.5 h-3.5" style={{ color: "oklch(0.28 0.07 155)" }} />
+                                  </Button>
+                                </a>
                                 <Button
                                   variant="ghost"
                                   size="sm"

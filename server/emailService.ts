@@ -329,7 +329,7 @@ function buildEmailText(record: WillInstruction, oneDriveUrl?: string): string {
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
-export async function sendAdminEmail(record: WillInstruction, oneDriveUrl?: string): Promise<void> {
+export async function sendAdminEmail(record: WillInstruction, oneDriveUrl?: string, pdfBuffer?: Buffer): Promise<void> {
   const transporter = createTransporter();
   if (!transporter) return;
 
@@ -338,6 +338,7 @@ export async function sendAdminEmail(record: WillInstruction, oneDriveUrl?: stri
   const html = buildEmailHtml(record, oneDriveUrl);
   const text = buildEmailText(record, oneDriveUrl);
   const fromAddress = process.env.GMAIL_USER!;
+  const filename = `Genesis_${record.referenceNumber ?? record.id}.pdf`;
 
   for (const recipient of ADMIN_EMAILS) {
     try {
@@ -347,6 +348,13 @@ export async function sendAdminEmail(record: WillInstruction, oneDriveUrl?: stri
         subject,
         text,
         html,
+        ...(pdfBuffer ? {
+          attachments: [{
+            filename,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          }],
+        } : {}),
       });
       console.log(`[Email] Sent to ${recipient} — messageId: ${info.messageId}`);
     } catch (err: unknown) {

@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { invokeLLM } from "../_core/llm";
 import { ADMIN_EMAILS } from "../../shared/willConstants";
 import { sendAdminEmail } from "../emailService";
+import { generateWillPdf } from "../pdfGenerator";
 import { uploadToOneDrive } from "../oneDriveService";
 import { formatWillDocument, buildFilename } from "../willDocumentFormatter";
 
@@ -315,19 +316,24 @@ export const willInstructionsRouter = router({
         .where(eq(willInstructions.referenceNumber, referenceNumber))
         .limit(1);
 
-      // Upload to OneDrive then send admin email with the link (both non-blocking)
+      // Generate PDF, upload to OneDrive, then send admin email with attachment + link (non-blocking)
+      let pdfBuffer: Buffer | undefined;
+      try {
+        pdfBuffer = generateWillPdf(record);
+      } catch (pdfErr) {
+        console.error("[PDF] Failed to generate PDF for email attachment:", pdfErr);
+      }
+
       const docContent = formatWillDocument(record);
       const filename = buildFilename(record);
       uploadToOneDrive(filename, docContent)
         .then(({ webUrl }) => {
           console.log(`[OneDrive] Uploaded ${filename} \u2192 ${webUrl}`);
-          // Send admin email with the OneDrive link included
-          return sendAdminEmail(record, webUrl);
+          return sendAdminEmail(record, webUrl, pdfBuffer);
         })
         .catch(err => {
           console.error("[OneDrive] Upload failed, sending email without link:", err);
-          // Still send the email even if OneDrive upload failed
-          sendAdminEmail(record).catch(e =>
+          sendAdminEmail(record, undefined, pdfBuffer).catch(e =>
             console.error("[Email] Failed to send admin notification:", e)
           );
         });
