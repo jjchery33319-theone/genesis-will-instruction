@@ -72,19 +72,19 @@ export default function StepIndicator({ steps, currentStep, onStepClick }: StepI
         {visibleSteps.map((step, index) => {
           const isCompleted = step.id < currentStep;
           const isActive = step.id === currentStep;
-          const isClickable = step.id <= currentStep;
+          const isClickable = true; // all steps freely navigable
           const isFirst = index === 0 && !showLeftEllipsis;
           const isLast = index === visibleSteps.length - 1 && !showRightEllipsis;
 
           return (
             <div key={step.id} className="flex items-center flex-1 min-w-0">
               <button
-                onClick={() => isClickable && onStepClick(step.id)}
-                disabled={!isClickable}
+                onClick={() => onStepClick(step.id)}
+                disabled={false}
                 title={`${step.title} — ${step.subtitle}`}
                 className={cn(
                   "flex flex-col items-center gap-1 flex-shrink-0 transition-all duration-200 px-1",
-                  isClickable ? "cursor-pointer" : "cursor-default",
+                  "cursor-pointer",
                   isActive ? "scale-110" : "opacity-80 hover:opacity-100"
                 )}
               >

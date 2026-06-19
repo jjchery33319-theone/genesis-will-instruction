@@ -62,7 +62,7 @@ export default function Step1Appointment({ data, onChange }: Props) {
         icon={<Calendar className="w-4 h-4" />}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <FieldRow label="Date of Appointment" required>
+          <FieldRow label="Date of Appointment">
             <Input
               type="date"
               value={data.appointmentDate ?? ""}
@@ -101,7 +101,7 @@ export default function Step1Appointment({ data, onChange }: Props) {
         icon={<Users className="w-4 h-4" />}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FieldRow label="Consultant Name" required>
+          <FieldRow label="Consultant Name">
             <Select value={data.consultantName ?? ""} onValueChange={handleConsultantChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select consultant…" />
@@ -135,7 +135,7 @@ export default function Step1Appointment({ data, onChange }: Props) {
         <SectionDivider title="Case Coordinator" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FieldRow label="Case Coordinator" required>
+          <FieldRow label="Case Coordinator">
             <Select value={data.caseCoordinatorName ?? ""} onValueChange={handleCoordinatorChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select coordinator…" />

@@ -43,19 +43,19 @@ export function ClientFields({
             </SelectContent>
           </Select>
         </FieldRow>
-        <FieldRow label="First Name" required={required}>
+        <FieldRow label="First Name">
           <Input value={firstName ?? ""} onChange={e => onChange(f("firstName"), e.target.value)} placeholder="First name" />
         </FieldRow>
         <FieldRow label="Middle Name">
           <Input value={middleName ?? ""} onChange={e => onChange(f("middleName"), e.target.value)} placeholder="Middle name" />
         </FieldRow>
-        <FieldRow label="Last Name" required={required}>
+        <FieldRow label="Last Name">
           <Input value={lastName ?? ""} onChange={e => onChange(f("lastName"), e.target.value)} placeholder="Last name" />
         </FieldRow>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <FieldRow label="Date of Birth" required={required}>
+        <FieldRow label="Date of Birth">
           <Input type="date" value={dob ?? ""} onChange={e => onChange(f("dob"), e.target.value)} />
         </FieldRow>
         {showMaritalStatus && (
@@ -74,13 +74,13 @@ export function ClientFields({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <FieldRow label="Address Line 1" required={required} className="sm:col-span-1">
+        <FieldRow label="Address Line 1" className="sm:col-span-1">
           <Input value={addressLine1 ?? ""} onChange={e => onChange(f("addressLine1"), e.target.value)} placeholder="Street address" />
         </FieldRow>
         <FieldRow label="City / Town">
           <Input value={city ?? ""} onChange={e => onChange(f("city"), e.target.value)} placeholder="City" />
         </FieldRow>
-        <FieldRow label="Postcode" required={required}>
+        <FieldRow label="Postcode">
           <Input value={postcode ?? ""} onChange={e => onChange(f("postcode"), e.target.value)} placeholder="e.g. SW1A 1AA" className="uppercase" />
         </FieldRow>
       </div>
@@ -89,7 +89,7 @@ export function ClientFields({
         <FieldRow label="Job Title">
           <Input value={jobTitle ?? ""} onChange={e => onChange(f("jobTitle"), e.target.value)} placeholder="Occupation" />
         </FieldRow>
-        <FieldRow label="Daytime Phone" required={required}>
+        <FieldRow label="Daytime Phone">
           <Input type="tel" value={daytimePhone ?? ""} onChange={e => onChange(f("daytimePhone"), e.target.value)} placeholder="+44 7700 000000" />
         </FieldRow>
         <FieldRow label="Mobile">

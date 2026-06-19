@@ -101,14 +101,14 @@ export default function Step11BusinessInterests({ data, onChange }: Props) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FieldRow label="Business Name" required>
+                  <FieldRow label="Business Name">
                     <Input
                       value={biz.businessName}
                       onChange={e => updateBusiness(index, { businessName: e.target.value })}
                       placeholder="e.g. ABC Consulting Ltd"
                     />
                   </FieldRow>
-                  <FieldRow label="Nature of Business" required>
+                  <FieldRow label="Nature of Business">
                     <Input
                       value={biz.natureOfBusiness}
                       onChange={e => updateBusiness(index, { natureOfBusiness: e.target.value })}

@@ -37,7 +37,6 @@ export default function Step2Client1({ data, onChange }: Props) {
           email={data.client1Email}
           nationality={data.client1Nationality}
           onChange={handleFieldChange}
-          required
         />
       </FormCard>
     </div>

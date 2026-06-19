@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { trpc } from "../lib/trpc";
-import { Loader2, ArrowLeft, Mail, Star, AlertTriangle, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Star, AlertTriangle, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PRODUCTS } from "../../../shared/willConstants";
@@ -86,12 +86,20 @@ export default function SubmissionDetail() {
                 <p className="text-xs" style={{ color: "oklch(0.78 0.12 85)" }}>Ref: {record.referenceNumber}</p>
               </div>
             </div>
-            <Link href="/admin">
-              <Button variant="outline" size="sm" className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <a href={`/api/submissions/${id}/pdf`} download>
+                <Button variant="outline" size="sm" className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
+                  <FileDown className="w-4 h-4" />
+                  Download PDF
+                </Button>
+              </a>
+              <Link href="/admin">
+                <Button variant="outline" size="sm" className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
