@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { invokeLLM } from "../_core/llm";
 import { ADMIN_EMAILS } from "../../shared/willConstants";
 import { sendAdminEmail } from "../emailService";
+import { sendClientConfirmationEmail } from "../clientEmailService";
 import { generateWillPdf } from "../pdfGenerator";
 import { uploadToOneDrive } from "../oneDriveService";
 import { formatWillDocument, buildFilename } from "../willDocumentFormatter";
@@ -319,7 +320,7 @@ export const willInstructionsRouter = router({
       // Generate PDF, upload to OneDrive, then send admin email with attachment + link (non-blocking)
       let pdfBuffer: Buffer | undefined;
       try {
-        pdfBuffer = generateWillPdf(record);
+        pdfBuffer = await generateWillPdf(record);
       } catch (pdfErr) {
         console.error("[PDF] Failed to generate PDF for email attachment:", pdfErr);
       }
@@ -337,6 +338,11 @@ export const willInstructionsRouter = router({
             console.error("[Email] Failed to send admin notification:", e)
           );
         });
+
+      // Send client confirmation email (non-blocking)
+      sendClientConfirmationEmail(record).catch(e =>
+        console.error("[ClientEmail] Failed to send client confirmation:", e)
+      );
 
       return { success: true, referenceNumber, id: record.id, recommendations, narrative, clientEmailDraft };
     }),
