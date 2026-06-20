@@ -260,6 +260,9 @@ const willInstructionInputSchema = z.object({
 
   // Notes
   specialNotes: z.string().optional(),
+
+  // Manual Needs Assessment / Recommendations
+  manualNeedsAssessment: z.string().optional(),
 });
 
 export const willInstructionsRouter = router({
@@ -271,8 +274,16 @@ export const willInstructionsRouter = router({
 
       const referenceNumber = `GEP-${Date.now().toString(36).toUpperCase()}-${nanoid(4).toUpperCase()}`;
 
-      // Generate AI recommendations
-      const { recommendations, narrative, clientEmailDraft } = await generateAIRecommendations(input);
+      // Use manual needs assessment if provided; skip AI generation
+      let recommendations: Array<{ id: string; title: string; reason: string; priority: "high" | "medium" | "low" }> = [];
+      let narrative = "";
+      let clientEmailDraft = "";
+      if (input.manualNeedsAssessment?.trim()) {
+        narrative = input.manualNeedsAssessment.trim();
+      } else {
+        // No manual input — skip AI, leave empty
+        narrative = "No needs assessment or recommendations were recorded for this instruction.";
+      }
 
       const insertData = {
         referenceNumber,

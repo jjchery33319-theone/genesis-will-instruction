@@ -274,10 +274,11 @@ export function generateWillPdf(record: WillInstruction): Promise<Buffer> {
   field("Special Notes", safe(record.specialNotes));
 
   // ── 14. AI Recommendations ───────────────────────────────────────────────
-  if (record.aiRecommendationNarrative) {
-    sectionHeading("14. AI Recommendations");
+  const needsText = (record as any).manualNeedsAssessment || record.aiRecommendationNarrative;
+  if (needsText) {
+    sectionHeading("14. Needs Assessment & Recommendations");
     doc.font("Helvetica").fontSize(8.5).fillColor(BLACK)
-      .text(record.aiRecommendationNarrative, 50, doc.y, { width: pageW, align: "left" });
+      .text(needsText, 50, doc.y, { width: pageW, align: "left" });
     doc.moveDown(0.5);
   }
 

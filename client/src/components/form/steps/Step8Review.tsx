@@ -2,21 +2,23 @@ import { WillFormData } from "../../../hooks/useWillForm";
 import { PRODUCTS } from "../../../../../shared/willConstants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  CheckCircle2, Edit2, Send, AlertTriangle, Star,
+  CheckCircle2, Edit2, Send, ClipboardList,
   User, Users, Scale, Heart, Home, Gift, Flower2,
   Calendar, ShoppingBag
 } from "lucide-react";
 
 interface Props {
   data: WillFormData;
+  onChange: (updates: Partial<WillFormData>) => void;
   onEdit: (step: number) => void;
   onSubmit: () => void;
   isSubmitting: boolean;
 }
 
-// ─── Recommendation Engine (client-side preview) ─────────────────────────────
-function computeRecommendations(data: WillFormData) {
+// ─── (auto-recommendation engine removed — replaced by manual entry) ────────────────
+function _unused_computeRecommendations(data: WillFormData) {
   const products = data.productsOrdered ?? [];
   const hasLPA = products.some(p => p.includes("lpa") || p === "both_lpas");
   const hasPPT = products.includes("ppt");
@@ -99,8 +101,7 @@ function Field({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Props) {
-  const recommendations = computeRecommendations(data);
+export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmitting }: Props) {
   const client1Name = [data.client1Prefix, data.client1FirstName, data.client1MiddleName, data.client1LastName].filter(Boolean).join(" ");
   const client2Name = data.client2FirstName
     ? [data.client2Prefix, data.client2FirstName, data.client2MiddleName, data.client2LastName].filter(Boolean).join(" ")
@@ -133,54 +134,34 @@ export default function Step8Review({ data, onEdit, onSubmit, isSubmitting }: Pr
         </div>
       </div>
 
-      {/* Smart Recommendations */}
-      {recommendations.length > 0 && (
+      {/* Manual Needs Assessment */}
+      <div
+        className="rounded-xl border-2 overflow-hidden"
+        style={{ borderColor: "oklch(0.78 0.12 85)" }}
+      >
         <div
-          className="rounded-xl border-2 overflow-hidden"
-          style={{ borderColor: "oklch(0.78 0.12 85)" }}
+          className="px-5 py-3 flex items-center gap-2"
+          style={{ background: "oklch(0.97 0.015 90)" }}
         >
-          <div
-            className="px-5 py-3 flex items-center gap-2"
-            style={{ background: "oklch(0.97 0.015 90)" }}
-          >
-            <Star className="w-4 h-4" style={{ color: "oklch(0.65 0.14 80)" }} />
-            <h3 className="font-serif text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>
-              Estate Planning Recommendations ({recommendations.length})
-            </h3>
-          </div>
-          <div className="p-4 space-y-3">
-            {recommendations.map(rec => (
-              <div
-                key={rec.id}
-                className="flex items-start gap-3 p-3 rounded-lg border"
-                style={{
-                  background: rec.priority === "high" ? "oklch(0.99 0.01 85 / 0.6)" : "oklch(0.99 0.005 155)",
-                  borderColor: rec.priority === "high" ? "oklch(0.78 0.12 85 / 0.5)" : "oklch(0.88 0.02 155)",
-                }}
-              >
-                <AlertTriangle
-                  className="w-4 h-4 flex-shrink-0 mt-0.5"
-                  style={{ color: rec.priority === "high" ? "oklch(0.65 0.14 80)" : "oklch(0.5 0.04 155)" }}
-                />
-                <div>
-                  <p className="text-sm font-semibold genesis-green-text">{rec.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{rec.reason}</p>
-                </div>
-                <Badge
-                  className="ml-auto flex-shrink-0 text-xs"
-                  style={
-                    rec.priority === "high"
-                      ? { background: "oklch(0.78 0.12 85)", color: "oklch(0.2 0.05 155)" }
-                      : { background: "oklch(0.88 0.02 155)", color: "oklch(0.28 0.07 155)" }
-                  }
-                >
-                  {rec.priority}
-                </Badge>
-              </div>
-            ))}
-          </div>
+          <ClipboardList className="w-4 h-4" style={{ color: "oklch(0.65 0.14 80)" }} />
+          <h3 className="font-serif text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>
+            Needs Assessment &amp; Recommendations
+          </h3>
+          <span className="ml-auto text-xs text-muted-foreground">Optional</span>
         </div>
-      )}
+        <div className="p-4">
+          <p className="text-xs text-muted-foreground mb-2">
+            Enter any needs, recommendations, or notes for this instruction. If left blank, no recommendations will be included.
+          </p>
+          <Textarea
+            value={data.manualNeedsAssessment ?? ""}
+            onChange={e => onChange({ manualNeedsAssessment: e.target.value })}
+            placeholder="e.g. Client should consider an LPA as they have no existing power of attorney. A PPT is recommended to protect the property share..."
+            rows={6}
+            className="text-sm resize-y"
+          />
+        </div>
+      </div>
 
       {/* Section Previews */}
       <ReviewSection title="Appointment & Products" icon={<Calendar className="w-4 h-4" />} step={1} onEdit={onEdit}>

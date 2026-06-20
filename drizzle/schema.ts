@@ -185,6 +185,9 @@ export const willInstructions = mysqlTable("will_instructions", {
   additionalNotes: text("additionalNotes"),                                    // NEW – replaces specialNotes for clarity
   specialNotes: text("specialNotes"),                                          // kept for backward compat
 
+  // ── Manual Needs Assessment ─────────────────────────────────────────────────
+  manualNeedsAssessment: text("manualNeedsAssessment"),
+
   // ── AI Output ─────────────────────────────────────────────────────────────
   recommendationsJson: json("recommendationsJson"),
   aiRecommendationNarrative: text("aiRecommendationNarrative"),

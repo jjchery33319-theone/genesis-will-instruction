@@ -68,6 +68,7 @@ export default function WillForm() {
     15: (
       <Step15Review
         data={formData}
+        onChange={updateFormData}
         onEdit={goToStep}
         onSubmit={submitForm}
         isSubmitting={isSubmitting}
