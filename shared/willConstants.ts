@@ -61,6 +61,7 @@ export const PRODUCTS = [
   { id: "discretionary_trust", label: "Discretionary Trust" },
   { id: "vulnerable_trust", label: "Vulnerable Person's Trust" },
   { id: "storage", label: "Will Storage" },
+  { id: "bpr_trust", label: "BPR Trust (Business Property Relief Trust)" },
 ] as const;
 
 export const ADMIN_EMAILS = [

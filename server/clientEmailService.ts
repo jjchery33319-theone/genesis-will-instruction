@@ -46,27 +46,18 @@ function buildClientEmailHtml(record: WillInstruction): string {
     : "—";
   const consultantName = safe(record.consultantName);
 
-  // Build recommendations list if available
-  const recs = safeArr(record.recommendationsJson) as Array<{ title?: string; description?: string; priority?: string }>;
-  const recsHtml = recs.length
+    // Use manual needs assessment if present
+  const manualNeeds = (record as any).manualNeedsAssessment as string | null | undefined;
+
+  const recsHtml = manualNeeds?.trim()
     ? `
       <tr>
         <td style="padding:0 32px 24px;">
           <div style="background:#f0f7f3;border-left:4px solid #1a4d35;border-radius:4px;padding:18px 20px;">
             <p style="margin:0 0 12px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">
-              Estate Planning Recommendations Discussed
+              Needs Assessment &amp; Recommendations
             </p>
-            <p style="margin:0 0 14px;font-size:13px;color:#374151;line-height:1.6;">
-              During your appointment, the following recommendations were discussed. You will receive a follow-up email containing the full details of these recommendations shortly.
-            </p>
-            <ul style="margin:0;padding-left:18px;">
-              ${recs.map(r => `
-                <li style="margin-bottom:8px;font-size:13px;color:#374151;line-height:1.5;">
-                  <strong style="color:#1a4d35;">${r.title ?? "Recommendation"}</strong>
-                  ${r.description ? `<br><span style="color:#6b7280;">${r.description}</span>` : ""}
-                </li>
-              `).join("")}
-            </ul>
+            <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;white-space:pre-line;">${manualNeeds.trim()}</p>
           </div>
         </td>
       </tr>`

@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { trpc } from "../lib/trpc";
-import { Loader2, ArrowLeft, Mail, Star, AlertTriangle, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PRODUCTS } from "../../../shared/willConstants";
@@ -106,44 +106,21 @@ export default function SubmissionDetail() {
       </header>
 
       <div className="container max-w-4xl py-6 space-y-5">
-        {/* Recommendations */}
-        {recommendations.length > 0 && (
+        {/* Needs Assessment & Recommendations */}
+        {((record as any).manualNeedsAssessment || record.aiRecommendationNarrative) && (
           <div className="rounded-xl border-2 overflow-hidden" style={{ borderColor: "oklch(0.78 0.12 85)" }}>
             <div className="px-5 py-3 flex items-center gap-2" style={{ background: "oklch(0.97 0.015 90)" }}>
-              <Star className="w-4 h-4" style={{ color: "oklch(0.65 0.14 80)" }} />
+              <ClipboardList className="w-4 h-4" style={{ color: "oklch(0.65 0.14 80)" }} />
               <h3 className="font-serif text-sm font-semibold genesis-green-text">
-                Estate Planning Recommendations ({recommendations.length})
+                Needs Assessment &amp; Recommendations
               </h3>
             </div>
-            <div className="p-4 space-y-3">
-              {recommendations.map((rec: Record<string, string>) => (
-                <div
-                  key={rec.id}
-                  className="flex items-start gap-3 p-3 rounded-lg border"
-                  style={{
-                    background: rec.priority === "high" ? "oklch(0.99 0.01 85 / 0.6)" : "oklch(0.99 0.005 155)",
-                    borderColor: rec.priority === "high" ? "oklch(0.78 0.12 85 / 0.5)" : "oklch(0.88 0.02 155)",
-                  }}
-                >
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: rec.priority === "high" ? "oklch(0.65 0.14 80)" : "oklch(0.5 0.04 155)" }} />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold genesis-green-text">{rec.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{rec.reason}</p>
-                  </div>
-                  <Badge className="text-xs flex-shrink-0" style={rec.priority === "high" ? { background: "oklch(0.78 0.12 85)", color: "oklch(0.2 0.05 155)" } : { background: "oklch(0.88 0.02 155)", color: "oklch(0.28 0.07 155)" }}>
-                    {rec.priority}
-                  </Badge>
-                </div>
-              ))}
+            <div className="p-4">
+              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                {(record as any).manualNeedsAssessment || record.aiRecommendationNarrative}
+              </p>
             </div>
           </div>
-        )}
-
-        {/* AI Narrative */}
-        {record.aiRecommendationNarrative && (
-          <Section title="Internal Recommendation Narrative" icon={<Star className="w-4 h-4" />}>
-            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{record.aiRecommendationNarrative}</p>
-          </Section>
         )}
 
         {/* Client Email Draft */}

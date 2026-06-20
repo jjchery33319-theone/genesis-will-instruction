@@ -253,6 +253,9 @@ export type WillFormData = {
   disasterClauseNotes?: string;
   additionalNotes?: string;
   specialNotes?: string;
+
+  // Manual Needs Assessment / Recommendations
+  manualNeedsAssessment?: string;
 };
 
 const initialData: WillFormData = {
