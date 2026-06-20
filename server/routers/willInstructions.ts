@@ -15,8 +15,8 @@ import { formatWillDocument, buildFilename } from "../willDocumentFormatter";
 // Zod schema for a person (executor/trustee/guardian/beneficiary)
 const personSchema = z.object({
   prefix: z.string().optional(),
-  firstName: z.string(),
-  lastName: z.string(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
   relationship: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
@@ -28,15 +28,15 @@ const personSchema = z.object({
 });
 
 const specificGiftSchema = z.object({
-  description: z.string(),
-  recipient: z.string(),
+  description: z.string().optional(),
+  recipient: z.string().optional(),
   value: z.string().optional(),
   isCharity: z.boolean().optional(),
   notes: z.string().optional(),
 });
 
 const lifeInsurancePolicySchema = z.object({
-  provider: z.string(),
+  provider: z.string().optional(),
   policyNumber: z.string().optional(),
   sumAssured: z.string().optional(),
   termRemaining: z.string().optional(),
@@ -46,8 +46,8 @@ const lifeInsurancePolicySchema = z.object({
 });
 
 const businessInterestSchema = z.object({
-  businessName: z.string(),
-  natureOfBusiness: z.string(),
+  businessName: z.string().optional(),
+  natureOfBusiness: z.string().optional(),
   ownershipPercentage: z.string().optional(),
   notes: z.string().optional(),
 });
