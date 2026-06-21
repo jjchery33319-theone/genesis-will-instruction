@@ -303,3 +303,194 @@ export async function sendClientConfirmationEmail(record: WillInstruction): Prom
     console.error(`[ClientEmail] Failed to send confirmation to ${clientEmail}:`, err);
   }
 }
+
+// ─── Adviser Confirmation Email ───────────────────────────────────────────────
+
+function buildAdviserEmailHtml(record: WillInstruction): string {
+  const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim() || "Client";
+  const client2Name = record.client2FirstName
+    ? `${record.client2Prefix ?? ""} ${record.client2FirstName ?? ""} ${record.client2LastName ?? ""}`.trim()
+    : null;
+  const clientDisplay = client2Name ? `${client1Name} &amp; ${client2Name}` : client1Name;
+  const ref = safe(record.referenceNumber);
+  const products = formatProductsList(record.productsOrdered);
+  const appointmentDate = record.appointmentDate
+    ? new Date(record.appointmentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
+    : "—";
+  const manualNeeds = (record as any).manualNeedsAssessment as string | null | undefined;
+  const consultantName = safe(record.consultantName);
+
+  const needsSection = manualNeeds?.trim()
+    ? `
+      <tr>
+        <td style="padding:0 32px 24px;">
+          <div style="background:#f0f7f3;border-left:4px solid #1a4d35;border-radius:4px;padding:18px 20px;">
+            <p style="margin:0 0 10px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">
+              Needs Assessment &amp; Recommendations
+            </p>
+            <p style="margin:0;font-size:13px;color:#374151;line-height:1.7;white-space:pre-line;">${manualNeeds.trim()}</p>
+          </div>
+        </td>
+      </tr>`
+    : `
+      <tr>
+        <td style="padding:0 32px 24px;">
+          <div style="background:#f9fafb;border-left:4px solid #d1d5db;border-radius:4px;padding:14px 18px;">
+            <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.6;">No needs assessment or recommendations were recorded for this instruction.</p>
+          </div>
+        </td>
+      </tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1a4d35 0%,#2d6b4a 100%);padding:28px 32px;">
+              <p style="margin:0;font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#d4af37;letter-spacing:0.5px;">
+                Genesis Wills and Estate Planning
+              </p>
+              <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.75);letter-spacing:1px;text-transform:uppercase;">
+                Adviser Instruction Confirmation
+              </p>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:28px 32px 16px;">
+              <p style="margin:0 0 12px;font-size:15px;color:#111827;line-height:1.6;">
+                Dear ${consultantName},
+              </p>
+              <p style="margin:0;font-size:14px;color:#374151;line-height:1.7;">
+                This is to confirm that a Will instruction has been successfully submitted for the following client(s). Please find the details below for your records.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Reference Banner -->
+          <tr>
+            <td style="padding:0 32px 20px;">
+              <div style="background:linear-gradient(135deg,#1a4d35,#2d6b4a);border-radius:8px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;">Reference Number</p>
+                  <p style="margin:4px 0 0;font-family:Georgia,serif;font-size:20px;font-weight:bold;color:#d4af37;">${ref}</p>
+                </div>
+                <div style="text-align:right;">
+                  <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;">Appointment Date</p>
+                  <p style="margin:4px 0 0;font-size:14px;color:#ffffff;">${appointmentDate}</p>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Client Details -->
+          <tr>
+            <td style="padding:0 32px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+                <tr>
+                  <td colspan="2" style="background:#f9fafb;padding:10px 16px;border-bottom:1px solid #e5e7eb;">
+                    <p style="margin:0;font-size:12px;font-weight:bold;color:#1a4d35;text-transform:uppercase;letter-spacing:0.5px;">Client Details</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 16px;font-size:13px;color:#6b7280;width:40%;border-bottom:1px solid #f3f4f6;">Client(s)</td>
+                  <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;border-bottom:1px solid #f3f4f6;">${clientDisplay}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 16px;font-size:13px;color:#6b7280;width:40%;">Products Ordered</td>
+                  <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;">${products}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Needs Assessment -->
+          ${needsSection}
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#1a4d35;padding:20px 32px;text-align:center;">
+              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.6);">
+                Genesis Wills and Estate Planning &nbsp;|&nbsp; This email is for adviser reference only
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildAdviserEmailText(record: WillInstruction): string {
+  const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim() || "Client";
+  const client2Name = record.client2FirstName
+    ? `${record.client2Prefix ?? ""} ${record.client2FirstName ?? ""} ${record.client2LastName ?? ""}`.trim()
+    : null;
+  const clientDisplay = client2Name ? `${client1Name} & ${client2Name}` : client1Name;
+  const ref = safe(record.referenceNumber);
+  const products = formatProductsList(record.productsOrdered);
+  const appointmentDate = record.appointmentDate
+    ? new Date(record.appointmentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
+    : "—";
+  const manualNeeds = (record as any).manualNeedsAssessment as string | null | undefined;
+  const consultantName = safe(record.consultantName);
+
+  return `Genesis Wills and Estate Planning — Adviser Instruction Confirmation
+
+Dear ${consultantName},
+
+This is to confirm that a Will instruction has been successfully submitted for the following client(s).
+
+Reference Number: ${ref}
+Appointment Date: ${appointmentDate}
+Client(s): ${clientDisplay}
+Products Ordered: ${products}
+
+NEEDS ASSESSMENT & RECOMMENDATIONS
+${manualNeeds?.trim() || "No needs assessment or recommendations were recorded for this instruction."}
+
+---
+Genesis Wills and Estate Planning | This email is for adviser reference only
+`;
+}
+
+export async function sendAdviserConfirmationEmail(record: WillInstruction): Promise<void> {
+  const consultantEmail = record.consultantEmail?.trim();
+  if (!consultantEmail) {
+    console.log("[AdviserEmail] No consultant email on record — skipping adviser confirmation.");
+    return;
+  }
+
+  const transporter = createTransporter();
+  if (!transporter) return;
+
+  const ref = safe(record.referenceNumber);
+  const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim() || "Client";
+  const subject = `Instruction Submitted — ${client1Name} | Ref: ${ref} | Genesis Wills and Estate Planning`;
+  const html = buildAdviserEmailHtml(record);
+  const text = buildAdviserEmailText(record);
+  const fromAddress = process.env.GMAIL_USER!;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"Genesis Wills and Estate Planning" <${fromAddress}>`,
+      to: consultantEmail,
+      subject,
+      html,
+      text,
+    });
+    console.log(`[AdviserEmail] Confirmation sent to adviser ${consultantEmail} — messageId: ${info.messageId}`);
+  } catch (err) {
+    console.error(`[AdviserEmail] Failed to send adviser confirmation to ${consultantEmail}:`, err);
+  }
+}

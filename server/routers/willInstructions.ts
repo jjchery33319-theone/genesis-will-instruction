@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { invokeLLM } from "../_core/llm";
 import { ADMIN_EMAILS } from "../../shared/willConstants";
 import { sendAdminEmail } from "../emailService";
-import { sendClientConfirmationEmail } from "../clientEmailService";
+import { sendClientConfirmationEmail, sendAdviserConfirmationEmail } from "../clientEmailService";
 import { generateWillPdf } from "../pdfGenerator";
 import { uploadToOneDrive } from "../oneDriveService";
 import { formatWillDocument, buildFilename } from "../willDocumentFormatter";
@@ -353,6 +353,11 @@ export const willInstructionsRouter = router({
       // Send client confirmation email (non-blocking)
       sendClientConfirmationEmail(record).catch(e =>
         console.error("[ClientEmail] Failed to send client confirmation:", e)
+      );
+
+      // Send adviser confirmation email (non-blocking)
+      sendAdviserConfirmationEmail(record).catch(e =>
+        console.error("[AdviserEmail] Failed to send adviser confirmation:", e)
       );
 
       return { success: true, referenceNumber, id: record.id, recommendations, narrative, clientEmailDraft };
