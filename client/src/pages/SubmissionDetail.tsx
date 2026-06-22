@@ -2,6 +2,7 @@ import { useParams, Link } from "wouter";
 import { trpc } from "../lib/trpc";
 import { Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown, FileText, Shield, GitFork, HeartHandshake } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -243,13 +244,22 @@ function WillGenerationPanel({ id, isMirror }: { id: number; isMirror: boolean }
   const [includePPT, setIncludePPT] = useState(false);
   const [includeDiscretionary, setIncludeDiscretionary] = useState(false);
   const [includeVulnerable, setIncludeVulnerable] = useState(false);
+  const [, navigate] = useLocation();
 
-  function buildUrl(willType: "single" | "mirror_client1" | "mirror_client2") {
+  function buildParams(willType: "single" | "mirror_client1" | "mirror_client2") {
     const params = new URLSearchParams({ willType });
     if (includePPT) params.set("ppt", "1");
     if (includeDiscretionary) params.set("discretionary", "1");
     if (includeVulnerable) params.set("vulnerable", "1");
-    return `/api/submissions/${id}/will?${params.toString()}`;
+    return params.toString();
+  }
+
+  function buildUrl(willType: "single" | "mirror_client1" | "mirror_client2") {
+    return `/api/submissions/${id}/will?${buildParams(willType)}`;
+  }
+
+  function openPreview(willType: "single" | "mirror_client1" | "mirror_client2") {
+    navigate(`/admin/submission/${id}/will-preview?${buildParams(willType)}`);
   }
 
   return (
@@ -298,34 +308,50 @@ function WillGenerationPanel({ id, isMirror }: { id: number; isMirror: boolean }
           </div>
         </div>
 
-        {/* Download buttons */}
+        {/* Buttons */}
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            {isMirror ? "Download Mirror Wills" : "Download Will"}
+            {isMirror ? "Mirror Wills" : "Will Document"}
           </p>
           <div className="flex flex-wrap gap-2">
             {isMirror ? (
               <>
+                {/* Client 1 */}
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => openPreview("mirror_client1")}>
+                  <FileText className="w-4 h-4" />
+                  Preview & Edit — Client 1
+                </Button>
                 <a href={buildUrl("mirror_client1")} download>
                   <Button size="sm" className="gap-2 genesis-gradient text-white">
                     <FileDown className="w-4 h-4" />
-                    Client 1 Will
+                    PDF — Client 1
                   </Button>
                 </a>
+                {/* Client 2 */}
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => openPreview("mirror_client2")}>
+                  <FileText className="w-4 h-4" />
+                  Preview & Edit — Client 2
+                </Button>
                 <a href={buildUrl("mirror_client2")} download>
                   <Button size="sm" className="gap-2 genesis-gradient text-white">
                     <FileDown className="w-4 h-4" />
-                    Client 2 Will
+                    PDF — Client 2
                   </Button>
                 </a>
               </>
             ) : (
-              <a href={buildUrl("single")} download>
-                <Button size="sm" className="gap-2 genesis-gradient text-white">
-                  <FileDown className="w-4 h-4" />
-                  Download Will
+              <>
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => openPreview("single")}>
+                  <FileText className="w-4 h-4" />
+                  Preview & Edit Will
                 </Button>
-              </a>
+                <a href={buildUrl("single")} download>
+                  <Button size="sm" className="gap-2 genesis-gradient text-white">
+                    <FileDown className="w-4 h-4" />
+                    Download PDF
+                  </Button>
+                </a>
+              </>
             )}
           </div>
         </div>

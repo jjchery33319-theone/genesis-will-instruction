@@ -432,61 +432,123 @@ function buildVulnerableTrustClause(doc: PDFDocument, clauseNum: number, vulnera
 function addAttestationPage(doc: PDFDocument, testatorName: string) {
   doc.addPage();
 
+  const pageWidth = doc.page.width;
+  const colW = (CONTENT_WIDTH - 20) / 2; // two-column layout for witnesses
+
+  // ── Title ──────────────────────────────────────────────────────────────────
   doc
     .font(GARAMOND_BOLD)
     .fontSize(14)
-    .text("The Testimonium and Attestation", PAGE_MARGIN, PAGE_MARGIN, {
-      width: CONTENT_WIDTH,
-      align: "center",
-    });
+    .text("EXECUTION PAGE", PAGE_MARGIN, PAGE_MARGIN, { width: CONTENT_WIDTH, align: "center" });
 
+  doc.moveDown(0.3);
   doc
-    .font(GARAMOND_BOLD)
-    .fontSize(12)
-    .text(`SIGNED by ${testatorName}`, { width: CONTENT_WIDTH, align: "center" });
+    .font(GARAMOND)
+    .fontSize(10)
+    .fillColor("#555")
+    .text("The Testimonium and Attestation Clause", PAGE_MARGIN, doc.y, { width: CONTENT_WIDTH, align: "center" });
+  doc.fillColor("#000");
 
-  doc.moveDown(1.5);
+  // Horizontal rule
+  doc.moveDown(0.6);
+  doc.moveTo(PAGE_MARGIN, doc.y).lineTo(PAGE_MARGIN + CONTENT_WIDTH, doc.y).strokeColor("#888").lineWidth(0.5).stroke();
+  doc.strokeColor("#000").lineWidth(1);
 
+  // ── Testimonium ────────────────────────────────────────────────────────────
+  doc.moveDown(0.8);
   doc
     .font(GARAMOND)
     .fontSize(11)
-    .text("on the ________________ day of _________________________ 20_____", PAGE_MARGIN, doc.y, {
-      width: CONTENT_WIDTH,
-      align: "left",
+    .text(
+      `I, ${testatorName}, declare this to be my last Will and Testament and I sign it as my Will in the presence of the witnesses named below, who each attest and subscribe it in my presence and in the presence of each other, all being present at the same time.`,
+      PAGE_MARGIN,
+      doc.y,
+      { width: CONTENT_WIDTH, align: "justify" }
+    );
+
+  // ── Testator signature block ────────────────────────────────────────────────
+  doc.moveDown(1.2);
+  const boxTop = doc.y;
+  const boxH = 110;
+  doc.rect(PAGE_MARGIN, boxTop, CONTENT_WIDTH, boxH).strokeColor("#aaa").lineWidth(0.5).stroke();
+  doc.strokeColor("#000").lineWidth(1);
+
+  const innerX = PAGE_MARGIN + 12;
+  const innerW = CONTENT_WIDTH - 24;
+  doc.font(GARAMOND_BOLD).fontSize(10).text("TESTATOR", innerX, boxTop + 8, { width: innerW });
+  doc.font(GARAMOND).fontSize(10);
+
+  doc.text("Full Name:", innerX, boxTop + 24, { continued: false });
+  doc.moveTo(innerX + 70, boxTop + 34).lineTo(innerX + innerW, boxTop + 34).strokeColor("#aaa").lineWidth(0.5).stroke();
+  doc.font(GARAMOND_BOLD).fontSize(9).fillColor("#333").text(testatorName, innerX + 72, boxTop + 22, { width: innerW - 72 });
+  doc.fillColor("#000").font(GARAMOND).fontSize(10);
+
+  doc.text("Signature:", innerX, boxTop + 48, { continued: false });
+  doc.moveTo(innerX + 70, boxTop + 68).lineTo(innerX + innerW, boxTop + 68).strokeColor("#aaa").lineWidth(0.5).stroke();
+
+  doc.text("Date:", innerX, boxTop + 80, { continued: false });
+  doc.moveTo(innerX + 70, boxTop + 90).lineTo(innerX + 250, boxTop + 90).strokeColor("#aaa").lineWidth(0.5).stroke();
+  doc.strokeColor("#000").lineWidth(1);
+
+  // ── Attestation statement ───────────────────────────────────────────────────
+  doc.moveDown(0.3);
+  const afterBox = boxTop + boxH + 10;
+  doc
+    .font(GARAMOND)
+    .fontSize(10)
+    .fillColor("#333")
+    .text(
+      "SIGNED by the above-named Testator as their last Will in our presence and attested by us in the presence of the Testator and of each other:",
+      PAGE_MARGIN,
+      afterBox,
+      { width: CONTENT_WIDTH, align: "justify" }
+    );
+  doc.fillColor("#000");
+
+  // ── Witness blocks (two columns) ────────────────────────────────────────────
+  const witnessTop = afterBox + 30;
+  const witnessBoxH = 180;
+
+  function drawWitnessBox(label: string, x: number, y: number, w: number) {
+    doc.rect(x, y, w, witnessBoxH).strokeColor("#aaa").lineWidth(0.5).stroke();
+    doc.strokeColor("#000").lineWidth(1);
+    const ix = x + 10;
+    const iw = w - 20;
+    doc.font(GARAMOND_BOLD).fontSize(10).text(label, ix, y + 8, { width: iw });
+    doc.font(GARAMOND).fontSize(10);
+
+    const rows: Array<{ label: string; lineH: number }> = [
+      { label: "Signature:", lineH: 40 },
+      { label: "Full Name:", lineH: 70 },
+      { label: "Address:", lineH: 100 },
+      { label: "", lineH: 120 },
+      { label: "", lineH: 140 },
+      { label: "Occupation:", lineH: 162 },
+    ];
+
+    rows.forEach(({ label: rowLabel, lineH }) => {
+      if (rowLabel) doc.text(rowLabel, ix, y + lineH - 12, { width: 65 });
+      doc.moveTo(ix + (rowLabel ? 68 : 10), y + lineH).lineTo(x + w - 10, y + lineH).strokeColor("#bbb").lineWidth(0.4).stroke();
     });
+    doc.strokeColor("#000").lineWidth(1);
+  }
 
-  doc.moveDown(1);
-  doc.text("Signature of Testator:  _____________________________________________");
-  doc.moveDown(0.5);
-  doc.text(testatorName);
-  doc.moveDown(1);
-  doc.text(
-    "SIGNED by the Testator in our presence and attested by us in the presence of the Testator and of each other",
-    PAGE_MARGIN,
-    doc.y,
-    { width: CONTENT_WIDTH }
-  );
+  drawWitnessBox("WITNESS 1", PAGE_MARGIN, witnessTop, colW);
+  drawWitnessBox("WITNESS 2", PAGE_MARGIN + colW + 20, witnessTop, colW);
 
-  doc.moveDown(1.5);
-
-  // Witness 1
-  doc.font(GARAMOND_BOLD).text("Witness 1");
-  doc.moveDown(0.5);
-  doc.font(GARAMOND).fontSize(11);
-  const witnessFields = ["Signature", "Full Name", "Address", "", "Occupation"];
-  witnessFields.forEach((label) => {
-    doc.text(`${label.padEnd(14)}  _____________________________________________`, PAGE_MARGIN + 20, doc.y);
-    doc.moveDown(0.8);
-  });
-
-  doc.moveDown(0.5);
-  doc.font(GARAMOND_BOLD).text("Witness 2");
-  doc.moveDown(0.5);
-  doc.font(GARAMOND).fontSize(11);
-  witnessFields.forEach((label) => {
-    doc.text(`${label.padEnd(14)}  _____________________________________________`, PAGE_MARGIN + 20, doc.y);
-    doc.moveDown(0.8);
-  });
+  // ── Footer note ─────────────────────────────────────────────────────────────
+  const footerY = witnessTop + witnessBoxH + 14;
+  doc
+    .font(GARAMOND)
+    .fontSize(8)
+    .fillColor("#666")
+    .text(
+      "Note: A witness must be 18 years or over, of sound mind, and must not be a beneficiary under this Will or the spouse/civil partner of a beneficiary.",
+      PAGE_MARGIN,
+      footerY,
+      { width: CONTENT_WIDTH, align: "center" }
+    );
+  doc.fillColor("#000");
 }
 
 // ─── Main Generator ──────────────────────────────────────────────────────────
