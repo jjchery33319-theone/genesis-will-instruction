@@ -994,37 +994,81 @@ export default function AdminSubmissionEditor() {
 
           {/* ── STATUS & NOTES ───────────────────────────────────────────────── */}
           <TabsContent value="notes">
-            <SectionCard title="Submission Status" icon={<ClipboardList className="w-4 h-4" />}>
-              <Row>
-                <SelectInput
-                  label="Status"
-                  value={f("status")}
-                  onChange={v => set("status", v)}
-                  options={[
-                    { value: "submitted", label: "Submitted" },
-                    { value: "processing", label: "Processing" },
-                    { value: "complete", label: "Complete" },
-                    { value: "cancelled", label: "Cancelled" },
-                    { value: "draft", label: "Draft" },
-                  ]}
+            {/* Status row */}
+            <div className="rounded-xl border border-border overflow-hidden mb-4 bg-white">
+              <div className="px-5 py-4 border-b flex items-center gap-2" style={{ background: "oklch(0.97 0.015 155)" }}>
+                <ClipboardList className="w-4 h-4" style={{ color: "oklch(0.28 0.07 155)" }} />
+                <h3 className="font-serif text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>Submission Status</h3>
+              </div>
+              <div className="px-5 py-5">
+                <div className="flex flex-wrap gap-2">
+                  {(["submitted", "processing", "complete", "cancelled", "draft"] as const).map(s => {
+                    const colours: Record<string, string> = {
+                      submitted: "bg-blue-50 border-blue-200 text-blue-700",
+                      processing: "bg-amber-50 border-amber-200 text-amber-700",
+                      complete: "bg-green-50 border-green-200 text-green-700",
+                      cancelled: "bg-red-50 border-red-200 text-red-700",
+                      draft: "bg-gray-50 border-gray-200 text-gray-600",
+                    };
+                    const active = f("status") === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => set("status", s)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium capitalize transition-all ${
+                          active
+                            ? colours[s] + " ring-2 ring-offset-1 ring-current shadow-sm"
+                            : "bg-white border-border text-muted-foreground hover:bg-muted/40"
+                        }`}
+                      >
+                        {s.charAt(0).toUpperCase() + s.slice(1)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Manual notes */}
+            <div className="rounded-xl border border-border overflow-hidden mb-4 bg-white">
+              <div className="px-5 py-4 border-b flex items-center gap-2" style={{ background: "oklch(0.97 0.015 155)" }}>
+                <FileText className="w-4 h-4" style={{ color: "oklch(0.28 0.07 155)" }} />
+                <h3 className="font-serif text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>Manual Needs Assessment</h3>
+              </div>
+              <div className="px-5 py-5">
+                <Textarea
+                  value={f("manualNeedsAssessment")}
+                  onChange={e => set("manualNeedsAssessment", e.target.value)}
+                  rows={6}
+                  placeholder="Enter manual needs assessment and recommendations here…"
+                  className="text-sm resize-none w-full"
                 />
-              </Row>
-            </SectionCard>
-            <SectionCard title="Manual Needs Assessment" icon={<FileText className="w-4 h-4" />}>
-              <TextAreaInput label="Manual Needs Assessment / Recommendations" value={f("manualNeedsAssessment")} onChange={v => set("manualNeedsAssessment", v)} rows={6} />
-            </SectionCard>
-            <SectionCard title="AI Outputs (Read-Only)" icon={<FileText className="w-4 h-4" />}>
-              <Field label="AI Recommendation Narrative">
-                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap min-h-[60px]">
-                  {f("aiRecommendationNarrative") || "Not generated."}
+              </div>
+            </div>
+
+            {/* AI outputs */}
+            <div className="rounded-xl border border-border overflow-hidden bg-white">
+              <div className="px-5 py-4 border-b flex items-center gap-2" style={{ background: "oklch(0.97 0.015 155)" }}>
+                <FileText className="w-4 h-4" style={{ color: "oklch(0.28 0.07 155)" }} />
+                <h3 className="font-serif text-sm font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>AI Outputs</h3>
+                <span className="ml-auto text-xs text-muted-foreground">Read-only</span>
+              </div>
+              <div className="px-5 py-5 space-y-5">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Recommendation Narrative</p>
+                  <div className="text-sm text-foreground bg-muted/20 rounded-lg p-4 whitespace-pre-wrap min-h-[80px] border border-border/50">
+                    {f("aiRecommendationNarrative") || <span className="text-muted-foreground italic">Not yet generated.</span>}
+                  </div>
                 </div>
-              </Field>
-              <Field label="AI Client Email Draft">
-                <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap min-h-[60px]">
-                  {f("aiClientEmailDraft") || "Not generated."}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Client Email Draft</p>
+                  <div className="text-sm text-foreground bg-muted/20 rounded-lg p-4 whitespace-pre-wrap min-h-[80px] border border-border/50">
+                    {f("aiClientEmailDraft") || <span className="text-muted-foreground italic">Not yet generated.</span>}
+                  </div>
                 </div>
-              </Field>
-            </SectionCard>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
