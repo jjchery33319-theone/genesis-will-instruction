@@ -168,3 +168,22 @@
 - [x] Save button with optimistic update and success toast
 - [x] Register /admin/submissions/:id/edit route in App.tsx
 - [x] Link "Edit" button from AdminSubmissionDetail to the new editor
+
+## LPA Back-Office & PDF Population (Phase 12)
+- [x] Review LP1H and LP1F PDFs and map all required fields (272 LP1F / 279 LP1H AcroForm fields)
+- [x] Add lpa_records DB table with all LPA fields linked to will_instructions
+- [x] Add lpaRouter with list, getById, upsert, delete procedures
+- [x] Build LpaManager.tsx — full tabbed editor for both LP1F and LP1H
+- [x] Attorney selection from Will instruction people (executors, beneficiaries, guardians)
+- [x] Allow manual editing of all attorney, replacement attorney, donor, certificate provider, and people-to-notify details
+- [x] "Appoint Genesis Wills and Estate Planning Ltd" button for attorneys
+- [x] Support separate LPA records per client per type (property_finance and health_welfare)
+- [x] Write fill_lpa_pdf.py Python script using PyMuPDF to fill AcroForm fields
+- [x] Add /api/lpa/:id/pdf server endpoint calling Python filler
+- [x] Populate LP1F PDF from saved LPA data
+- [x] Populate LP1H PDF from saved LPA data
+- [x] Add Download PDF button to each LPA card in LpaManager
+- [x] Add LPAs button to SubmissionDetail header
+- [x] Register /admin/submission/:id/lpa route in App.tsx
+- [x] Production build passes (0 errors)
+- [x] All 19 tests passing

@@ -12,8 +12,14 @@ import { generateWillDocument, type WillOptions } from "../willGenerator";
 import { generateWillHtml, type WillHtmlOptions } from "../willHtmlGenerator";
 import { generateWillDocx } from "../willDocxGenerator";
 import { getDb } from "../db";
-import { willInstructions } from "../../drizzle/schema";
+import { willInstructions, lpaRecords } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import path from "path";
+import os from "os";
+import fs from "fs";
+const execFileAsync = promisify(execFile);
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -144,6 +150,44 @@ async function startServer() {
     } catch (err) {
       console.error("[WillHTML] Error:", err);
       res.status(500).json({ error: "Failed to generate Will HTML" });
+    }
+  });
+
+  // LPA PDF export endpoint
+  app.get("/api/lpa/:id/pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const rows = await db.select().from(lpaRecords).where(eq(lpaRecords.id, id)).limit(1);
+      if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const lpa = rows[0] as Record<string, unknown>;
+      const lpaType = lpa.lpaType as string;
+      const templateName = lpaType === "property_finance" ? "lpa-lp1f.pdf" : "lpa-lp1h.pdf";
+      const templatePath = path.join(__dirname, "..", templateName);
+      const outputPath = path.join(os.tmpdir(), `lpa_${id}_${Date.now()}.pdf`);
+      // Normalise JSON arrays stored as strings
+      const safeArr = (v: unknown) => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v as string) ?? []; } catch { return []; } };
+      const data = {
+        ...lpa,
+        attorneys: safeArr(lpa.attorneys),
+        replacementAttorneys: safeArr(lpa.replacementAttorneys),
+        peopleToNotify: safeArr(lpa.peopleToNotify),
+      };
+      const scriptPath = path.join(__dirname, "..", "fill_lpa_pdf.py");
+      await execFileAsync("python3", [scriptPath, templatePath, outputPath, JSON.stringify(data)]);
+      const pdfBuffer = fs.readFileSync(outputPath);
+      fs.unlinkSync(outputPath);
+      const donorName = [lpa.donorFirstNames, lpa.donorLastName].filter(Boolean).join("_") || String(id);
+      const typeLabel = lpaType === "property_finance" ? "LP1F" : "LP1H";
+      const filename = `LPA_${typeLabel}_${donorName}.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (err) {
+      console.error("[LPA PDF] Error:", err);
+      res.status(500).json({ error: "Failed to generate LPA PDF" });
     }
   });
 
