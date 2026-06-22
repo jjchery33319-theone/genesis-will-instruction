@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { generateWillPdf } from "../pdfGenerator";
 import { generateWillDocument, type WillOptions } from "../willGenerator";
 import { generateWillHtml, type WillHtmlOptions } from "../willHtmlGenerator";
+import { generateWillDocx } from "../willDocxGenerator";
 import { getDb } from "../db";
 import { willInstructions } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -89,6 +90,36 @@ async function startServer() {
     } catch (err) {
       console.error("[Will] Error generating Will:", err);
       res.status(500).json({ error: "Failed to generate Will" });
+    }
+  });
+
+  // Will Word (.docx) export endpoint
+  app.get("/api/submissions/:id/will-docx", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
+      if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const opts = {
+        willType: (req.query.willType as "single" | "mirror_client1" | "mirror_client2") || "single",
+        ppt: req.query.ppt === "1",
+        discretionary: req.query.discretionary === "1",
+        vulnerable: req.query.vulnerable === "1",
+      };
+      const record = rows[0] as Record<string, unknown>;
+      const docxBuffer = await generateWillDocx(record, opts);
+      const clientName = opts.willType === "mirror_client2"
+        ? [rows[0].client2FirstName, rows[0].client2LastName].filter(Boolean).join("_")
+        : [rows[0].client1FirstName, rows[0].client1LastName].filter(Boolean).join("_");
+      const filename = `Will_${clientName || rows[0].referenceNumber}_${opts.willType}.docx`;
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(docxBuffer);
+    } catch (err) {
+      console.error("[WillDocx] Error:", err);
+      res.status(500).json({ error: "Failed to generate Word document" });
     }
   });
 

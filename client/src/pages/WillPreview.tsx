@@ -150,35 +150,26 @@ export default function WillPreview() {
     a.click();
   };
 
-  // ── Export: Word (.docx) ─────────────────────────────────────────────────
+  // ── Export: Word (.docx) via server ─────────────────────────────────────────
 
   const downloadDocx = async () => {
     try {
-      const doc = iframeRef.current?.contentDocument;
-      const willDiv = doc?.getElementById("will-content");
-      if (!willDiv) { toast.error("Document not loaded"); return; }
-
-      // Get current (possibly edited) HTML
-      const editedHtml = `<!DOCTYPE html><html><head><style>
-        body { font-family: Garamond, Georgia, serif; font-size: 12pt; line-height: 1.7; color: #111; }
-        h1 { font-size: 18pt; font-weight: bold; color: #1a3a2a; }
-        h2 { font-size: 14pt; font-weight: bold; color: #1a3a2a; }
-        .clause-title { font-weight: bold; font-size: 12pt; color: #1a3a2a; }
-        .sig-line { border-bottom: 1px solid #999; display: inline-block; min-width: 200px; }
-        .sig-box { border: 1px solid #bbb; padding: 10px; margin-bottom: 10px; }
-        ul, ol { margin-left: 1.5em; }
-        li { margin-bottom: 0.2em; }
-      </style></head><body>${willDiv.innerHTML}</body></html>`;
-
-      // Dynamic import to avoid SSR issues
-      const htmlDocx = await import("html-docx-js");
-      const converted = htmlDocx.default.asBlob(editedHtml) as Blob;
-      const url = URL.createObjectURL(converted);
+      const params = new URLSearchParams({
+        willType: opts.willType,
+        ppt: opts.ppt ? "1" : "0",
+        discretionary: opts.discretionary ? "1" : "0",
+        vulnerable: opts.vulnerable ? "1" : "0",
+      });
+      const url = `/api/submissions/${id}/will-docx?${params.toString()}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = objectUrl;
       a.download = `Will_${opts.willType}.docx`;
       a.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
       toast.success("Word document downloaded");
     } catch (err) {
       console.error(err);
