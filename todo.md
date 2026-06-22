@@ -140,3 +140,10 @@
 - [x] Update WillPreview.tsx — replace html-docx-js browser import with fetch call to server endpoint
 - [x] Production build passes (pnpm run build — 0 errors)
 - [x] All 19 tests passing
+- [x] Fix willDocxGenerator.ts: add safeArr() JSON-string parsing for Drizzle JSON columns
+- [x] Fix willDocxGenerator.ts: mirror Wills now prepend partner as primary executor and primary beneficiary
+- [x] Fix willDocxGenerator.ts: use client1FuneralWishes/client2FuneralWishes (not non-existent funeralWishesNotes)
+- [x] Fix willDocxGenerator.ts: use per-client guardians (client1Guardians/client2Guardians)
+- [x] Fix willDocxGenerator.ts: use per-client organ donation fields
+- [x] Fix willDocxGenerator.ts: use per-client vulnerable beneficiary details
+- [x] Fix willDocxGenerator.ts: use per-client specific gifts (client1SpecificGifts/client2SpecificGifts)
