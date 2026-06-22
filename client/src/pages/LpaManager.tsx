@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, UserPlus, Building2, ChevronDown, ChevronUp, Save, FileText, CheckCircle, Download } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, UserPlus, Building2, ChevronDown, ChevronUp, Save, FileText, CheckCircle, Download, Copy, Users } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface LpaPerson {
@@ -771,6 +771,83 @@ export default function LpaManager() {
     onError: (e) => toast.error(e.message),
   });
 
+  const createMutation = trpc.lpa.create.useMutation({
+    onSuccess: () => { toast.success("LPA duplicated successfully"); refetchLpas(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.lpa.update.useMutation({
+    onSuccess: () => { toast.success("LPA duplicated successfully"); refetchLpas(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const isDuplicating = createMutation.isPending || updateMutation.isPending;
+
+  /** Copy all shared fields from a source LPA into a target LPA type/client, preserving type-specific fields */
+  const duplicateLpa = (source: any, targetLpaType: "property_finance" | "health_welfare", targetClientNumber: 1 | 2) => {
+    const safeArr = (v: unknown): any[] => {
+      if (!v) return [];
+      if (Array.isArray(v)) return v;
+      try { return JSON.parse(v as string) ?? []; } catch { return []; }
+    };
+    const targetDonorDefaults = (() => {
+      const r = willRecord as any;
+      return {
+        donorTitle: r?.[`client${targetClientNumber}Prefix`] ?? "",
+        donorFirstNames: r?.[`client${targetClientNumber}FirstName`] ?? "",
+        donorLastName: r?.[`client${targetClientNumber}LastName`] ?? "",
+        donorDob: r?.[`client${targetClientNumber}Dob`] ?? "",
+        donorAddress: r?.[`client${targetClientNumber}AddressLine1`] ?? "",
+        donorPostcode: r?.[`client${targetClientNumber}Postcode`] ?? "",
+        donorEmail: r?.[`client${targetClientNumber}Email`] ?? "",
+      };
+    })();
+
+    // When mirroring to another client, use that client's donor details
+    const isMirrorClient = targetClientNumber !== source.clientNumber;
+    const payload = {
+      willInstructionId: submissionId,
+      lpaType: targetLpaType,
+      clientNumber: targetClientNumber,
+      // Donor: use target client's details when mirroring to other client
+      donorTitle: isMirrorClient ? targetDonorDefaults.donorTitle : (source.donorTitle ?? ""),
+      donorFirstNames: isMirrorClient ? targetDonorDefaults.donorFirstNames : (source.donorFirstNames ?? ""),
+      donorLastName: isMirrorClient ? targetDonorDefaults.donorLastName : (source.donorLastName ?? ""),
+      donorOtherNames: isMirrorClient ? "" : (source.donorOtherNames ?? ""),
+      donorDob: isMirrorClient ? targetDonorDefaults.donorDob : (source.donorDob ?? ""),
+      donorAddress: isMirrorClient ? targetDonorDefaults.donorAddress : (source.donorAddress ?? ""),
+      donorPostcode: isMirrorClient ? targetDonorDefaults.donorPostcode : (source.donorPostcode ?? ""),
+      donorEmail: isMirrorClient ? targetDonorDefaults.donorEmail : (source.donorEmail ?? ""),
+      // Shared attorney/decision fields
+      attorneys: safeArr(source.attorneys),
+      replacementAttorneys: safeArr(source.replacementAttorneys),
+      attorneyDecisionType: source.attorneyDecisionType ?? "",
+      attorneyDecisionDetails: source.attorneyDecisionDetails ?? "",
+      replacementDecisionDetails: source.replacementDecisionDetails ?? "",
+      certProviderTitle: source.certProviderTitle ?? "",
+      certProviderFirstNames: source.certProviderFirstNames ?? "",
+      certProviderLastName: source.certProviderLastName ?? "",
+      certProviderAddress: source.certProviderAddress ?? "",
+      certProviderPostcode: source.certProviderPostcode ?? "",
+      certProviderEmail: source.certProviderEmail ?? "",
+      peopleToNotify: safeArr(source.peopleToNotify),
+      preferences: source.preferences ?? "",
+      instructions: source.instructions ?? "",
+      status: "draft" as const,
+      // Type-specific fields: only copy if same type, otherwise clear
+      whenAttorneysCanAct: targetLpaType === "property_finance" ? (source.whenAttorneysCanAct ?? "") : "",
+      lifeSustainingTreatment: targetLpaType === "health_welfare" ? (source.lifeSustainingTreatment ?? "") : "",
+    };
+
+    const existing = getLpaForClient(targetLpaType, targetClientNumber);
+    if (existing) {
+      if (!confirm(`This will overwrite the existing ${targetLpaType === "property_finance" ? "Property & Finance" : "Health & Welfare"} LPA for ${clientName(targetClientNumber)}. Continue?`)) return;
+      updateMutation.mutate({ ...payload, id: existing.id });
+    } else {
+      createMutation.mutate(payload);
+    }
+  };
+
   if (!user || user.role !== "admin") {
     return <div className="p-8 text-center text-muted-foreground">Admin access required</div>;
   }
@@ -880,6 +957,34 @@ export default function LpaManager() {
                                 <Download className="w-3 h-3" /> PDF
                               </Button>
                             </a>
+                          )}
+                          {/* Copy LP1F → LP1H (or LP1H → LP1F) for same client */}
+                          {existing && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs gap-1"
+                              disabled={isDuplicating}
+                              title={lpaType === "property_finance" ? "Copy attorneys & details to Health & Welfare LPA" : "Copy attorneys & details to Property & Finance LPA"}
+                              onClick={() => duplicateLpa(existing, lpaType === "property_finance" ? "health_welfare" : "property_finance", clientNum)}
+                            >
+                              <Copy className="w-3 h-3" />
+                              {lpaType === "property_finance" ? "→ H&W" : "→ P&F"}
+                            </Button>
+                          )}
+                          {/* Mirror to other client (only shown when there is a Client 2) */}
+                          {existing && hasClient2 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs gap-1"
+                              disabled={isDuplicating}
+                              title={`Mirror this LPA to ${clientName(clientNum === 1 ? 2 : 1)}`}
+                              onClick={() => duplicateLpa(existing, lpaType, clientNum === 1 ? 2 : 1)}
+                            >
+                              <Users className="w-3 h-3" />
+                              Mirror → {clientNum === 1 ? "Client 2" : "Client 1"}
+                            </Button>
                           )}
                           {existing && (
                             <Button
