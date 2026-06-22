@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { generateWillPdf } from "../pdfGenerator";
 import { generateWillDocument, type WillOptions } from "../willGenerator";
+import { generateWillHtml, type WillHtmlOptions } from "../willHtmlGenerator";
 import { getDb } from "../db";
 import { willInstructions } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -88,6 +89,30 @@ async function startServer() {
     } catch (err) {
       console.error("[Will] Error generating Will:", err);
       res.status(500).json({ error: "Failed to generate Will" });
+    }
+  });
+
+  // Will HTML preview endpoint (returns editable HTML)
+  app.get("/api/submissions/:id/will-html", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
+      if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const options: WillHtmlOptions = {
+        willType: (req.query.willType as WillHtmlOptions["willType"]) || "single",
+        includePPT: req.query.ppt === "1",
+        includeDiscretionaryTrust: req.query.discretionary === "1",
+        includeVulnerableTrust: req.query.vulnerable === "1",
+      };
+      const html = generateWillHtml(rows[0], options);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch (err) {
+      console.error("[WillHTML] Error:", err);
+      res.status(500).json({ error: "Failed to generate Will HTML" });
     }
   });
 
