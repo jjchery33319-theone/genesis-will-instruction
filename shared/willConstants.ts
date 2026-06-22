@@ -44,7 +44,7 @@ export const CASE_COORDINATORS = [
   },
   {
     name: "Amelia Fox",
-    email: "customer-support@genesisestateplanning.info",
+    email: "amelia@genesisestateplanning.info",
     phone: "0330 118 0937",
   },
 ] as const;
