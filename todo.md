@@ -130,3 +130,13 @@
 - [x] Azure credentials stored as secrets (AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET, ONEDRIVE_FOLDER_PATH)
 - [x] Vitest: credential validation test + document formatter tests (5 tests, all passing)
 - [x] Total tests: 19 passing
+
+## Build Fix & Word Export (Phase 10)
+- [x] Remove html-docx-js (incompatible with Vite/Rollup ESM — uses `with` statements)
+- [x] Install docx 9.7.1 (server-side Word generation, fully ESM-compatible)
+- [x] Create server/willDocxGenerator.ts — generates .docx using `docx` library
+- [x] Fix all curly/smart quote characters in willDocxGenerator.ts (TypeScript string literal errors)
+- [x] Add /api/submissions/:id/will-docx endpoint to server/_core/index.ts
+- [x] Update WillPreview.tsx — replace html-docx-js browser import with fetch call to server endpoint
+- [x] Production build passes (pnpm run build — 0 errors)
+- [x] All 19 tests passing
