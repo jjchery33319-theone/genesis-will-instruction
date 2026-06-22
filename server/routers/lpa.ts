@@ -46,7 +46,7 @@ const lpaInputSchema = z.object({
   replacementAttorneys: z.array(lpaPersonSchema).optional(),
 
   // Decision type
-  attorneyDecisionType: z.enum(["single", "jointly_severally", "jointly", "jointly_some"]).optional(),
+  attorneyDecisionType: z.string().optional(),  // "single" | "jointly_severally" | "jointly" | "jointly_some" | ""
   attorneyDecisionDetails: z.string().optional(),
   replacementDecisionDetails: z.string().optional(),
 
@@ -62,10 +62,10 @@ const lpaInputSchema = z.object({
   peopleToNotify: z.array(notifyPersonSchema).optional(),
 
   // LP1H specific
-  lifeSustainingTreatment: z.enum(["give_authority", "do_not_give"]).optional(),
+  lifeSustainingTreatment: z.string().optional(),  // "give_authority" | "do_not_give" | ""
 
   // LP1F specific
-  whenAttorneysCanAct: z.enum(["capacity", "whenever"]).optional(),
+  whenAttorneysCanAct: z.string().optional(),  // "capacity" | "whenever" | ""
 
   // Preferences & instructions
   preferences: z.string().optional(),
