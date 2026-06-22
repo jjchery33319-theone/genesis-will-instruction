@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { willInstructionsRouter } from "./routers/willInstructions";
+import { lpaRouter } from "./routers/lpa";
 
 export const appRouter = router({
   system: systemRouter,
@@ -16,6 +17,7 @@ export const appRouter = router({
     }),
   }),
   will: willInstructionsRouter,
+  lpa: lpaRouter,
 });
 
 export type AppRouter = typeof appRouter;

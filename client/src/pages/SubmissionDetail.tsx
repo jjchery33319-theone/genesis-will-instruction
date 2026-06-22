@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { trpc } from "../lib/trpc";
-import { Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown, FileText, Shield, GitFork, HeartHandshake, Pencil } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown, FileText, Shield, GitFork, HeartHandshake, Pencil, ScrollText } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Switch } from "@/components/ui/switch";
@@ -98,6 +98,12 @@ export default function SubmissionDetail() {
                   <span className="sm:hidden">PDF</span>
                 </Button>
               </a>
+              <Link href={`/admin/submission/${id}/lpa`}>
+                <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3">
+                  <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">LPAs</span>
+                </Button>
+              </Link>
               <Link href={`/admin/submission/${id}/edit`}>
                 <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3">
                   <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

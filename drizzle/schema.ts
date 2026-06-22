@@ -236,3 +236,60 @@ export const willInstructions = mysqlTable("will_instructions", {
 
 export type WillInstruction = typeof willInstructions.$inferSelect;
 export type InsertWillInstruction = typeof willInstructions.$inferInsert;
+
+// ── LPA Records ───────────────────────────────────────────────────────────────
+export const lpaRecords = mysqlTable("lpa_records", {
+  id: int("id").autoincrement().primaryKey(),
+  willInstructionId: int("willInstructionId").notNull(),
+  clientNumber: int("clientNumber").notNull().default(1), // 1 or 2
+  lpaType: mysqlEnum("lpaType", ["property_finance", "health_welfare"]).notNull(),
+
+  // ── Donor (pre-filled from will instruction client data) ──────────────────
+  donorTitle: varchar("donorTitle", { length: 16 }),
+  donorFirstNames: varchar("donorFirstNames", { length: 128 }),
+  donorLastName: varchar("donorLastName", { length: 128 }),
+  donorOtherNames: varchar("donorOtherNames", { length: 128 }),
+  donorDob: varchar("donorDob", { length: 16 }),
+  donorAddress: text("donorAddress"),
+  donorPostcode: varchar("donorPostcode", { length: 16 }),
+  donorEmail: varchar("donorEmail", { length: 320 }),
+
+  // ── Attorneys (JSON array of person objects) ──────────────────────────────
+  attorneys: json("attorneys"),          // [{ title, firstNames, lastName, dob, address, postcode, email, isTrustCorporation? }]
+  replacementAttorneys: json("replacementAttorneys"),
+
+  // ── How attorneys make decisions ──────────────────────────────────────────
+  // "jointly_severally" | "jointly" | "jointly_some" | "single"
+  attorneyDecisionType: varchar("attorneyDecisionType", { length: 32 }),
+  attorneyDecisionDetails: text("attorneyDecisionDetails"), // for jointly_some
+  replacementDecisionDetails: text("replacementDecisionDetails"),
+
+  // ── Certificate provider ──────────────────────────────────────────────────
+  certProviderTitle: varchar("certProviderTitle", { length: 16 }),
+  certProviderFirstNames: varchar("certProviderFirstNames", { length: 128 }),
+  certProviderLastName: varchar("certProviderLastName", { length: 128 }),
+  certProviderAddress: text("certProviderAddress"),
+  certProviderPostcode: varchar("certProviderPostcode", { length: 16 }),
+  certProviderEmail: varchar("certProviderEmail", { length: 320 }),
+
+  // ── People to notify ──────────────────────────────────────────────────────
+  peopleToNotify: json("peopleToNotify"),  // [{ title, firstNames, lastName, address, postcode }]
+
+  // ── LP1H-specific: life-sustaining treatment ──────────────────────────────
+  lifeSustainingTreatment: varchar("lifeSustainingTreatment", { length: 16 }), // "give_authority" | "do_not_give"
+
+  // ── LP1F-specific: when attorneys can act ────────────────────────────────
+  whenAttorneysCanAct: varchar("whenAttorneysCanAct", { length: 32 }), // "capacity" | "whenever"
+
+  // ── Preferences & instructions (Section 7) ───────────────────────────────
+  preferences: text("preferences"),
+  instructions: text("instructions"),
+
+  // ── Meta ──────────────────────────────────────────────────────────────────
+  status: mysqlEnum("status", ["draft", "complete"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LpaRecord = typeof lpaRecords.$inferSelect;
+export type InsertLpaRecord = typeof lpaRecords.$inferInsert;
