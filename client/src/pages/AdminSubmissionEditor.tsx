@@ -409,13 +409,14 @@ export default function AdminSubmissionEditor() {
   // ── Local state ──────────────────────────────────────────────────────────
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [dirty, setDirty] = useState(false);
-  const [regenerating, setRegenerating] = useState<"pdf" | "docx" | null>(null);
+  const [regenerating, setRegenerating] = useState<string | null>(null);
 
-  const handleRegenerate = async (type: "pdf" | "docx") => {
-    setRegenerating(type);
+  const handleRegenerate = async (type: "pdf" | "docx", clientNumber: 1 | 2 = 1) => {
+    const key = `${type}-${clientNumber}`;
+    setRegenerating(key);
     try {
       const willType = (form.willType as string) || "single";
-      const params = new URLSearchParams({ willType });
+      const params = new URLSearchParams({ willType, clientNumber: String(clientNumber) });
       const ext = type === "pdf" ? "will" : "will-docx";
       const resp = await fetch(`/api/submissions/${id}/${ext}?${params.toString()}`);
       if (!resp.ok) throw new Error(await resp.text());
@@ -423,7 +424,9 @@ export default function AdminSubmissionEditor() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const clientName = [form.client1FirstName, form.client1LastName].filter(Boolean).join("_") || "Will";
+      const firstName = clientNumber === 1 ? form.client1FirstName : form.client2FirstName;
+      const lastName = clientNumber === 1 ? form.client1LastName : form.client2LastName;
+      const clientName = [firstName, lastName].filter(Boolean).join("_") || `Client${clientNumber}`;
       a.download = `${clientName}_Will.${type === "pdf" ? "pdf" : "docx"}`;
       a.click();
       URL.revokeObjectURL(url);
@@ -516,28 +519,81 @@ export default function AdminSubmissionEditor() {
           </div>
           <div className="flex items-center gap-2">
             {dirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">Unsaved changes</Badge>}
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 bg-white"
-              onClick={() => handleRegenerate("pdf")}
-              disabled={!!regenerating || dirty}
-              title={dirty ? "Save changes first" : "Download Will as PDF"}
-            >
-              {regenerating === "pdf" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              PDF
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 bg-white"
-              onClick={() => handleRegenerate("docx")}
-              disabled={!!regenerating || dirty}
-              title={dirty ? "Save changes first" : "Download Will as Word document"}
-            >
-              {regenerating === "docx" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              Word
-            </Button>
+            {isMirror ? (
+              <>
+                {/* Client 1 buttons */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 bg-white"
+                  onClick={() => handleRegenerate("pdf", 1)}
+                  disabled={!!regenerating || dirty}
+                  title={dirty ? "Save changes first" : `Download ${client1Name} Will as PDF`}
+                >
+                  {regenerating === "pdf-1" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  C1 PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 bg-white"
+                  onClick={() => handleRegenerate("docx", 1)}
+                  disabled={!!regenerating || dirty}
+                  title={dirty ? "Save changes first" : `Download ${client1Name} Will as Word document`}
+                >
+                  {regenerating === "docx-1" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  C1 Word
+                </Button>
+                {/* Client 2 buttons */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 bg-white"
+                  onClick={() => handleRegenerate("pdf", 2)}
+                  disabled={!!regenerating || dirty}
+                  title={dirty ? "Save changes first" : `Download ${client2Name} Will as PDF`}
+                >
+                  {regenerating === "pdf-2" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  C2 PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 bg-white"
+                  onClick={() => handleRegenerate("docx", 2)}
+                  disabled={!!regenerating || dirty}
+                  title={dirty ? "Save changes first" : `Download ${client2Name} Will as Word document`}
+                >
+                  {regenerating === "docx-2" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  C2 Word
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 bg-white"
+                  onClick={() => handleRegenerate("pdf", 1)}
+                  disabled={!!regenerating || dirty}
+                  title={dirty ? "Save changes first" : "Download Will as PDF"}
+                >
+                  {regenerating === "pdf-1" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 bg-white"
+                  onClick={() => handleRegenerate("docx", 1)}
+                  disabled={!!regenerating || dirty}
+                  title={dirty ? "Save changes first" : "Download Will as Word document"}
+                >
+                  {regenerating === "docx-1" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  Word
+                </Button>
+              </>
+            )}
             <Button
               size="sm"
               className="gap-1.5"

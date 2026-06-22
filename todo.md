@@ -199,3 +199,11 @@
 - [x] Rewrite PPT and all optional clause legal text in willDocxGenerator.ts
 - [x] Legacy boolean fallbacks preserved for Wills generated before the new editor
 - [x] Build passes (0 errors), all 19 tests pass
+
+## Mirror Will Generation (Phase 14)
+- [x] handleRegenerate() now accepts clientNumber (1 | 2) parameter
+- [x] For Mirror Wills: header shows C1 PDF, C1 Word, C2 PDF, C2 Word buttons
+- [x] For Single Wills: header shows PDF, Word buttons (unchanged)
+- [x] Each button passes clientNumber to /api/submissions/:id/will-pdf and /api/submissions/:id/will-docx
+- [x] Downloaded filename uses the respective client's name
+- [x] Build passes (0 errors), all 19 tests pass
