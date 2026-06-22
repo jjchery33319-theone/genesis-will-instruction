@@ -52,6 +52,67 @@ const businessInterestSchema = z.object({
   notes: z.string().optional(),
 });
 
+// ── Optional clause sub-schemas ──────────────────────────────────────────────
+
+const pptTerminationTriggersSchema = z.object({
+  onDeath: z.boolean().optional(),
+  onRemarriageOrCohabitation: z.boolean().optional(),
+  onCeasingToReside: z.boolean().optional(),
+  onBreachOfConditions: z.boolean().optional(),
+});
+
+const pptClauseSchema = z.object({
+  propertyAddress: z.string().optional(),
+  trustees: z.array(personSchema).optional(),
+  lifeTenants: z.array(personSchema).optional(),
+  terminationTriggers: pptTerminationTriggersSchema.optional(),
+  trustPeriodNotes: z.string().optional(),
+  ultimateBeneficiaries: z.array(personSchema).optional(),
+  notes: z.string().optional(),
+});
+
+const discretionaryTrustClauseSchema = z.object({
+  trustees: z.array(personSchema).optional(),
+  beneficiaryClass: z.string().optional(),
+  additionalBeneficiaries: z.array(personSchema).optional(),
+  terminationNotes: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const vulnerableTrustClauseSchema = z.object({
+  vulnerableBeneficiary: personSchema.optional(),
+  trustees: z.array(personSchema).optional(),
+  ultimateBeneficiaries: z.array(personSchema).optional(),
+  notes: z.string().optional(),
+});
+
+const nilRateBandClauseSchema = z.object({
+  trustees: z.array(personSchema).optional(),
+  beneficiaries: z.array(personSchema).optional(),
+  notes: z.string().optional(),
+});
+
+const bereavedMinorClauseSchema = z.object({
+  beneficiary: personSchema.optional(),
+  trustees: z.array(personSchema).optional(),
+  ageOfAbsoluteEntitlement: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const age18To25ClauseSchema = z.object({
+  beneficiary: personSchema.optional(),
+  trustees: z.array(personSchema).optional(),
+  ageOfAbsoluteEntitlement: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const businessPropertyReliefClauseSchema = z.object({
+  businessName: z.string().optional(),
+  trustees: z.array(personSchema).optional(),
+  beneficiaries: z.array(personSchema).optional(),
+  notes: z.string().optional(),
+});
+
 const willInstructionInputSchema = z.object({
   // Appointment
   appointmentDate: z.string().optional(),
@@ -261,6 +322,15 @@ const willInstructionInputSchema = z.object({
   // Notes
   specialNotes: z.string().optional(),
 
+  // Optional Trust Clauses (rich multi-instance)
+  protectivePropertyTrusts: z.array(pptClauseSchema).optional(),
+  discretionaryTrusts: z.array(discretionaryTrustClauseSchema).optional(),
+  vulnerablePersonTrusts: z.array(vulnerableTrustClauseSchema).optional(),
+  nilRateBandTrusts: z.array(nilRateBandClauseSchema).optional(),
+  bereavedMinorTrusts: z.array(bereavedMinorClauseSchema).optional(),
+  age18To25Trusts: z.array(age18To25ClauseSchema).optional(),
+  businessPropertyReliefs: z.array(businessPropertyReliefClauseSchema).optional(),
+
   // Manual Needs Assessment / Recommendations
   manualNeedsAssessment: z.string().optional(),
 });
@@ -312,6 +382,13 @@ export const willInstructionsRouter = router({
         client1ChildrenOver18: input.client1ChildrenOver18 ?? [],
         client2ChildrenUnder18: input.client2ChildrenUnder18 ?? [],
         client2ChildrenOver18: input.client2ChildrenOver18 ?? [],
+        protectivePropertyTrusts: input.protectivePropertyTrusts ?? [],
+        discretionaryTrusts: input.discretionaryTrusts ?? [],
+        vulnerablePersonTrusts: input.vulnerablePersonTrusts ?? [],
+        nilRateBandTrusts: input.nilRateBandTrusts ?? [],
+        bereavedMinorTrusts: input.bereavedMinorTrusts ?? [],
+        age18To25Trusts: input.age18To25Trusts ?? [],
+        businessPropertyReliefs: input.businessPropertyReliefs ?? [],
         recommendationsJson: recommendations,
         aiRecommendationNarrative: narrative,
         aiClientEmailDraft: clientEmailDraft,
@@ -572,6 +649,13 @@ export const willInstructionsRouter = router({
         client2ChildrenOver18: formData.client2ChildrenOver18 ?? undefined,
         lifeInsurancePolicies: formData.lifeInsurancePolicies ?? undefined,
         businessInterestsDetails: formData.businessInterestsDetails ?? undefined,
+        protectivePropertyTrusts: formData.protectivePropertyTrusts ?? undefined,
+        discretionaryTrusts: formData.discretionaryTrusts ?? undefined,
+        vulnerablePersonTrusts: formData.vulnerablePersonTrusts ?? undefined,
+        nilRateBandTrusts: formData.nilRateBandTrusts ?? undefined,
+        bereavedMinorTrusts: formData.bereavedMinorTrusts ?? undefined,
+        age18To25Trusts: formData.age18To25Trusts ?? undefined,
+        businessPropertyReliefs: formData.businessPropertyReliefs ?? undefined,
         updatedAt: new Date(),
       };
 

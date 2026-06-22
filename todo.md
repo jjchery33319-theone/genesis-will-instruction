@@ -187,3 +187,15 @@
 - [x] Register /admin/submission/:id/lpa route in App.tsx
 - [x] Production build passes (0 errors)
 - [x] All 19 tests passing
+
+## Optional Clause Enhancements (Phase 13)
+- [ ] Audit all optional clause data models, form steps, and generator logic
+- [ ] Extend Zod input schema: protective_property_trusts as array with trustees[], life_tenants[], termination_triggers{}, ultimate_beneficiaries[], trust_period_notes
+- [ ] Same rich structure for: discretionary_trust, business_property_relief, nil_rate_band_trust, bereaved_minor_trust, 18_to_25_trust, vulnerable_beneficiary_trust
+- [ ] Add/update DB columns for rich optional clause JSON arrays
+- [ ] Rebuild optional clause admin editor UI: multi-instance cards, add/remove, trustees, life tenants, termination triggers, beneficiaries
+- [ ] Rewrite PPT legal text in willGenerator.ts: loop through array, formal clause per instance
+- [ ] Rewrite all other optional clause legal text in willGenerator.ts with same pattern
+- [ ] Rewrite PPT and all optional clause legal text in willDocxGenerator.ts
+- [ ] Update the Will instruction form optional clause steps to match new data model
+- [ ] Build passes, all tests pass
