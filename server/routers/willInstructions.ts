@@ -669,13 +669,14 @@ export const willInstructionsRouter = router({
 
   // Update status of a submitted instruction
   updateStatus: publicProcedure
-    .input(z.object({ id: z.number(), status: z.enum(["submitted", "processing", "complete", "cancelled"]) }))
+    .input(z.object({ id: z.number(), status: z.string() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await db
         .update(willInstructions)
-        .set({ status: input.status, updatedAt: new Date() })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .set({ status: input.status as any, updatedAt: new Date() })
         .where(eq(willInstructions.id, input.id));
       return { success: true };
     }),
