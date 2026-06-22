@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { PRODUCTS } from "../../../shared/willConstants";
+import { OptionalClausesEditor, type OptionalClausesData } from "@/components/OptionalClausesEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -496,6 +497,7 @@ export default function AdminSubmissionEditor() {
               { value: "gifts", label: "Gifts & Legacies", icon: <Heart className="w-3.5 h-3.5" /> },
               { value: "property", label: "Property & Assets", icon: <Home className="w-3.5 h-3.5" /> },
               { value: "wishes", label: "Wishes & Funeral", icon: <Flower2 className="w-3.5 h-3.5" /> },
+              { value: "optionalclauses", label: "Optional Clauses", icon: <Scale className="w-3.5 h-3.5" /> },
               { value: "family", label: "Family & Background", icon: <Baby className="w-3.5 h-3.5" /> },
               { value: "duediligence", label: "Due Diligence", icon: <AlertTriangle className="w-3.5 h-3.5" /> },
               { value: "notes", label: "Status & Notes", icon: <FileText className="w-3.5 h-3.5" /> },
@@ -967,6 +969,26 @@ export default function AdminSubmissionEditor() {
                   <TextAreaInput label="Notes" value={f(q.notes)} onChange={v => set(q.notes, v)} rows={2} />
                 </div>
               ))}
+            </SectionCard>
+          </TabsContent>
+
+          {/* ── OPTIONAL CLAUSES ───────────────────────────────────────────── */}
+          <TabsContent value="optionalclauses">
+            <SectionCard title="Optional Trust Clauses" icon={<Scale className="w-4 h-4" />}>
+              <OptionalClausesEditor
+                data={{
+                  protectivePropertyTrusts: arr("protectivePropertyTrusts"),
+                  discretionaryTrusts: arr("discretionaryTrusts"),
+                  vulnerablePersonTrusts: arr("vulnerablePersonTrusts"),
+                  nilRateBandTrusts: arr("nilRateBandTrusts"),
+                  bereavedMinorTrusts: arr("bereavedMinorTrusts"),
+                  age18To25Trusts: arr("age18To25Trusts"),
+                  businessPropertyReliefs: arr("businessPropertyReliefs"),
+                }}
+                onChange={(updated: OptionalClausesData) => {
+                  Object.entries(updated).forEach(([key, value]) => set(key, value));
+                }}
+              />
             </SectionCard>
           </TabsContent>
 

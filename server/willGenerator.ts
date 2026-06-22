@@ -31,6 +31,7 @@ interface PersonEntry {
   relationship?: string;
   dob?: string;
   email?: string;
+  share?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -385,46 +386,273 @@ function buildAvoidanceOfDoubtClause(doc: PDFDocument, clauseNum: number) {
   subItem(doc, "f)", "This is to be the last clause of my Will and shall be followed only by the attestation clause");
 }
 
-// ─── Trust Clause Builders ───────────────────────────────────────────────────
+// ─── Trust Clause Builders (Rich Multi-Instance) ─────────────────────────────
 
-function buildPPTClause(doc: PDFDocument, clauseNum: number, testatorName: string, partnerName: string, children: string[]) {
+interface PPTClause {
+  propertyAddress?: string;
+  trustees?: PersonEntry[];
+  lifeTenants?: PersonEntry[];
+  terminationTriggers?: {
+    onDeath?: boolean;
+    onRemarriageOrCohabitation?: boolean;
+    onCeasingToReside?: boolean;
+    onBreachOfConditions?: boolean;
+  };
+  trustPeriodNotes?: string;
+  ultimateBeneficiaries?: PersonEntry[];
+  notes?: string;
+}
+
+interface DiscretionaryTrustClause {
+  trustees?: PersonEntry[];
+  beneficiaryClass?: string;
+  additionalBeneficiaries?: PersonEntry[];
+  terminationNotes?: string;
+  notes?: string;
+}
+
+interface VulnerableTrustClause {
+  vulnerableBeneficiary?: PersonEntry;
+  trustees?: PersonEntry[];
+  ultimateBeneficiaries?: PersonEntry[];
+  notes?: string;
+}
+
+interface NilRateBandClause {
+  trustees?: PersonEntry[];
+  beneficiaries?: PersonEntry[];
+  notes?: string;
+}
+
+interface BereavedMinorClause {
+  beneficiary?: PersonEntry;
+  trustees?: PersonEntry[];
+  ageOfAbsoluteEntitlement?: string;
+  notes?: string;
+}
+
+interface Age18To25Clause {
+  beneficiary?: PersonEntry;
+  trustees?: PersonEntry[];
+  ageOfAbsoluteEntitlement?: string;
+  notes?: string;
+}
+
+interface BusinessPropertyReliefClause {
+  businessName?: string;
+  trustees?: PersonEntry[];
+  beneficiaries?: PersonEntry[];
+  notes?: string;
+}
+
+function safeClauseArr<T>(v: unknown): T[] {
+  if (!v) return [];
+  if (typeof v === "string") { try { return JSON.parse(v) as T[]; } catch { return []; } }
+  if (Array.isArray(v)) return v as T[];
+  return [];
+}
+
+function trusteeNames(trustees: PersonEntry[] | undefined, fallback = "my Executors"): string {
+  const names = (trustees ?? []).map(fullName).filter(Boolean);
+  if (names.length === 0) return fallback;
+  if (names.length === 1) return names[0];
+  return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+}
+
+function beneficiaryNamesWithShares(people: PersonEntry[] | undefined, fallback = "my children and remoter issue in equal shares absolutely"): string {
+  const parts = (people ?? []).map(p => {
+    const n = fullName(p);
+    return n && p.share ? `${n} as to ${p.share}` : n;
+  }).filter(Boolean);
+  if (parts.length === 0) return fallback;
+  if (parts.length === 1) return parts[0] + " absolutely";
+  return parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] + " in the shares specified";
+}
+
+function buildPPTClause(doc: PDFDocument, clauseNum: number, clause: PPTClause) {
+  const property = clause.propertyAddress || "my principal residence";
+  const lifeTenantNames = (clause.lifeTenants ?? []).map(fullName).filter(Boolean);
+  const lifeTenantStr = lifeTenantNames.length > 0
+    ? lifeTenantNames.join(" and ")
+    : "my surviving spouse or civil partner";
+  const trustees = trusteeNames(clause.trustees);
+  const ultimateBens = beneficiaryNamesWithShares(clause.ultimateBeneficiaries);
+  const triggers = clause.terminationTriggers ?? {};
+
   clauseHeading(doc, clauseNum, "Protective Property Trust (Lifetime Interest Trust)");
-  bodyText(
-    doc,
-    `Notwithstanding the provisions of Clause 4 above I DECLARE that my share of the property known as my principal residence (hereinafter referred to as 'the Property') shall be held upon the following trusts:`
-  );
-  subItem(doc, "a)", `Upon trust to permit my ${partnerName ? `${partnerName}` : "surviving spouse/civil partner"} to reside in the Property during their lifetime or until they shall remarry or enter into a new civil partnership (hereinafter referred to as the 'Life Tenant') and`);
-  subItem(doc, "b)", `Subject to the life interest aforesaid upon trust for ${children.length > 0 ? children.join(", ") : "my children"} in equal shares absolutely`);
-  subItem(doc, "c)", "My Trustees shall have power to sell the Property and to apply the proceeds of sale in the purchase of another property to be held upon the same trusts or to invest the same as if they were absolute owners thereof");
-  subItem(doc, "d)", "The Life Tenant shall be responsible for the payment of all outgoings in respect of the Property including rates taxes insurance and the cost of repairs and maintenance");
-  doc.moveDown(0.4);
-  bodyText(doc, "This trust is commonly referred to as a Protective Property Trust and is intended to protect the testator's share of the property for the benefit of the remainder beneficiaries whilst providing security of occupation for the surviving spouse or civil partner.");
+  bodyText(doc, `I DECLARE that my share of the property known as ${property} (hereinafter referred to as "the Property") shall not pass under the general gift of my Residuary Estate but shall instead be held upon the following trusts:`);
+
+  subItem(doc, "a)", `The Trustees of this trust shall be ${trustees} (hereinafter referred to as "the Trustees") and the Trustees shall hold my share of the Property upon the trusts and with and subject to the powers and provisions hereinafter declared and contained.`);
+
+  subItem(doc, "b)", `The Trustees shall hold my share of the Property upon trust to permit ${lifeTenantStr} (hereinafter referred to as "the Life Tenant") to have the right to reside in the Property during the Trust Period.`);
+
+  // Termination triggers
+  const terminationEvents: string[] = [];
+  if (triggers.onDeath !== false) {
+    terminationEvents.push("the death of the Life Tenant");
+  }
+  if (triggers.onRemarriageOrCohabitation) {
+    terminationEvents.push("the Life Tenant remarrying, entering into a civil partnership, or beginning to cohabit with another person as defined by applicable law");
+  }
+  if (triggers.onCeasingToReside) {
+    terminationEvents.push("the Life Tenant ceasing to permanently reside in the Property for a continuous period, including (without limitation) moving into long-term residential care or permanently vacating the Property");
+  }
+  if (triggers.onBreachOfConditions) {
+    terminationEvents.push("the Life Tenant failing to comply with the conditions of this trust, including the obligation to keep the Property insured to its full reinstatement value, maintained in good repair, and to pay all outgoings including rates, taxes, and service charges");
+  }
+
+  if (terminationEvents.length > 0) {
+    const triggerList = terminationEvents.map((e, i) => `(${String.fromCharCode(105 + i)}) ${e}`).join("; or ");
+    subItem(doc, "c)", `The Trust Period shall commence on the date of my death and shall terminate upon the first to occur of the following events: ${triggerList}.`);
+  } else {
+    subItem(doc, "c)", "The Trust Period shall commence on the date of my death and shall terminate upon the death of the Life Tenant.");
+  }
+
+  if (clause.trustPeriodNotes) {
+    subItem(doc, "d)", clause.trustPeriodNotes);
+    subItem(doc, "e)", `Upon the termination of the Trust Period the Trustees shall hold the Property (or the net proceeds of sale thereof) upon trust for ${ultimateBens}.`);
+    subItem(doc, "f)", "The Life Tenant shall be responsible for the payment of all outgoings in respect of the Property including rates, taxes, insurance, and the cost of all repairs and maintenance.");
+    subItem(doc, "g)", "The Trustees shall have power to sell the Property and to apply the proceeds of sale in the purchase of another property to be held upon the same trusts or to invest the same as if they were absolute beneficial owners thereof.");
+    subItem(doc, "h)", "The Trustees shall have all the powers of an absolute owner in relation to the Property and shall have the widest possible powers of management and investment.");
+  } else {
+    subItem(doc, "d)", `Upon the termination of the Trust Period the Trustees shall hold the Property (or the net proceeds of sale thereof) upon trust for ${ultimateBens}.`);
+    subItem(doc, "e)", "The Life Tenant shall be responsible for the payment of all outgoings in respect of the Property including rates, taxes, insurance, and the cost of all repairs and maintenance.");
+    subItem(doc, "f)", "The Trustees shall have power to sell the Property and to apply the proceeds of sale in the purchase of another property to be held upon the same trusts or to invest the same as if they were absolute beneficial owners thereof.");
+    subItem(doc, "g)", "The Trustees shall have all the powers of an absolute owner in relation to the Property and shall have the widest possible powers of management and investment.");
+  }
+
+  if (clause.notes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.notes);
+  }
 }
 
-function buildDiscretionaryTrustClause(doc: PDFDocument, clauseNum: number, trustees: PersonEntry[], beneficiaryClass: string) {
+function buildDiscretionaryTrustClause(doc: PDFDocument, clauseNum: number, clause: DiscretionaryTrustClause) {
+  const trustees = trusteeNames(clause.trustees);
+  const benefClass = clause.beneficiaryClass || "my children and remoter issue and such other persons as my Trustees shall in their absolute discretion determine";
+  const additionalBens = (clause.additionalBeneficiaries ?? []).map(fullName).filter(Boolean);
+
   clauseHeading(doc, clauseNum, "Discretionary Trust");
-  bodyText(
-    doc,
-    `I DECLARE that the following provisions shall apply to the Discretionary Trust created by this my Will:`
-  );
-  subItem(doc, "a)", `The Trustees of this Discretionary Trust shall be ${trustees.length > 0 ? trustees.map(fullName).filter(Boolean).join(" and ") : "my Executors"} or such other persons as shall be appointed as trustees hereof from time to time`);
-  subItem(doc, "b)", `The Beneficiaries of this Discretionary Trust shall be ${beneficiaryClass || "my children and remoter issue and such other persons as my Trustees shall in their absolute discretion determine"}`);
-  subItem(doc, "c)", "My Trustees shall hold the trust fund upon trust to pay or apply the income and/or capital thereof to or for the benefit of all or any one or more of the Beneficiaries in such shares and proportions and in such manner as my Trustees shall in their absolute discretion think fit");
-  subItem(doc, "d)", "My Trustees shall have the widest possible powers of investment as if they were absolute beneficial owners of the trust fund and shall not be restricted to investments authorised by law for trustees");
-  subItem(doc, "e)", "This Discretionary Trust shall terminate on the expiry of the period of 125 years from the date of my death (which period shall be the perpetuity period applicable to this trust) and upon such termination the trust fund shall be held for such of the Beneficiaries as are then living in equal shares absolutely");
+  bodyText(doc, `I DECLARE that the following provisions shall apply to the Discretionary Trust created by this my Will:`);
+
+  subItem(doc, "a)", `The Trustees of this Discretionary Trust shall be ${trustees} or such other persons as shall be appointed as trustees hereof from time to time.`);
+
+  const fullBenClass = additionalBens.length > 0
+    ? `${benefClass}, together with ${additionalBens.join(", ")}`
+    : benefClass;
+  subItem(doc, "b)", `The Beneficiaries of this Discretionary Trust shall be ${fullBenClass}.`);
+
+  subItem(doc, "c)", "My Trustees shall hold the trust fund upon trust to pay or apply the income and/or capital thereof to or for the benefit of all or any one or more of the Beneficiaries in such shares and proportions and in such manner as my Trustees shall in their absolute discretion think fit.");
+  subItem(doc, "d)", "My Trustees shall have the widest possible powers of investment as if they were absolute beneficial owners of the trust fund and shall not be restricted to investments authorised by law for trustees.");
+  subItem(doc, "e)", "This Discretionary Trust shall terminate on the expiry of the period of 125 years from the date of my death (which period shall be the perpetuity period applicable to this trust) and upon such termination the trust fund shall be held for such of the Beneficiaries as are then living in equal shares absolutely.");
+
+  if (clause.terminationNotes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.terminationNotes);
+  }
+  if (clause.notes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.notes);
+  }
 }
 
-function buildVulnerableTrustClause(doc: PDFDocument, clauseNum: number, vulnerableBeneficiary: string, trustees: PersonEntry[]) {
+function buildVulnerableTrustClause(doc: PDFDocument, clauseNum: number, clause: VulnerableTrustClause) {
+  const vbName = clause.vulnerableBeneficiary ? fullName(clause.vulnerableBeneficiary) || "[Vulnerable Beneficiary Name]" : "[Vulnerable Beneficiary Name]";
+  const trustees = trusteeNames(clause.trustees);
+  const ultimateBens = beneficiaryNamesWithShares(clause.ultimateBeneficiaries, "my children and remoter issue as shall then be living in equal shares absolutely or if none for my estate");
+
   clauseHeading(doc, clauseNum, "Vulnerable Person's Trust");
-  bodyText(
-    doc,
-    `I DECLARE that the following provisions shall apply to the Vulnerable Person's Trust created by this my Will for the benefit of ${vulnerableBeneficiary || "[Vulnerable Beneficiary Name]"} (hereinafter referred to as 'the Vulnerable Beneficiary'):`
-  );
-  subItem(doc, "a)", `The Trustees of this trust shall be ${trustees.length > 0 ? trustees.map(fullName).filter(Boolean).join(" and ") : "my Executors"}`);
-  subItem(doc, "b)", "This trust is intended to qualify as a Vulnerable Beneficiary Trust within the meaning of the Finance Act 2005 and my Trustees shall use their best endeavours to ensure that the trust continues to qualify as such");
-  subItem(doc, "c)", "My Trustees shall hold the trust fund upon trust to apply the income and capital thereof for the benefit of the Vulnerable Beneficiary during their lifetime in such manner as my Trustees in their absolute discretion think fit having regard to the needs and welfare of the Vulnerable Beneficiary");
-  subItem(doc, "d)", "Subject to the life interest of the Vulnerable Beneficiary the trust fund shall on the death of the Vulnerable Beneficiary be held for such of my children and remoter issue as shall then be living in equal shares absolutely or if none for my estate");
-  subItem(doc, "e)", "My Trustees shall have power to apply capital for the benefit of the Vulnerable Beneficiary at any time and from time to time as they in their absolute discretion think fit");
+  bodyText(doc, `I DECLARE that the following provisions shall apply to the Vulnerable Person's Trust created by this my Will for the benefit of ${vbName} (hereinafter referred to as "the Vulnerable Beneficiary"):`);
+
+  subItem(doc, "a)", `The Trustees of this trust shall be ${trustees}.`);
+  subItem(doc, "b)", "This trust is intended to qualify as a Vulnerable Beneficiary Trust within the meaning of the Finance Act 2005 and my Trustees shall use their best endeavours to ensure that the trust continues to qualify as such.");
+  subItem(doc, "c)", "My Trustees shall hold the trust fund upon trust to apply the income and capital thereof for the benefit of the Vulnerable Beneficiary during their lifetime in such manner as my Trustees in their absolute discretion think fit having regard to the needs and welfare of the Vulnerable Beneficiary.");
+  subItem(doc, "d)", `Subject to the life interest of the Vulnerable Beneficiary the trust fund shall on the death of the Vulnerable Beneficiary be held for ${ultimateBens}.`);
+  subItem(doc, "e)", "My Trustees shall have power to apply capital for the benefit of the Vulnerable Beneficiary at any time and from time to time as they in their absolute discretion think fit.");
+
+  if (clause.notes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.notes);
+  }
+}
+
+function buildNilRateBandClause(doc: PDFDocument, clauseNum: number, clause: NilRateBandClause) {
+  const trustees = trusteeNames(clause.trustees);
+  const bens = beneficiaryNamesWithShares(clause.beneficiaries);
+
+  clauseHeading(doc, clauseNum, "Nil-Rate Band Discretionary Trust");
+  bodyText(doc, "I DECLARE that the following provisions shall apply to the Nil-Rate Band Discretionary Trust created by this my Will:");
+
+  subItem(doc, "a)", `The Trustees of this trust shall be ${trustees}.`);
+  subItem(doc, "b)", `I GIVE to my Trustees such sum as equals my available nil-rate band for inheritance tax purposes at the date of my death (the "NRB Sum") to hold upon the trusts hereinafter declared.`);
+  subItem(doc, "c)", `My Trustees shall hold the NRB Sum upon trust for ${bens}.`);
+  subItem(doc, "d)", "My Trustees shall have the widest possible powers of investment and management as if they were absolute beneficial owners of the trust fund.");
+  subItem(doc, "e)", "This trust shall terminate on the expiry of 125 years from the date of my death (the perpetuity period) and upon such termination the trust fund shall be distributed to such of the Beneficiaries as are then living in equal shares absolutely.");
+
+  if (clause.notes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.notes);
+  }
+}
+
+function buildBereavedMinorClause(doc: PDFDocument, clauseNum: number, clause: BereavedMinorClause) {
+  const bName = clause.beneficiary ? fullName(clause.beneficiary) || "[Beneficiary Name]" : "[Beneficiary Name]";
+  const trustees = trusteeNames(clause.trustees);
+  const age = clause.ageOfAbsoluteEntitlement || "18";
+
+  clauseHeading(doc, clauseNum, "Bereaved Minor's Trust (s.71A IHTA 1984)");
+  bodyText(doc, `I DECLARE that the following provisions shall apply to the trust created by this my Will for the benefit of ${bName} (hereinafter referred to as "the Beneficiary"):`)
+
+  subItem(doc, "a)", `The Trustees of this trust shall be ${trustees}.`);
+  subItem(doc, "b)", `This trust is intended to qualify as a Bereaved Minor's Trust within the meaning of section 71A of the Inheritance Tax Act 1984 and my Trustees shall use their best endeavours to ensure that the trust continues to qualify as such.`);
+  subItem(doc, "c)", `My Trustees shall hold the trust fund upon trust to accumulate the income thereof until the Beneficiary attains the age of ${age} years and thereafter to pay the income to the Beneficiary until the Beneficiary attains the age of ${age} years.`);
+  subItem(doc, "d)", `Upon the Beneficiary attaining the age of ${age} years the Trustees shall hold the trust fund upon trust for the Beneficiary absolutely.`);
+  subItem(doc, "e)", `If the Beneficiary shall die before attaining the age of ${age} years the trust fund shall fall into and form part of my Residuary Estate.`);
+
+  if (clause.notes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.notes);
+  }
+}
+
+function buildAge18To25Clause(doc: PDFDocument, clauseNum: number, clause: Age18To25Clause) {
+  const bName = clause.beneficiary ? fullName(clause.beneficiary) || "[Beneficiary Name]" : "[Beneficiary Name]";
+  const trustees = trusteeNames(clause.trustees);
+  const age = clause.ageOfAbsoluteEntitlement || "25";
+
+  clauseHeading(doc, clauseNum, `18-to-25 Trust (s.71D IHTA 1984)`);
+  bodyText(doc, `I DECLARE that the following provisions shall apply to the trust created by this my Will for the benefit of ${bName} (hereinafter referred to as "the Beneficiary"):`)
+
+  subItem(doc, "a)", `The Trustees of this trust shall be ${trustees}.`);
+  subItem(doc, "b)", `This trust is intended to qualify as an 18-to-25 trust within the meaning of section 71D of the Inheritance Tax Act 1984 and my Trustees shall use their best endeavours to ensure that the trust continues to qualify as such.`);
+  subItem(doc, "c)", `My Trustees shall hold the trust fund upon trust to accumulate the income thereof until the Beneficiary attains the age of 18 years and thereafter to pay the income to the Beneficiary until the Beneficiary attains the age of ${age} years.`);
+  subItem(doc, "d)", `Upon the Beneficiary attaining the age of ${age} years the Trustees shall hold the trust fund upon trust for the Beneficiary absolutely.`);
+  subItem(doc, "e)", `If the Beneficiary shall die before attaining the age of ${age} years the trust fund shall fall into and form part of my Residuary Estate.`);
+
+  if (clause.notes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.notes);
+  }
+}
+
+function buildBusinessPropertyReliefClause(doc: PDFDocument, clauseNum: number, clause: BusinessPropertyReliefClause) {
+  const bizName = clause.businessName || "my business interests";
+  const trustees = trusteeNames(clause.trustees);
+  const bens = beneficiaryNamesWithShares(clause.beneficiaries);
+
+  clauseHeading(doc, clauseNum, "Business Property Relief Trust");
+  bodyText(doc, `I DECLARE that the following provisions shall apply to the Business Property Relief Trust created by this my Will in respect of ${bizName} (hereinafter referred to as "the Business Assets"):`);
+
+  subItem(doc, "a)", `The Trustees of this trust shall be ${trustees}.`);
+  subItem(doc, "b)", "I GIVE my Business Assets to my Trustees to hold upon the trusts hereinafter declared, it being my intention that the Business Assets shall qualify for Business Property Relief pursuant to Chapter I of Part V of the Inheritance Tax Act 1984 and that such relief shall be preserved by the terms of this trust.");
+  subItem(doc, "c)", `My Trustees shall hold the Business Assets upon trust for ${bens}.`);
+  subItem(doc, "d)", "My Trustees shall have the widest possible powers to manage, invest, realise, and deal with the Business Assets as if they were absolute beneficial owners thereof.");
+  subItem(doc, "e)", "My Trustees shall use their best endeavours to ensure that the Business Assets continue to qualify for Business Property Relief and shall not take any action that would jeopardise such qualification without first obtaining appropriate professional advice.");
+
+  if (clause.notes) {
+    doc.moveDown(0.3);
+    bodyText(doc, clause.notes);
+  }
 }
 
 // ─── Attestation Page ─────────────────────────────────────────────────────────
@@ -687,16 +915,40 @@ export function generateWillDocument(
     buildDefinitionClause(doc, clauseNum++);
     buildDistributionClause(doc, clauseNum++, primaryBeneficiary, residuaryBeneficiaries, specificGifts);
 
-    if (options.includePPT) {
-      buildPPTClause(doc, clauseNum++, testatorName, partnerName, children);
+    // Rich multi-instance optional clauses from saved data
+    for (const ppt of safeClauseArr<PPTClause>(record.protectivePropertyTrusts)) {
+      buildPPTClause(doc, clauseNum++, ppt);
     }
-
-    if (options.includeDiscretionaryTrust) {
-      buildDiscretionaryTrustClause(doc, clauseNum++, trustees, "my children and remoter issue");
+    for (const dt of safeClauseArr<DiscretionaryTrustClause>(record.discretionaryTrusts)) {
+      buildDiscretionaryTrustClause(doc, clauseNum++, dt);
     }
-
-    if (options.includeVulnerableTrust) {
-      buildVulnerableTrustClause(doc, clauseNum++, vulnerableBeneficiary, trustees);
+    for (const vt of safeClauseArr<VulnerableTrustClause>(record.vulnerablePersonTrusts)) {
+      buildVulnerableTrustClause(doc, clauseNum++, vt);
+    }
+    for (const nrb of safeClauseArr<NilRateBandClause>(record.nilRateBandTrusts)) {
+      buildNilRateBandClause(doc, clauseNum++, nrb);
+    }
+    for (const bm of safeClauseArr<BereavedMinorClause>(record.bereavedMinorTrusts)) {
+      buildBereavedMinorClause(doc, clauseNum++, bm);
+    }
+    for (const a25 of safeClauseArr<Age18To25Clause>(record.age18To25Trusts)) {
+      buildAge18To25Clause(doc, clauseNum++, a25);
+    }
+    for (const bpr of safeClauseArr<BusinessPropertyReliefClause>(record.businessPropertyReliefs)) {
+      buildBusinessPropertyReliefClause(doc, clauseNum++, bpr);
+    }
+    // Legacy boolean fallbacks (for Wills generated before the new editor)
+    if (options.includePPT && safeClauseArr(record.protectivePropertyTrusts).length === 0) {
+      buildPPTClause(doc, clauseNum++, {});
+    }
+    if (options.includeDiscretionaryTrust && safeClauseArr(record.discretionaryTrusts).length === 0) {
+      buildDiscretionaryTrustClause(doc, clauseNum++, { trustees });
+    }
+    if (options.includeVulnerableTrust && safeClauseArr(record.vulnerablePersonTrusts).length === 0) {
+      buildVulnerableTrustClause(doc, clauseNum++, {
+        vulnerableBeneficiary: { firstName: vulnerableBeneficiary },
+        trustees,
+      });
     }
 
     buildAgeConditionClause(doc, clauseNum++);

@@ -218,6 +218,15 @@ export const willInstructions = mysqlTable("will_instructions", {
   additionalNotes: text("additionalNotes"),                                    // NEW – replaces specialNotes for clarity
   specialNotes: text("specialNotes"),                                          // kept for backward compat
 
+  // ── Optional Trust Clauses (rich multi-instance JSON) ────────────────────────
+  protectivePropertyTrusts: json("protective_property_trusts"),    // Array<PPTClause>
+  discretionaryTrusts: json("discretionary_trusts"),               // Array<DiscretionaryTrustClause>
+  vulnerablePersonTrusts: json("vulnerable_person_trusts"),         // Array<VulnerableTrustClause>
+  nilRateBandTrusts: json("nil_rate_band_trusts"),                  // Array<NilRateBandClause>
+  bereavedMinorTrusts: json("bereaved_minor_trusts"),               // Array<BereavedMinorClause>
+  age18To25Trusts: json("age_18_to_25_trusts"),                     // Array<Age18To25Clause>
+  businessPropertyReliefs: json("business_property_reliefs"),       // Array<BusinessPropertyReliefClause>
+
   // ── Manual Needs Assessment ─────────────────────────────────────────────────
   manualNeedsAssessment: text("manualNeedsAssessment"),
 
