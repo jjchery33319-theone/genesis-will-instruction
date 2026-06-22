@@ -1,5 +1,34 @@
 import PDFDocument from "pdfkit";
 import type { WillInstruction } from "../drizzle/schema";
+import https from "https";
+import http from "http";
+
+const LOGO_URL = "/manus-storage/GenesisEstatePlanningLogoUSETHISONE_52afc400.png";
+
+function fetchBuffer(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith("https") ? https : http;
+    mod.get(url, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => chunks.push(c));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
+async function fetchLogoBuffer(): Promise<Buffer | null> {
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const localPath = path.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
+    if (fs.existsSync(localPath)) return fs.readFileSync(localPath);
+    const baseUrl = `http://localhost:${process.env.PORT ?? 3000}`;
+    return await fetchBuffer(`${baseUrl}${LOGO_URL}`);
+  } catch {
+    return null;
+  }
+}
 
 // ─── Colour palette ───────────────────────────────────────────────────────────
 const GREEN = "#1a4d35";
@@ -25,7 +54,9 @@ function safeArr(v: unknown): unknown[] {
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
-export function generateWillPdf(record: WillInstruction): Promise<Buffer> {
+export async function generateWillPdf(record: WillInstruction): Promise<Buffer> {
+  const logoBuffer = await fetchLogoBuffer().catch(() => null);
+
   return new Promise((resolve, reject) => {
   const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true });
   const chunks: Buffer[] = [];
@@ -36,6 +67,12 @@ export function generateWillPdf(record: WillInstruction): Promise<Buffer> {
 
   // ── Cover / Header ─────────────────────────────────────────────────────────
   doc.rect(0, 0, doc.page.width, 110).fill(GREEN);
+  // Embed logo on the right side of the green header
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, doc.page.width - 180, 10, { height: 85, fit: [160, 85] });
+    } catch { /* skip if image embedding fails */ }
+  }
   doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(20)
     .text("Genesis Wills and Estate Planning", 50, 30);
   doc.font("Helvetica").fontSize(11).fillColor(GOLD)

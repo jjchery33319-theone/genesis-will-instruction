@@ -10,6 +10,24 @@
 import PDFDocumentLib from "pdfkit";
 type PDFDocument = InstanceType<typeof PDFDocumentLib>;
 import type { WillInstruction } from "../drizzle/schema";
+import https from "https";
+import http from "http";
+
+// Logo URL (served via Manus static storage proxy)
+const LOGO_URL = "/manus-storage/GenesisEstatePlanningLogoUSETHISONE_52afc400.png";
+
+// Fetch a URL as a Buffer (works for both http and https)
+function fetchBuffer(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith("https") ? https : http;
+    mod.get(url, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => chunks.push(c));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -83,14 +101,42 @@ const PAGE_MARGIN = 72; // 1 inch
 const PAGE_WIDTH = 595.28; // A4
 const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
 
-function addCoverPage(doc: PDFDocument, testatorName: string, reference: string) {
+async function fetchLogoBuffer(): Promise<Buffer | null> {
+  try {
+    // Try local file first (dev sandbox)
+    const fs = await import("fs");
+    const path = await import("path");
+    const localPath = path.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
+    if (fs.existsSync(localPath)) {
+      return fs.readFileSync(localPath);
+    }
+    // Fall back to the uploaded static URL via the local server proxy
+    const baseUrl = `http://localhost:${process.env.PORT ?? 3000}`;
+    return await fetchBuffer(`${baseUrl}${LOGO_URL}`);
+  } catch {
+    return null;
+  }
+}
+
+function addCoverPage(doc: PDFDocument, testatorName: string, reference: string, logoBuffer?: Buffer | null) {
   // Outer border
   doc.rect(30, 30, PAGE_WIDTH - 60, doc.page.height - 60).stroke("#000000");
   // Inner border
   doc.rect(40, 40, PAGE_WIDTH - 80, doc.page.height - 80).stroke("#000000");
 
+  // Logo — centred near top
+  if (logoBuffer) {
+    const logoW = 200;
+    const logoX = (PAGE_WIDTH - logoW) / 2;
+    try {
+      doc.image(logoBuffer, logoX, 60, { width: logoW });
+    } catch {
+      // If image embedding fails, skip silently
+    }
+  }
+
   // Title block — centred box
-  const boxTop = 130;
+  const boxTop = 145;
   const boxHeight = 160;
   const boxLeft = 100;
   const boxWidth = PAGE_WIDTH - 200;
@@ -781,10 +827,13 @@ function addAttestationPage(doc: PDFDocument, testatorName: string) {
 
 // ─── Main Generator ──────────────────────────────────────────────────────────
 
-export function generateWillDocument(
+export async function generateWillDocument(
   record: WillInstruction,
   options: WillOptions
 ): Promise<Buffer> {
+  // Fetch logo once before building the document
+  const logoBuffer = await fetchLogoBuffer().catch(() => null);
+
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     const doc = new PDFDocumentLib({
@@ -904,7 +953,7 @@ export function generateWillDocument(
 
     // Cover page
     doc.addPage();
-    addCoverPage(doc, testatorName, reference);
+    addCoverPage(doc, testatorName, reference, logoBuffer);
 
     // Main content page
     doc.addPage();
