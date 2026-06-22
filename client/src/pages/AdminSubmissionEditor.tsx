@@ -426,7 +426,28 @@ export default function AdminSubmissionEditor() {
   const arr = <T,>(key: string): T[] => safeArr<T>(form[key]);
 
   const handleSave = () => {
-    const payload: Record<string, unknown> = { ...form, id };
+    // Strip null values — Zod .optional() accepts undefined but rejects null.
+    // The DB record initialises form state with nulls for unset fields.
+    const stripNulls = (obj: Record<string, unknown>): Record<string, unknown> => {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (v === null) continue; // omit nulls entirely
+        if (Array.isArray(v)) {
+          // Strip nulls inside arrays of objects too
+          out[k] = v.map(item =>
+            item !== null && typeof item === "object"
+              ? stripNulls(item as Record<string, unknown>)
+              : item
+          );
+        } else if (v !== null && typeof v === "object" && !(v instanceof Date)) {
+          out[k] = stripNulls(v as Record<string, unknown>);
+        } else {
+          out[k] = v;
+        }
+      }
+      return out;
+    };
+    const payload = stripNulls({ ...form, id });
     updateMutation.mutate(payload as Parameters<typeof updateMutation.mutate>[0]);
   };
 
