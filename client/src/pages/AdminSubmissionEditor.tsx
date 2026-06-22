@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp, Building2, User, Users, Home, Heart, FileText, Shield, Scale, Flower2, ClipboardList, Baby, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp, Building2, User, Users, Home, Heart, FileText, Shield, Scale, Flower2, ClipboardList, Baby, AlertTriangle, RefreshCw, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -409,6 +409,31 @@ export default function AdminSubmissionEditor() {
   // ── Local state ──────────────────────────────────────────────────────────
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [dirty, setDirty] = useState(false);
+  const [regenerating, setRegenerating] = useState<"pdf" | "docx" | null>(null);
+
+  const handleRegenerate = async (type: "pdf" | "docx") => {
+    setRegenerating(type);
+    try {
+      const willType = (form.willType as string) || "single";
+      const params = new URLSearchParams({ willType });
+      const ext = type === "pdf" ? "will" : "will-docx";
+      const resp = await fetch(`/api/submissions/${id}/${ext}?${params.toString()}`);
+      if (!resp.ok) throw new Error(await resp.text());
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const clientName = [form.client1FirstName, form.client1LastName].filter(Boolean).join("_") || "Will";
+      a.download = `${clientName}_Will.${type === "pdf" ? "pdf" : "docx"}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Will ${type === "pdf" ? "PDF" : "Word document"} downloaded.`);
+    } catch (e: any) {
+      toast.error("Failed to generate Will: " + e.message);
+    } finally {
+      setRegenerating(null);
+    }
+  };
 
   useEffect(() => {
     if (record) {
@@ -491,6 +516,28 @@ export default function AdminSubmissionEditor() {
           </div>
           <div className="flex items-center gap-2">
             {dirty && <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">Unsaved changes</Badge>}
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 bg-white"
+              onClick={() => handleRegenerate("pdf")}
+              disabled={!!regenerating || dirty}
+              title={dirty ? "Save changes first" : "Download Will as PDF"}
+            >
+              {regenerating === "pdf" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 bg-white"
+              onClick={() => handleRegenerate("docx")}
+              disabled={!!regenerating || dirty}
+              title={dirty ? "Save changes first" : "Download Will as Word document"}
+            >
+              {regenerating === "docx" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Word
+            </Button>
             <Button
               size="sm"
               className="gap-1.5"

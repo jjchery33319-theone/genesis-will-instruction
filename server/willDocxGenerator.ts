@@ -10,15 +10,46 @@
  *  - Per-client funeral wishes / organ donation fields used
  */
 
+import fs from "fs";
+import path from "path";
+import https from "https";
+import http from "http";
 import {
   Document,
   Packer,
   Paragraph,
   TextRun,
+  ImageRun,
   HeadingLevel,
   AlignmentType,
   PageBreak,
 } from "docx";
+
+// ─── Logo helpers ─────────────────────────────────────────────────────────────
+
+const LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/web_dev_static_assets/310519663154017010/GenesisEstatePlanningLogoUSETHISONE_52afc400.png";
+const LOCAL_LOGO = path.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
+
+function fetchBuffer(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith("https") ? https : http;
+    mod.get(url, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => chunks.push(c));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
+async function fetchLogoBuffer(): Promise<Buffer | null> {
+  try {
+    if (fs.existsSync(LOCAL_LOGO)) return fs.readFileSync(LOCAL_LOGO);
+    return await fetchBuffer(LOGO_URL);
+  } catch {
+    return null;
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -184,6 +215,7 @@ export async function generateWillDocx(
   record: Record<string, unknown>,
   opts: WillDocxOptions
 ): Promise<Buffer> {
+  const logoBuffer = await fetchLogoBuffer();
   const isClient2 = opts.willType === "mirror_client2";
   const isMirror = opts.willType !== "single";
 
@@ -287,6 +319,23 @@ export async function generateWillDocx(
   const paras: Paragraph[] = [];
 
   // ── Cover / Title ─────────────────────────────────────────────────────────
+  // Logo (centred, 200pt wide × 77pt tall — preserves 419×162 aspect ratio)
+  if (logoBuffer) {
+    paras.push(
+      new Paragraph({
+        children: [
+          new ImageRun({
+            data: logoBuffer,
+            transformation: { width: 200, height: 77 },
+            type: "png",
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 0, after: 160 },
+      })
+    );
+  }
+
   paras.push(
     new Paragraph({
       children: [new TextRun({ text: "LAST WILL AND TESTAMENT", bold: true, size: 40 })],
