@@ -1,17 +1,17 @@
 export const CONSULTANTS = [
   {
     name: "Jacques Chery",
-    email: "jacques.chery@genesisestateplanning.info",
+    email: "jacques.chery@genesisestateplanning.co.uk",
     phone: "+44 7479 538275",
   },
   {
-    name: "Ruth Stephenson",
-    email: "ruth.stephenson@genesisestateplanning.info",
+    name: "Ruth Wilson",
+    email: "ruth.wilson@genesisestateplanning.info",
     phone: "+44 7790 892524",
   },
   {
     name: "Kayleigh Morley",
-    email: "kayleigh.morley@genesisestateplanning.co.uk",
+    email: "customer-support@genesisestateplanning.info",
     phone: "+44 330 118 0937",
   },
   {
@@ -39,12 +39,12 @@ export const CONSULTANTS = [
 export const CASE_COORDINATORS = [
   {
     name: "Kayleigh Morley",
-    email: "kayleigh.morley@genesisestateplanning.co.uk",
+    email: "customer-support@genesisestateplanning.info",
     phone: "0330 118 0937",
   },
   {
     name: "Amelia Fox",
-    email: "amelia.fox@genesisestateplanning.co.uk",
+    email: "customer-support@genesisestateplanning.info",
     phone: "0330 118 0937",
   },
 ] as const;
