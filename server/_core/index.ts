@@ -14,12 +14,8 @@ import { generateWillDocx } from "../willDocxGenerator";
 import { getDb } from "../db";
 import { willInstructions, lpaRecords } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { execFile } from "child_process";
-import { promisify } from "util";
 import path from "path";
-import os from "os";
-import fs from "fs";
-const execFileAsync = promisify(execFile);
+import { fillLpaPdf } from "../lpaFillPdf";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -153,7 +149,7 @@ async function startServer() {
     }
   });
 
-  // LPA PDF export endpoint
+  // LPA PDF export endpoint (Node.js pdf-lib — works in production Cloud Run)
   app.get("/api/lpa/:id/pdf", async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
@@ -163,22 +159,17 @@ async function startServer() {
       const rows = await db.select().from(lpaRecords).where(eq(lpaRecords.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
       const lpa = rows[0] as Record<string, unknown>;
-      const lpaType = lpa.lpaType as string;
-      const templateName = lpaType === "property_finance" ? "lpa-lp1f.pdf" : "lpa-lp1h.pdf";
-      const templatePath = path.join(__dirname, "..", templateName);
-      const outputPath = path.join(os.tmpdir(), `lpa_${id}_${Date.now()}.pdf`);
+      const lpaType = (lpa.lpaType as string) ?? "property_finance";
       // Normalise JSON arrays stored as strings
       const safeArr = (v: unknown) => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v as string) ?? []; } catch { return []; } };
       const data = {
         ...lpa,
+        lpaType,
         attorneys: safeArr(lpa.attorneys),
         replacementAttorneys: safeArr(lpa.replacementAttorneys),
         peopleToNotify: safeArr(lpa.peopleToNotify),
       };
-      const scriptPath = path.join(__dirname, "..", "fill_lpa_pdf.py");
-      await execFileAsync("python3", [scriptPath, templatePath, outputPath, JSON.stringify(data)]);
-      const pdfBuffer = fs.readFileSync(outputPath);
-      fs.unlinkSync(outputPath);
+      const pdfBuffer = await fillLpaPdf(data as Parameters<typeof fillLpaPdf>[0]);
       const donorName = [lpa.donorFirstNames, lpa.donorLastName].filter(Boolean).join("_") || String(id);
       const typeLabel = lpaType === "property_finance" ? "LP1F" : "LP1H";
       const filename = `LPA_${typeLabel}_${donorName}.pdf`;
