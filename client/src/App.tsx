@@ -10,6 +10,7 @@ import SubmissionDetail from "./pages/SubmissionDetail";
 import SubmissionSuccess from "./pages/SubmissionSuccess";
 import AdminGuard from "./components/AdminGuard";
 import WillPreview from "./pages/WillPreview";
+import AdminSubmissionEditor from "./pages/AdminSubmissionEditor";
 
 function Router() {
   return (
@@ -24,6 +25,9 @@ function Router() {
       </Route>
       <Route path={"/admin/submission/:id/will-preview"}>
         <AdminGuard><WillPreview /></AdminGuard>
+      </Route>
+      <Route path={"/admin/submission/:id/edit"}>
+        <AdminGuard><AdminSubmissionEditor /></AdminGuard>
       </Route>
       <Route path={"/success/:ref"} component={SubmissionSuccess} />
       <Route path={"/404"} component={NotFound} />

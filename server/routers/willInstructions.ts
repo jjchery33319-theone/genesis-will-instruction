@@ -531,6 +531,58 @@ export const willInstructionsRouter = router({
       return { success: true };
     }),
 
+  // Admin: full update of any submission
+  updateSubmission: publicProcedure
+    .input(willInstructionInputSchema.extend({
+      id: z.number(),
+      status: z.enum(["draft", "submitted", "processing", "complete", "cancelled"]).optional(),
+      manualNeedsAssessment: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const { id, ...formData } = input;
+
+      const updateData = {
+        ...formData,
+        productsOrdered: formData.productsOrdered ?? undefined,
+        executors: formData.executors ?? undefined,
+        reservedExecutors: formData.reservedExecutors ?? undefined,
+        trustees: formData.trustees ?? undefined,
+        guardians: formData.guardians ?? undefined,
+        reservedGuardians: formData.reservedGuardians ?? undefined,
+        beneficiaries: formData.beneficiaries ?? undefined,
+        specificGifts: formData.specificGifts ?? undefined,
+        client1Executors: formData.client1Executors ?? undefined,
+        client1ReservedExecutors: formData.client1ReservedExecutors ?? undefined,
+        client2Executors: formData.client2Executors ?? undefined,
+        client2ReservedExecutors: formData.client2ReservedExecutors ?? undefined,
+        client1Guardians: formData.client1Guardians ?? undefined,
+        client1ReservedGuardians: formData.client1ReservedGuardians ?? undefined,
+        client2Guardians: formData.client2Guardians ?? undefined,
+        client2ReservedGuardians: formData.client2ReservedGuardians ?? undefined,
+        client1Beneficiaries: formData.client1Beneficiaries ?? undefined,
+        client2Beneficiaries: formData.client2Beneficiaries ?? undefined,
+        client1SpecificGifts: formData.client1SpecificGifts ?? undefined,
+        client2SpecificGifts: formData.client2SpecificGifts ?? undefined,
+        client1ChildrenUnder18: formData.client1ChildrenUnder18 ?? undefined,
+        client1ChildrenOver18: formData.client1ChildrenOver18 ?? undefined,
+        client2ChildrenUnder18: formData.client2ChildrenUnder18 ?? undefined,
+        client2ChildrenOver18: formData.client2ChildrenOver18 ?? undefined,
+        lifeInsurancePolicies: formData.lifeInsurancePolicies ?? undefined,
+        businessInterestsDetails: formData.businessInterestsDetails ?? undefined,
+        updatedAt: new Date(),
+      };
+
+      await db
+        .update(willInstructions)
+        .set(updateData)
+        .where(eq(willInstructions.id, id));
+
+      return { success: true };
+    }),
+
   // Update status of a submitted instruction
   updateStatus: publicProcedure
     .input(z.object({ id: z.number(), status: z.enum(["submitted", "processing", "complete", "cancelled"]) }))

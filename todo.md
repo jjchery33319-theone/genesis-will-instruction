@@ -147,3 +147,24 @@
 - [x] Fix willDocxGenerator.ts: use per-client organ donation fields
 - [x] Fix willDocxGenerator.ts: use per-client vulnerable beneficiary details
 - [x] Fix willDocxGenerator.ts: use per-client specific gifts (client1SpecificGifts/client2SpecificGifts)
+
+## Comprehensive Back-Office Admin Editor (Phase 11)
+- [x] Add `updateSubmission` tRPC procedure (admin-only, full record upsert)
+- [x] Add missing DB columns: client1ResidualEstate, client2ResidualEstate, client1ResidualBackup, client2ResidualBackup, client1ChildrenBenefitAge, client2ChildrenBenefitAge, client1FuneralType, client1FuneralWishes, client1OrganDonation, client2FuneralType, client2FuneralWishes, client2OrganDonation, client1HasVulnerableBeneficiary, client1VulnerableBeneficiaryDetails, client2HasVulnerableBeneficiary, client2VulnerableBeneficiaryDetails
+- [x] Build AdminSubmissionEditor.tsx — tabbed editor with all sections
+- [x] Tab: Appointment (date, time, consultant, coordinator, products, price)
+- [x] Tab: Clients (Client 1 + Client 2 side by side, all personal details)
+- [x] Tab: Executors (Client 1 primary/reserved, Client 2 primary/reserved, "Appoint Genesis Wills Ltd" button)
+- [x] Tab: Guardians (Client 1 primary/reserved, Client 2 primary/reserved)
+- [x] Tab: Beneficiaries (Client 1 + Client 2 named beneficiaries, residual estate, backup)
+- [x] Tab: Gifts & Legacies (Client 1 + Client 2 specific gifts)
+- [x] Tab: Property & Assets (property, mortgage, bank accounts, investments, pensions, life insurance, business)
+- [x] Tab: Wishes & Funeral (Client 1 + Client 2 funeral wishes, organ donation, disaster clause, pets, notes)
+- [x] Tab: Family & Background (children, marriage plans, residency, mental capacity, past relationships)
+- [x] Tab: Due Diligence (5 compliance questions)
+- [x] Tab: Status & Notes (status dropdown, manual needs assessment, AI outputs read-only)
+- [x] Person editor sub-component (reusable: name, DOB, address, phone, email, relationship, share)
+- [x] "Appoint Genesis Wills and Estate Planning Ltd" button inserts company as executor
+- [x] Save button with optimistic update and success toast
+- [x] Register /admin/submissions/:id/edit route in App.tsx
+- [x] Link "Edit" button from AdminSubmissionDetail to the new editor

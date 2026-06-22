@@ -138,6 +138,26 @@ export const willInstructions = mysqlTable("will_instructions", {
   disasterClauseClient1: text("disasterClauseClient1"),
   disasterClauseClient2: text("disasterClauseClient2"),
 
+  // ── Per-client beneficiary extras ─────────────────────────────────────────
+  client1ResidualEstate: text("client1ResidualEstate"),
+  client1ResidualBackup: text("client1ResidualBackup"),
+  client1ChildrenBenefitAge: varchar("client1ChildrenBenefitAge", { length: 8 }),
+  client1HasVulnerableBeneficiary: varchar("client1HasVulnerableBeneficiary", { length: 8 }),
+  client1VulnerableBeneficiaryDetails: text("client1VulnerableBeneficiaryDetails"),
+  client2ResidualEstate: text("client2ResidualEstate"),
+  client2ResidualBackup: text("client2ResidualBackup"),
+  client2ChildrenBenefitAge: varchar("client2ChildrenBenefitAge", { length: 8 }),
+  client2HasVulnerableBeneficiary: varchar("client2HasVulnerableBeneficiary", { length: 8 }),
+  client2VulnerableBeneficiaryDetails: text("client2VulnerableBeneficiaryDetails"),
+
+  // ── Per-client funeral wishes ──────────────────────────────────────────────
+  client1FuneralType: varchar("client1FuneralType", { length: 32 }),
+  client1FuneralWishes: text("client1FuneralWishes"),
+  client1OrganDonation: varchar("client1OrganDonation", { length: 8 }),
+  client2FuneralType: varchar("client2FuneralType", { length: 32 }),
+  client2FuneralWishes: text("client2FuneralWishes"),
+  client2OrganDonation: varchar("client2OrganDonation", { length: 8 }),
+
   // ── Property & Assets ──────────────────────────────────────────────────────
   propertyOwned: varchar("propertyOwned", { length: 8 }),
   propertyAddress: text("propertyAddress"),
