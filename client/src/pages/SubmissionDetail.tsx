@@ -1,6 +1,9 @@
 import { useParams, Link } from "wouter";
 import { trpc } from "../lib/trpc";
-import { Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2, Calendar, ShoppingBag, FileDown, FileText, Shield, GitFork, HeartHandshake } from "lucide-react";
+import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PRODUCTS } from "../../../shared/willConstants";
@@ -106,6 +109,9 @@ export default function SubmissionDetail() {
       </header>
 
       <div className="container max-w-4xl py-6 space-y-5">
+        {/* Will Generation Panel */}
+        <WillGenerationPanel id={id} isMirror={!!record.client2FirstName} />
+
         {/* Needs Assessment & Recommendations */}
         {((record as any).manualNeedsAssessment || record.aiRecommendationNarrative) && (
           <div className="rounded-xl border-2 overflow-hidden" style={{ borderColor: "oklch(0.78 0.12 85)" }}>
@@ -226,6 +232,103 @@ export default function SubmissionDetail() {
           <Field label="Organ Donation" value={record.organDonation === "yes" ? "Yes" : record.organDonation === "no" ? "No" : null} />
           <Field label="Special Notes" value={record.specialNotes} />
         </Section>
+      </div>
+    </div>
+  );
+}
+
+// ─── Will Generation Panel ────────────────────────────────────────────────────
+
+function WillGenerationPanel({ id, isMirror }: { id: number; isMirror: boolean }) {
+  const [includePPT, setIncludePPT] = useState(false);
+  const [includeDiscretionary, setIncludeDiscretionary] = useState(false);
+  const [includeVulnerable, setIncludeVulnerable] = useState(false);
+
+  function buildUrl(willType: "single" | "mirror_client1" | "mirror_client2") {
+    const params = new URLSearchParams({ willType });
+    if (includePPT) params.set("ppt", "1");
+    if (includeDiscretionary) params.set("discretionary", "1");
+    if (includeVulnerable) params.set("vulnerable", "1");
+    return `/api/submissions/${id}/will?${params.toString()}`;
+  }
+
+  return (
+    <div className="rounded-xl border-2 overflow-hidden" style={{ borderColor: "oklch(0.55 0.12 155)" }}>
+      {/* Header */}
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: "oklch(0.28 0.07 155)" }}>
+        <FileText className="w-4 h-4 text-white" />
+        <h3 className="font-serif text-sm font-semibold text-white">Generate Will Document</h3>
+      </div>
+
+      <div className="p-5 space-y-5 bg-white">
+        {/* Trust clause toggles */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Optional Trust Clauses</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
+              <Switch id="ppt" checked={includePPT} onCheckedChange={setIncludePPT} />
+              <div>
+                <Label htmlFor="ppt" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" style={{ color: "oklch(0.45 0.12 155)" }} />
+                  Protective Property Trust
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Lifetime trust — protects share of property for surviving spouse</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
+              <Switch id="disc" checked={includeDiscretionary} onCheckedChange={setIncludeDiscretionary} />
+              <div>
+                <Label htmlFor="disc" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                  <GitFork className="w-3.5 h-3.5" style={{ color: "oklch(0.45 0.12 155)" }} />
+                  Discretionary Trust
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Trustees have full discretion over distribution of estate</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
+              <Switch id="vuln" checked={includeVulnerable} onCheckedChange={setIncludeVulnerable} />
+              <div>
+                <Label htmlFor="vuln" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                  <HeartHandshake className="w-3.5 h-3.5" style={{ color: "oklch(0.45 0.12 155)" }} />
+                  Vulnerable Person's Trust
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">For a named beneficiary with a disability (Finance Act 2005)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Download buttons */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            {isMirror ? "Download Mirror Wills" : "Download Will"}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {isMirror ? (
+              <>
+                <a href={buildUrl("mirror_client1")} download>
+                  <Button size="sm" className="gap-2 genesis-gradient text-white">
+                    <FileDown className="w-4 h-4" />
+                    Client 1 Will
+                  </Button>
+                </a>
+                <a href={buildUrl("mirror_client2")} download>
+                  <Button size="sm" className="gap-2 genesis-gradient text-white">
+                    <FileDown className="w-4 h-4" />
+                    Client 2 Will
+                  </Button>
+                </a>
+              </>
+            ) : (
+              <a href={buildUrl("single")} download>
+                <Button size="sm" className="gap-2 genesis-gradient text-white">
+                  <FileDown className="w-4 h-4" />
+                  Download Will
+                </Button>
+              </a>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
