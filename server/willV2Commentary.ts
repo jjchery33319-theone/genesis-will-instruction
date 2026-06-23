@@ -49,6 +49,12 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
   const properties = matter.properties || [];
   const businesses = matter.businesses || [];
 
+  // Trust clauses for this testator
+  const trustRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const trustClauses = (matter.trustClauses || []).filter(tc =>
+    (tc.clientRole === trustRole || tc.clientRole === "shared") && tc.enabled
+  );
+
   // ── Part 1: Named People Summary ─────────────────────────────────────────
 
   const executorSummary = buildExecutorSummary(primaryExecutors, substituteExecutors);
@@ -67,6 +73,12 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
   if (businesses.length > 0) clauseMap["business"] = clauseNum++;
   if (specificGifts.length > 0) clauseMap["gifts"] = clauseNum++;
   if (pets.length > 0) clauseMap["pets"] = clauseNum++;
+  // Trust clauses (each gets its own clause number, mirroring willV2Generator)
+  const trustClauseNums: number[] = [];
+  for (const tc of trustClauses) {
+    trustClauseNums.push(clauseNum);
+    clauseMap[`trust_${tc.trustType}_${trustClauseNums.length}`] = clauseNum++;
+  }
   clauseMap["residue"] = clauseNum++;
   clauseMap["conditional"] = clauseNum++;
   clauseMap["powers"] = clauseNum++;
@@ -133,6 +145,12 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
     ${pets.map(p => `<p>You have requested that <strong>${p.carerName || "your Executors"}</strong> care for ${[p.petName, p.petType].filter(Boolean).join(" the ") || "your pet"}.</p>`).join("")}
   </div>`);
   }
+
+  // Trust clause commentaries (inserted before residue)
+  trustClauses.forEach((tc, i) => {
+    const num = trustClauseNums[i];
+    part2Clauses.push(buildTrustClauseCommentary(tc, num));
+  });
 
   part2Clauses.push(`<div class="clause-commentary">
     <div class="clause-title">Clause ${clauseMap["residue"]} — Distribution of the Residue</div>
@@ -472,4 +490,43 @@ function buildBusinessSummary(businesses: FullMatter["businesses"]): string {
       ${b.businessNotes ? `<div class="person-address">${b.businessNotes}</div>` : ""}
     </div>`).join("");
   return `<p>The following business interests have been recorded:</p>${cards}`;
+}
+
+function buildTrustClauseCommentary(tc: { trustType: string; namedBeneficiary?: string | null; propertyAddress?: string | null; ageVesting?: number | null }, num: number): string {
+  const TRUST_LABELS: Record<string, string> = {
+    ppt: "Protective Property Trust (Lifetime Interest Trust)",
+    discretionary: "Discretionary Trust",
+    vulnerable: "Vulnerable Person's Trust (Finance Act 2005)",
+    nrb: "Nil-Rate Band Discretionary Trust",
+    rnrb: "Residential Nil-Rate Band (RNRB)",
+    bereaved_minor: "Bereaved Minor's Trust (s.71A IHTA 1984)",
+    age18to25: "18-to-25 Trust (s.71D IHTA 1984)",
+    bpr: "Business Property Relief Trust",
+  };
+
+  const TRUST_COMMENTARY: Record<string, string> = {
+    ppt: `A Protective Property Trust (also known as a Lifetime Interest Trust or Life Interest Trust) is designed to protect your share of the family home for your chosen remainder beneficiaries whilst providing security of occupation for your surviving spouse or civil partner. When you die, your share of the property is held in trust rather than passing outright to your partner. Your partner has the right to live in the property for the rest of their life (or until a specified event such as remarriage or ceasing to reside there). On the termination of the life interest, your share passes to the remainder beneficiaries you have named. This trust is particularly useful where there are children from a previous relationship, or where there is a concern that the surviving partner might remarry and the property could then pass outside the family.`,
+
+    discretionary: `A Discretionary Trust gives your Trustees the widest possible flexibility in distributing your Estate. Rather than specifying fixed shares for named beneficiaries, the Trustees have full discretion to decide who benefits, when, and in what proportions, from within a defined class of potential beneficiaries. This flexibility can be very valuable — for example, if a beneficiary's circumstances change (such as bankruptcy, divorce, or disability), the Trustees can adjust distributions accordingly. Discretionary Trusts can also be useful for inheritance tax planning, as assets held in trust do not form part of a beneficiary's estate for IHT purposes. The trust will last for up to 125 years (the perpetuity period).`,
+
+    vulnerable: `A Vulnerable Person's Trust (also known as a Disabled Person's Trust) is specifically designed for a named beneficiary who has a disability or vulnerability within the meaning of the Finance Act 2005. The trust qualifies for special tax treatment, meaning that the income and gains of the trust are taxed as if they belonged to the vulnerable beneficiary personally — which can result in significant tax savings. The Trustees hold the trust fund for the benefit of the vulnerable beneficiary during their lifetime, applying income and capital as needed for their care and welfare. On the death of the vulnerable beneficiary, the remaining trust fund passes to the ultimate beneficiaries you have named.`,
+
+    nrb: `A Nil-Rate Band Discretionary Trust directs a sum equal to your available nil-rate band for inheritance tax (currently £325,000, though this may change) into a discretionary trust rather than passing it directly to your surviving spouse or civil partner. This can preserve the nil-rate band and prevent it from being "wasted" on a straightforward gift to a surviving spouse (who would inherit free of IHT in any event). The trust fund is held for a class of discretionary beneficiaries and can be used flexibly. This type of trust is less commonly used since the introduction of the transferable nil-rate band in 2007, but may still be appropriate in certain circumstances — your adviser will have discussed this with you.`,
+
+    rnrb: `The Residential Nil-Rate Band (RNRB) is an additional inheritance tax allowance (currently up to £175,000 per person) available where a residence is passed to direct descendants on death. This clause directs your Executors to claim the RNRB and, where applicable, any transferable RNRB from a deceased spouse or civil partner's estate. It also directs your interest in the specified residential property to your lineal descendants to ensure the relief is available. The RNRB is subject to tapering for estates over £2 million and is only available where the property passes to a direct descendant (children, grandchildren, etc.).`,
+
+    bereaved_minor: `A Bereaved Minor's Trust is a statutory trust under section 71A of the Inheritance Tax Act 1984 designed for a child who has lost a parent. The trust qualifies for IHT exemption — no IHT entry charge, no periodic charges, and no exit charges — provided the beneficiary becomes absolutely entitled to the trust fund at age 18. The Trustees accumulate income until the beneficiary reaches 18, then pay income to the beneficiary until they become absolutely entitled. If the beneficiary dies before reaching 18, the trust fund falls back into the residuary estate.${tc.namedBeneficiary ? ` This trust has been created for the benefit of <strong>${tc.namedBeneficiary}</strong>.` : ""}`,
+
+    age18to25: `An 18-to-25 Trust is a statutory trust under section 71D of the Inheritance Tax Act 1984 for bereaved young people who will become absolutely entitled to the trust fund between the ages of 18 and 25. It qualifies for partial IHT relief — no entry charge and no periodic charges, but exit charges may apply between ages 18 and the vesting age. The Trustees accumulate income until the beneficiary reaches 18, then pay income until the vesting age${tc.ageVesting ? ` (${tc.ageVesting} in this case)` : ""}, at which point the beneficiary becomes absolutely entitled. This trust is useful where you wish to delay full inheritance beyond age 18 whilst still benefiting from IHT relief.${tc.namedBeneficiary ? ` This trust has been created for the benefit of <strong>${tc.namedBeneficiary}</strong>.` : ""}`,
+
+    bpr: `A Business Property Relief (BPR) Trust is designed to preserve Business Property Relief by directing qualifying business assets into a discretionary trust rather than allowing them to pass as an outright gift to a surviving spouse. If qualifying business assets pass directly to a surviving spouse, the BPR is effectively "wasted" — the spouse inherits free of IHT in any event, and the BPR cannot be transferred. By directing the assets into a BPR Trust, the relief is used on the first death, and the trust fund can benefit the wider family. The Trustees must use their best endeavours to ensure the assets continue to qualify for BPR.${tc.propertyAddress ? ` This trust relates to the business interests known as <strong>${tc.propertyAddress}</strong>.` : ""}`,
+  };
+
+  const label = TRUST_LABELS[tc.trustType] || "Trust Clause";
+  const commentary = TRUST_COMMENTARY[tc.trustType] || "This clause creates a trust as part of your estate planning arrangements. Your adviser will have explained the specific purpose and effect of this trust.";
+
+  return `<div class="clause-commentary">
+    <div class="clause-title">Clause ${num} — ${label}</div>
+    <p>${commentary}</p>
+  </div>`;
 }

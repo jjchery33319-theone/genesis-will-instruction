@@ -367,3 +367,30 @@
 - [x] Add "Business" tab to MatterForm with business rows (pre-filled with Genesis Wills and Estate Planning Ltd)
 - [x] Wishes tab extended with Disaster Clause textarea and General Notes textarea
 - [x] TypeScript: 0 errors | Tests: 45/45 passing
+
+## Will V2 — Mirror Will Auto-fill & Trust Clauses (Phase 21)
+
+### Database
+- [ ] Create `matter_trust_clauses` table: id, matter_id, client_role, trust_type (enum), enabled (bool), trustees (JSON), life_tenants (JSON), beneficiaries (JSON), property_address, share_percentage, named_beneficiary, named_beneficiary_disability, age_vesting, notes
+
+### tRPC
+- [ ] matters.saveTrustClauses — upsert trust clause records for a matter
+
+### Will generator
+- [ ] PPT clause — lifetime trust for property share, occupation right for surviving spouse
+- [ ] Discretionary Trust clause — trustees full discretion
+- [ ] Vulnerable Person's Trust clause — Finance Act 2005, named beneficiary
+- [ ] Nil-Rate Band Trust clause
+- [ ] RNRB clause — residential nil-rate band direction
+- [ ] Bereaved Minor Trust clause — s.71A IHTA 1984, absolute entitlement at 18
+- [ ] 18-to-25 Trust clause — s.71D IHTA 1984, entitlement between 18 and 25
+- [ ] BPR Trust clause — qualifying business assets into trust
+
+### Commentary generator
+- [ ] Add trust clauses section to Part 1 (named trustees, life tenants, beneficiaries)
+- [ ] Add clause-by-clause explanation for each enabled trust in Part 2
+
+### Frontend
+- [ ] Add "Trust Clauses" tab to MatterForm with toggle cards for all 8 trust types
+- [ ] Each trust card: enabled toggle, description, and relevant configuration fields
+- [ ] Add "Mirror from Client 1 →" button in Clients tab (mirror Wills only) that copies executors, guardians, beneficiaries, wishes, gifts, pets, property, business, trust clauses from testator1 to testator2 with reciprocal name swaps

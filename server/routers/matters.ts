@@ -17,6 +17,7 @@ import {
   replaceBusiness,
   saveEditedWillHtml,
   clearEditedWillHtml,
+  replaceTrustClauses,
 } from "../mattersDb";
 
 const personSchema = z.object({
@@ -245,6 +246,29 @@ export const mattersRouter = router({
     }))
     .mutation(async ({ input }) => {
       await clearEditedWillHtml(input.matterId, input.testatorRole);
+      return { success: true };
+    }),
+
+  saveTrustClauses: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      clientRole: z.string().default("shared"),
+      clauses: z.array(z.object({
+        trustType: z.string(),
+        enabled: z.number().int().min(0).max(1).default(0),
+        trustees: z.array(z.object({ name: z.string(), address: z.string() })).optional(),
+        lifeTenants: z.array(z.object({ name: z.string(), address: z.string() })).optional(),
+        beneficiaries: z.array(z.object({ name: z.string(), relationship: z.string() })).optional(),
+        propertyAddress: z.string().optional(),
+        sharePercentage: z.string().optional(),
+        namedBeneficiary: z.string().optional(),
+        namedBeneficiaryDisability: z.string().optional(),
+        ageVesting: z.number().int().optional(),
+        notes: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      await replaceTrustClauses(input.matterId, input.clientRole, input.clauses);
       return { success: true };
     }),
 });
