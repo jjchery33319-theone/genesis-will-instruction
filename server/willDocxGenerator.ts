@@ -27,13 +27,18 @@ import {
 
 // ─── Logo helpers ─────────────────────────────────────────────────────────────
 
-const LOGO_URL = "https://files.manuscdn.com/user_upload_by_module/web_dev_static_assets/310519663154017010/GenesisEstatePlanningLogoUSETHISONE_52afc400.png";
+const LOGO_URL = "http://localhost:" + (process.env.PORT ?? "3000") + "/manus-storage/GenesisEstatePlanningLogoUSETHISONE_edc6d153.png";
 const LOCAL_LOGO = path.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
 
 function fetchBuffer(url: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith("https") ? https : http;
     mod.get(url, (res) => {
+      // Follow redirects (manus-storage returns 307)
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        fetchBuffer(res.headers.location).then(resolve).catch(reject);
+        return;
+      }
       const chunks: Buffer[] = [];
       res.on("data", (c: Buffer) => chunks.push(c));
       res.on("end", () => resolve(Buffer.concat(chunks)));
