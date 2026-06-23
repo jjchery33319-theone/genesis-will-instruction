@@ -426,6 +426,7 @@ export const matterWishes = mysqlTable("matter_wishes", {
   funeralWishes: text("funeral_wishes"),
   extraNotes: text("extra_notes"),
   residueToSpouseFirst: int("residue_to_spouse_first").default(1),
+  hasMinorChildren: tinyint("has_minor_children").default(1),
   disasterClauseNotes: text("disaster_clause_notes"),
   generalNotes: text("general_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

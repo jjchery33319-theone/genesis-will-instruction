@@ -144,19 +144,43 @@ function DocViewer({
     }
   };
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
+
+  const triggerDownload = async (
+    url: string,
+    filename: string,
+    setLoading: (v: boolean) => void
+  ) => {
+    setLoading(true);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+    } catch (err: any) {
+      toast.error(`Download failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDownloadPdf = () => {
-    const a = document.createElement("a");
-    a.href = downloadPdfUrl;
-    a.target = "_blank";
-    a.click();
+    const name = doc.downloadPdfLabel.replace("Download ", "").replace(" (PDF)", "");
+    triggerDownload(downloadPdfUrl, `${name}.pdf`, setDownloadingPdf);
   };
 
   const handleDownloadDocx = () => {
     if (!downloadDocxUrl) return;
-    const a = document.createElement("a");
-    a.href = downloadDocxUrl;
-    a.target = "_blank";
-    a.click();
+    const name = doc.downloadDocxLabel?.replace("Download ", "").replace(" (Word)", "") ?? "Document";
+    triggerDownload(downloadDocxUrl, `${name}.docx`, setDownloadingDocx);
   };
 
   return (
@@ -191,13 +215,13 @@ function DocViewer({
               Reset to Original
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadPdf}>
-            <Download className="h-3 w-3" />
+          <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+            {downloadingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
             {isEdited && doc.id === "will" ? "Download Edited (PDF)" : doc.downloadPdfLabel}
           </Button>
           {downloadDocxUrl && (
-            <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadDocx}>
-              <Download className="h-3 w-3" />
+            <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadDocx} disabled={downloadingDocx}>
+              {downloadingDocx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
               {doc.downloadDocxLabel}
             </Button>
           )}
@@ -247,11 +271,43 @@ export function MatterPreview({ matter }: Props) {
   const isMirror = matter.matterType === "mirror";
   const [testatorRole, setTestatorRole] = useState<"testator1" | "testator2">("testator1");
   const [activeDoc, setActiveDoc] = useState<DocType>("will");
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   const t1Name = matter.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "Testator 1";
   const t2Name = matter.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "Testator 2";
 
   const activeDocDef = DOC_TABS.find(d => d.id === activeDoc)!;
+
+  const downloadBlob = async (url: string, filename: string) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${filename}: server returned ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+  };
+
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true);
+    try {
+      for (const doc of DOC_TABS) {
+        const url = doc.downloadPdfEndpoint(matter.id, testatorRole);
+        const name = doc.downloadPdfLabel.replace("Download ", "").replace(" (PDF)", "");
+        await downloadBlob(url, `${name}.pdf`);
+        // Small delay between downloads to avoid browser throttling
+        await new Promise(r => setTimeout(r, 500));
+      }
+    } catch (err: any) {
+      toast.error(`Download failed: ${err.message}`);
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -290,18 +346,11 @@ export function MatterPreview({ matter }: Props) {
             variant="outline"
             size="sm"
             className="h-7 px-2.5 text-xs gap-1"
-            onClick={() => {
-              // Download all three documents (PDF versions)
-              DOC_TABS.forEach(doc => {
-                const a = document.createElement("a");
-                a.href = doc.downloadPdfEndpoint(matter.id, testatorRole);
-                a.target = "_blank";
-                a.click();
-              });
-            }}
+            onClick={handleDownloadAll}
+            disabled={downloadingAll}
           >
-            <Download className="h-3.5 w-3.5" />
-            Download All
+            {downloadingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            {downloadingAll ? "Downloading…" : "Download All"}
           </Button>
         </div>
       </div>

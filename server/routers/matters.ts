@@ -48,6 +48,7 @@ const wishesSchema = z.object({
   funeralWishes: z.string().optional(),
   extraNotes: z.string().optional(),
   residueToSpouseFirst: z.number().int().min(0).max(1).default(1),
+  hasMinorChildren: z.number().int().min(0).max(1).default(1),
   disasterClauseNotes: z.string().optional(),
   generalNotes: z.string().optional(),
 });

@@ -133,6 +133,7 @@ export function MatterForm({ matter, onSaved }: Props) {
       funeralWishes: w.funeralWishes || "",
       extraNotes: w.extraNotes || "",
       residueToSpouseFirst: w.residueToSpouseFirst ?? 1,
+      hasMinorChildren: w.hasMinorChildren ?? 1,
       disasterClauseNotes: w.disasterClauseNotes || "",
       generalNotes: w.generalNotes || "",
     };
@@ -308,13 +309,13 @@ export function MatterForm({ matter, onSaved }: Props) {
       ops.push(saveWishes.mutateAsync({
         matterId: matter.id,
         clientRole: isMirror ? "testator1" : "shared",
-        wishes: { ...wishes1, organDonation: wishes1.organDonation ? 1 : 0, residueToSpouseFirst: wishes1.residueToSpouseFirst as 0 | 1 },
+        wishes: { ...wishes1, organDonation: wishes1.organDonation ? 1 : 0, residueToSpouseFirst: wishes1.residueToSpouseFirst as 0 | 1, hasMinorChildren: (wishes1.hasMinorChildren ?? 1) as 0 | 1 },
       }));
       if (isMirror) {
         ops.push(saveWishes.mutateAsync({
           matterId: matter.id,
           clientRole: "testator2",
-          wishes: { ...wishes2, organDonation: wishes2.organDonation ? 1 : 0, residueToSpouseFirst: wishes2.residueToSpouseFirst as 0 | 1 },
+          wishes: { ...wishes2, organDonation: wishes2.organDonation ? 1 : 0, residueToSpouseFirst: wishes2.residueToSpouseFirst as 0 | 1, hasMinorChildren: (wishes2.hasMinorChildren ?? 1) as 0 | 1 },
         }));
       }
 
@@ -1050,6 +1051,23 @@ function WishesSection({ label, data, onChange }: { label: string; data: any; on
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-sm">{label}</h3>
+
+      {/* Minor children toggle */}
+      <div className="flex items-center gap-3 p-3 border border-border rounded-lg bg-muted/30">
+        <Switch
+          id="has-minor-children"
+          checked={data.hasMinorChildren !== 0}
+          onCheckedChange={v => onChange({ ...data, hasMinorChildren: v ? 1 : 0 })}
+        />
+        <div>
+          <Label htmlFor="has-minor-children" className="text-sm cursor-pointer font-medium">
+            Client has children under 18
+          </Label>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            When enabled, a Guardians clause (Clause 3) will be included in the Will. Turn off if there are no minor children.
+          </p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
