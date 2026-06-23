@@ -72,6 +72,7 @@
     "nodemailer": "^8.0.11",
     "pdf-lib": "^1.17.1",
     "pdfkit": "^0.19.1",
+    "puppeteer-core": "^25.2.0",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.1",
