@@ -70,6 +70,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   const organDonationText = wishes?.organDonationText || "I wish to donate my organs for medical purposes.";
   const funeralWishes = wishes?.funeralWishes || "";
   const residueToSpouseFirst = matter.matterType === "mirror" && (wishes?.residueToSpouseFirst ?? 1) === 1;
+  const hasMinorChildren = (wishes as any)?.hasMinorChildren !== 0; // default true
   const disasterClauseNotes = (wishes as any)?.disasterClauseNotes || "";
   const generalNotes = (wishes as any)?.generalNotes || "";
 
@@ -97,7 +98,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   // ── Clause builders ───────────────────────────────────────────────────────
 
   const executorClause = buildExecutorClause(primaryExecutors, substituteExecutors, name);
-  const guardianClause = buildGuardianClause(primaryGuardians, substituteGuardians);
+  const guardianClause = hasMinorChildren ? buildGuardianClause(primaryGuardians, substituteGuardians) : null;
   const residueClause = buildResidueClause(
     primaryBeneficiaries,
     fallbackBeneficiaries,
@@ -108,7 +109,8 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   );
 
   // Clause numbering — dynamic based on optional sections
-  let clauseNum = 4; // 1=Revocation, 2=Executors, 3=Guardians, then dynamic
+  // If no minor children, clause 3 is skipped so numbering starts at 3 instead of 4
+  let clauseNum = hasMinorChildren ? 4 : 3; // 1=Revocation, 2=Executors, [3=Guardians if applicable], then dynamic
   const clauses: string[] = [];
 
   // 4. Definition and Administration
@@ -422,11 +424,13 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   ${executorClause}
 </div>
 
+${hasMinorChildren ? `
 <!-- 3. Appointment of Guardians -->
 <div class="clause">
   <h2>3. Appointment of Guardians</h2>
   ${guardianClause}
 </div>
+` : ""}
 
 ${clauses.join("\n\n")}
 
