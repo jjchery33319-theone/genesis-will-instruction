@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, tinyint, bigint } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -488,3 +488,27 @@ export const matterBusiness = mysqlTable("matter_business", {
 });
 export type MatterBusinessRecord = typeof matterBusiness.$inferSelect;
 export type InsertMatterBusinessRecord = typeof matterBusiness.$inferInsert;
+
+// ── Matter Trust Clauses ──────────────────────────────────────────────────────
+
+export const matterTrustClauses = mysqlTable("matter_trust_clauses", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: varchar("client_role", { length: 20 }).notNull().default("shared"),
+  trustType: varchar("trust_type", { length: 50 }).notNull(),
+  enabled: tinyint("enabled").notNull().default(0),
+  trustees: json("trustees").$type<Array<{ name: string; address: string }>>(),
+  lifeTenants: json("life_tenants").$type<Array<{ name: string; address: string }>>(),
+  beneficiaries: json("beneficiaries").$type<Array<{ name: string; relationship: string }>>(),
+  propertyAddress: text("property_address"),
+  sharePercentage: varchar("share_percentage", { length: 20 }),
+  namedBeneficiary: varchar("named_beneficiary", { length: 255 }),
+  namedBeneficiaryDisability: text("named_beneficiary_disability"),
+  ageVesting: int("age_vesting"),
+  notes: text("notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(0),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(0),
+});
+
+export type MatterTrustClause = typeof matterTrustClauses.$inferSelect;
+export type NewMatterTrustClause = typeof matterTrustClauses.$inferInsert;

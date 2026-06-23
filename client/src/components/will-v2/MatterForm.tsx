@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Plus, Trash2, User, Baby, Heart, Scroll, UserCog,
-  Gift, PawPrint, Home, Briefcase
+  Gift, PawPrint, Home, Briefcase, Shield, Copy
 } from "lucide-react";
 
 type FullMatter = any;
@@ -179,6 +179,55 @@ export function MatterForm({ matter, onSaved }: Props) {
     }))
   );
 
+  // ── Trust Clauses state ─────────────────────────────────────────────────
+  type TrustClause = {
+    trustType: string;
+    enabled: number;
+    trustees: Array<{ name: string; address: string }>;
+    lifeTenants: Array<{ name: string; address: string }>;
+    beneficiaries: Array<{ name: string; relationship: string }>;
+    propertyAddress: string;
+    sharePercentage: string;
+    namedBeneficiary: string;
+    namedBeneficiaryDisability: string;
+    ageVesting: number;
+    notes: string;
+  };
+
+  const ALL_TRUST_TYPES = [
+    { value: "ppt", label: "Protective Property Trust (PPT)" },
+    { value: "discretionary", label: "Discretionary Trust" },
+    { value: "vulnerable", label: "Vulnerable Person's Trust (Finance Act 2005)" },
+    { value: "nrb", label: "Nil-Rate Band Trust" },
+    { value: "rnrb", label: "Residential Nil-Rate Band (RNRB)" },
+    { value: "bereaved_minor", label: "Bereaved Minor's Trust (s.71A IHTA 1984)" },
+    { value: "age18to25", label: "18-to-25 Trust (s.71D IHTA 1984)" },
+    { value: "bpr", label: "Business Property Relief (BPR) Trust" },
+  ];
+
+  const toTrustRows = (role: string): TrustClause[] => {
+    const existing = (matter.trustClauses || []).filter((tc: any) => tc.clientRole === role || tc.clientRole === "shared");
+    return ALL_TRUST_TYPES.map(tt => {
+      const found = existing.find((tc: any) => tc.trustType === tt.value);
+      return {
+        trustType: tt.value,
+        enabled: found?.enabled ?? 0,
+        trustees: found?.trustees ? (typeof found.trustees === "string" ? JSON.parse(found.trustees) : found.trustees) : [],
+        lifeTenants: found?.lifeTenants ? (typeof found.lifeTenants === "string" ? JSON.parse(found.lifeTenants) : found.lifeTenants) : [],
+        beneficiaries: found?.beneficiaries ? (typeof found.beneficiaries === "string" ? JSON.parse(found.beneficiaries) : found.beneficiaries) : [],
+        propertyAddress: found?.propertyAddress || "",
+        sharePercentage: found?.sharePercentage || "",
+        namedBeneficiary: found?.namedBeneficiary || "",
+        namedBeneficiaryDisability: found?.namedBeneficiaryDisability || "",
+        ageVesting: found?.ageVesting ?? 25,
+        notes: found?.notes || "",
+      };
+    });
+  };
+
+  const [trusts1, setTrusts1] = useState<TrustClause[]>(toTrustRows(isMirror ? "testator1" : "shared"));
+  const [trusts2, setTrusts2] = useState<TrustClause[]>(toTrustRows("testator2"));
+
   // ── Business state ────────────────────────────────────────────────────────
   const [businesses, setBusinesses] = useState<Array<{
     businessName: string; businessType: string; sharePercentage: string; businessNotes: string;
@@ -203,6 +252,7 @@ export function MatterForm({ matter, onSaved }: Props) {
   const savePets = trpc.matters.savePets.useMutation();
   const saveProperty = trpc.matters.saveProperty.useMutation();
   const saveBusiness = trpc.matters.saveBusiness.useMutation();
+  const saveTrustClauses = trpc.matters.saveTrustClauses.useMutation();
 
   const handleSaveAll = async () => {
     try {
@@ -298,6 +348,34 @@ export function MatterForm({ matter, onSaved }: Props) {
       // Business
       ops.push(saveBusiness.mutateAsync({ matterId: matter.id, businesses }));
 
+      // Trust Clauses
+      const enabledTrusts1 = trusts1.filter(tc => tc.enabled);
+      if (enabledTrusts1.length > 0 || trusts1.some(tc => !tc.enabled)) {
+        ops.push(saveTrustClauses.mutateAsync({
+          matterId: matter.id,
+          clientRole: isMirror ? "testator1" : "shared",
+          clauses: trusts1.map(tc => ({
+            ...tc,
+            enabled: tc.enabled as 0 | 1,
+            ageVesting: tc.ageVesting || 25,
+          })),
+        }));
+      }
+      if (isMirror) {
+        const enabledTrusts2 = trusts2.filter(tc => tc.enabled);
+        if (enabledTrusts2.length > 0 || trusts2.some(tc => !tc.enabled)) {
+          ops.push(saveTrustClauses.mutateAsync({
+            matterId: matter.id,
+            clientRole: "testator2",
+            clauses: trusts2.map(tc => ({
+              ...tc,
+              enabled: tc.enabled as 0 | 1,
+              ageVesting: tc.ageVesting || 25,
+            })),
+          }));
+        }
+      }
+
       await Promise.all(ops);
       utils.matters.list.invalidate();
       utils.matters.getById.invalidate({ id: matter.id });
@@ -310,7 +388,7 @@ export function MatterForm({ matter, onSaved }: Props) {
 
   const isSaving = saveClient.isPending || saveExecutors.isPending || saveGuardians.isPending ||
     saveBeneficiaries.isPending || saveWishes.isPending || saveGifts.isPending ||
-    savePets.isPending || saveProperty.isPending || saveBusiness.isPending;
+    savePets.isPending || saveProperty.isPending || saveBusiness.isPending || saveTrustClauses.isPending;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -345,6 +423,9 @@ export function MatterForm({ matter, onSaved }: Props) {
             <TabsTrigger value="wishes" className="text-xs gap-1.5">
               <Scroll className="h-3.5 w-3.5" /> Wishes
             </TabsTrigger>
+            <TabsTrigger value="trusts" className="text-xs gap-1.5">
+              <Shield className="h-3.5 w-3.5" /> Trusts
+            </TabsTrigger>
           </TabsList>
 
           {/* ── CLIENTS ─────────────────────────────────────────────────── */}
@@ -353,7 +434,26 @@ export function MatterForm({ matter, onSaved }: Props) {
             {isMirror && (
               <>
                 <Separator />
-                <ClientSection label="Testator 2" data={t2} onChange={setT2} />
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-sm">Testator 2</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => {
+                      setT2({ ...t1 });
+                      // Mirror executors, beneficiaries, wishes, gifts, trusts
+                      setExecs2(execs1.map(e => ({ ...e })));
+                      setBens2(bens1.map((b: typeof bens1[0]) => ({ ...b })));
+                      setWishes2({ ...wishes1 });
+                      setGifts2(gifts1.map(g => ({ ...g })));
+                      setTrusts2(trusts1.map(t => ({ ...t })));
+                    }}
+                  >
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
+                <ClientSection label="" data={t2} onChange={setT2} />
               </>
             )}
           </TabsContent>
@@ -458,6 +558,27 @@ export function MatterForm({ matter, onSaved }: Props) {
                   label={`Wishes for ${t2.fullName || "Testator 2"}`}
                   data={wishes2}
                   onChange={setWishes2}
+                />
+              </>
+            )}
+          </TabsContent>
+
+          {/* ── TRUSTS ────────────────────────────────────────────────────── */}
+          <TabsContent value="trusts" className="space-y-4">
+            <TrustClausesSection
+              label={isMirror ? `Trust Clauses for ${t1.fullName || "Testator 1"}` : "Trust Clauses"}
+              clauses={trusts1}
+              onChange={setTrusts1}
+              allTrustTypes={ALL_TRUST_TYPES}
+            />
+            {isMirror && (
+              <>
+                <Separator />
+                <TrustClausesSection
+                  label={`Trust Clauses for ${t2.fullName || "Testator 2"}`}
+                  clauses={trusts2}
+                  onChange={setTrusts2}
+                  allTrustTypes={ALL_TRUST_TYPES}
                 />
               </>
             )}
@@ -982,6 +1103,247 @@ function WishesSection({ label, data, onChange }: { label: string; data: any; on
         <Textarea value={data.extraNotes} onChange={e => onChange({ ...data, extraNotes: e.target.value })}
           placeholder="Any other instructions or notes for the file..." rows={3} className="text-sm resize-none" />
       </div>
+    </div>
+  );
+}
+
+// ── Trust Clauses Section ─────────────────────────────────────────────────────
+
+type TrustClauseRow = {
+  trustType: string;
+  enabled: number;
+  trustees: Array<{ name: string; address: string }>;
+  lifeTenants: Array<{ name: string; address: string }>;
+  beneficiaries: Array<{ name: string; relationship: string }>;
+  propertyAddress: string;
+  sharePercentage: string;
+  namedBeneficiary: string;
+  namedBeneficiaryDisability: string;
+  ageVesting: number;
+  notes: string;
+};
+
+const TRUST_DESCRIPTIONS: Record<string, string> = {
+  ppt: "Protects your share of the property for remainder beneficiaries whilst providing security of occupation for the surviving spouse or civil partner.",
+  discretionary: "Trustees have full discretion over distribution of estate.",
+  vulnerable: "For a named beneficiary with a disability (Finance Act 2005).",
+  nrb: "Nil-Rate Band Discretionary Trust — preserves the nil-rate band on first death.",
+  rnrb: "Residential Nil-Rate Band — claims the additional IHT allowance for residential property passing to direct descendants.",
+  bereaved_minor: "For bereaved minors who will become absolutely entitled at age 18. Qualifies for IHT exemption under s.71A IHTA 1984.",
+  age18to25: "For bereaved young people who will become absolutely entitled between ages 18 and 25. Qualifies for partial IHT relief under s.71D IHTA 1984.",
+  bpr: "Preserves Business Property Relief by directing qualifying business assets into a trust, preventing the relief from being lost on a gift to a surviving spouse.",
+};
+
+function TrustClausesSection({
+  label,
+  clauses,
+  onChange,
+  allTrustTypes,
+}: {
+  label: string;
+  clauses: TrustClauseRow[];
+  onChange: (c: TrustClauseRow[]) => void;
+  allTrustTypes: Array<{ value: string; label: string }>;
+}) {
+  const updateClause = (i: number, field: string, value: any) =>
+    onChange(clauses.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
+
+  const addPerson = (i: number, field: "trustees" | "lifeTenants") =>
+    updateClause(i, field, [...clauses[i][field], { name: "", address: "" }]);
+
+  const removePerson = (i: number, field: "trustees" | "lifeTenants", pi: number) =>
+    updateClause(i, field, clauses[i][field].filter((_, idx) => idx !== pi));
+
+  const updatePerson = (i: number, field: "trustees" | "lifeTenants", pi: number, key: string, val: string) =>
+    updateClause(i, field, clauses[i][field].map((p, idx) => idx === pi ? { ...p, [key]: val } : p));
+
+  const addBeneficiary = (i: number) =>
+    updateClause(i, "beneficiaries", [...clauses[i].beneficiaries, { name: "", relationship: "" }]);
+
+  const removeBeneficiary = (i: number, bi: number) =>
+    updateClause(i, "beneficiaries", clauses[i].beneficiaries.filter((_, idx) => idx !== bi));
+
+  const updateBeneficiary = (i: number, bi: number, key: string, val: string) =>
+    updateClause(i, "beneficiaries", clauses[i].beneficiaries.map((b, idx) => idx === bi ? { ...b, [key]: val } : b));
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="font-medium text-sm">{label}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">Enable any trust clauses required for this Will. Only enabled trusts will appear in the generated document.</p>
+      </div>
+
+      {clauses.map((tc, i) => {
+        const typeInfo = allTrustTypes.find(t => t.value === tc.trustType);
+        const isEnabled = !!tc.enabled;
+        const needsProperty = ["ppt", "rnrb", "bpr"].includes(tc.trustType);
+        const needsNamedBen = ["vulnerable", "bereaved_minor", "age18to25"].includes(tc.trustType);
+        const needsAgeVesting = ["bereaved_minor", "age18to25"].includes(tc.trustType);
+        const needsLifeTenants = tc.trustType === "ppt";
+
+        return (
+          <div key={tc.trustType} className={`border rounded-lg overflow-hidden transition-colors ${isEnabled ? "border-blue-300 bg-blue-50/30" : "border-border bg-card"}`}>
+            <div className="flex items-start gap-3 p-3">
+              <Switch
+                checked={isEnabled}
+                onCheckedChange={v => updateClause(i, "enabled", v ? 1 : 0)}
+                className="mt-0.5"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm">{typeInfo?.label}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{TRUST_DESCRIPTIONS[tc.trustType]}</div>
+              </div>
+            </div>
+
+            {isEnabled && (
+              <div className="px-3 pb-3 space-y-3 border-t border-blue-200/50 pt-3">
+
+                {/* Property address (PPT, RNRB, BPR) */}
+                {needsProperty && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">{tc.trustType === "bpr" ? "Business / Asset Description" : "Property Address"}</Label>
+                    <Textarea
+                      value={tc.propertyAddress}
+                      onChange={e => updateClause(i, "propertyAddress", e.target.value)}
+                      placeholder={tc.trustType === "bpr" ? "e.g. Genesis Wills and Estate Planning Ltd — 100% shareholding" : "Full address of the property"}
+                      rows={2}
+                      className="text-sm resize-none"
+                    />
+                  </div>
+                )}
+
+                {/* Named beneficiary (Vulnerable, Bereaved Minor, 18-to-25) */}
+                {needsNamedBen && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Named Beneficiary</Label>
+                      <Input
+                        value={tc.namedBeneficiary}
+                        onChange={e => updateClause(i, "namedBeneficiary", e.target.value)}
+                        placeholder="Full legal name"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    {tc.trustType === "vulnerable" && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nature of Disability</Label>
+                        <Input
+                          value={tc.namedBeneficiaryDisability}
+                          onChange={e => updateClause(i, "namedBeneficiaryDisability", e.target.value)}
+                          placeholder="Brief description"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    )}
+                    {needsAgeVesting && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Vesting Age</Label>
+                        <Input
+                          type="number"
+                          min={18}
+                          max={25}
+                          value={tc.ageVesting}
+                          onChange={e => updateClause(i, "ageVesting", parseInt(e.target.value) || 25)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Life Tenants (PPT only) */}
+                {needsLifeTenants && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Life Tenant(s)</span>
+                      <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => addPerson(i, "lifeTenants")}>
+                        <Plus className="h-3 w-3" /> Add
+                      </Button>
+                    </div>
+                    {tc.lifeTenants.length === 0 && <p className="text-xs text-muted-foreground italic">No life tenants added.</p>}
+                    {tc.lifeTenants.map((lt, pi) => (
+                      <div key={pi} className="border border-border rounded p-2 space-y-1.5 bg-background">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">Life Tenant {pi + 1}</span>
+                          <button onClick={() => removePerson(i, "lifeTenants", pi)} className="text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Input value={lt.name} onChange={e => updatePerson(i, "lifeTenants", pi, "name", e.target.value)} placeholder="Full name" className="h-7 text-xs" />
+                          <Input value={lt.address} onChange={e => updatePerson(i, "lifeTenants", pi, "address", e.target.value)} placeholder="Address" className="h-7 text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Trustees */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Trustees</span>
+                    <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => addPerson(i, "trustees")}>
+                      <Plus className="h-3 w-3" /> Add
+                    </Button>
+                  </div>
+                  {tc.trustees.length === 0 && <p className="text-xs text-muted-foreground italic">No trustees added — Executors will act as Trustees by default.</p>}
+                  {tc.trustees.map((tr, pi) => (
+                    <div key={pi} className="border border-border rounded p-2 space-y-1.5 bg-background">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Trustee {pi + 1}</span>
+                        <button onClick={() => removePerson(i, "trustees", pi)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <Input value={tr.name} onChange={e => updatePerson(i, "trustees", pi, "name", e.target.value)} placeholder="Full name" className="h-7 text-xs" />
+                        <Input value={tr.address} onChange={e => updatePerson(i, "trustees", pi, "address", e.target.value)} placeholder="Address" className="h-7 text-xs" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Remainder Beneficiaries */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Remainder Beneficiaries</span>
+                    <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => addBeneficiary(i)}>
+                      <Plus className="h-3 w-3" /> Add
+                    </Button>
+                  </div>
+                  {tc.beneficiaries.length === 0 && <p className="text-xs text-muted-foreground italic">No remainder beneficiaries added.</p>}
+                  {tc.beneficiaries.map((b, bi) => (
+                    <div key={bi} className="border border-border rounded p-2 space-y-1.5 bg-background">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Beneficiary {bi + 1}</span>
+                        <button onClick={() => removeBeneficiary(i, bi)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <Input value={b.name} onChange={e => updateBeneficiary(i, bi, "name", e.target.value)} placeholder="Full name" className="h-7 text-xs" />
+                        <Input value={b.relationship} onChange={e => updateBeneficiary(i, bi, "relationship", e.target.value)} placeholder="Relationship (e.g. son)" className="h-7 text-xs" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Additional Notes</Label>
+                  <Textarea
+                    value={tc.notes}
+                    onChange={e => updateClause(i, "notes", e.target.value)}
+                    placeholder="Any additional instructions for this trust clause..."
+                    rows={2}
+                    className="text-sm resize-none"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

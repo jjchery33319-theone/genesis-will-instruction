@@ -79,6 +79,12 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
   const specificGifts = (matter.gifts || []).filter(g => g.clientRole === giftRole || g.clientRole === "shared");
 
+  // Trust clauses for this testator (or shared)
+  const trustRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const trustClauses = (matter.trustClauses || []).filter(tc =>
+    (tc.clientRole === trustRole || tc.clientRole === "shared") && tc.enabled
+  );
+
   // Pets (shared)
   const pets = matter.pets || [];
 
@@ -142,6 +148,15 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   <h2>${clauseNum++}. Provision for Pets</h2>
   ${buildPetsClause(pets)}
 </div>`);
+  }
+
+  // Trust Clauses (inserted before residue)
+  for (const tc of trustClauses) {
+    const trustHtml = buildTrustClauseHtml(tc, clauseNum);
+    if (trustHtml) {
+      clauses.push(`<div class="clause">${trustHtml}</div>`);
+      clauseNum++;
+    }
   }
 
   // Distribution of the Residue
@@ -574,6 +589,143 @@ function buildResidueClause(
   }
 
   return parts.join("\n  ");
+}
+
+// ── Trust Clause HTML builder ─────────────────────────────────────────────────
+
+function trusteeNames(trustees?: Array<{ name: string; address: string }> | null): string {
+  if (!trustees || trustees.length === 0) return "my Executors";
+  return trustees.map(t => `<strong>${t.name}</strong>${t.address ? ` of ${t.address}` : ""}`).join(" and ");
+}
+
+function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: string; address: string }> | null; lifeTenants?: Array<{ name: string; address: string }> | null; beneficiaries?: Array<{ name: string; relationship: string }> | null; propertyAddress?: string | null; sharePercentage?: string | null; namedBeneficiary?: string | null; namedBeneficiaryDisability?: string | null; ageVesting?: number | null; notes?: string | null }, num: number): string {
+  const trNames = trusteeNames(tc.trustees);
+  const notes = tc.notes ? `<p>${tc.notes}</p>` : "";
+
+  switch (tc.trustType) {
+    case "ppt": {
+      const property = tc.propertyAddress || "my principal residence";
+      const ltStr = tc.lifeTenants && tc.lifeTenants.length > 0
+        ? tc.lifeTenants.map(lt => `<strong>${lt.name}</strong>`).join(" and ")
+        : "my surviving spouse or civil partner";
+      const ultBens = tc.beneficiaries && tc.beneficiaries.length > 0
+        ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ")
+        : "my children and remoter issue in equal shares absolutely";
+      return `
+  <h2>${num}. Protective Property Trust (Lifetime Interest Trust)</h2>
+  <p>I DECLARE that my share of the property known as <strong>${property}</strong> (hereinafter referred to as "the Property") shall not pass under the general gift of my Residuary Estate but shall instead be held upon the following trusts:</p>
+  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
+  <p>(b) The Trustees shall hold my share of the Property upon trust to permit ${ltStr} (hereinafter referred to as "the Life Tenant") to have the right to reside in the Property during the Trust Period.</p>
+  <p>(c) The Trust Period shall terminate upon the death of the Life Tenant, or upon the Life Tenant remarrying or entering into a new civil partnership, or upon the Life Tenant ceasing to permanently reside in the Property, whichever shall first occur.</p>
+  <p>(d) Upon the termination of the Trust Period the Trustees shall hold the Property (or the net proceeds of sale thereof) upon trust for ${ultBens}.</p>
+  <p>(e) The Life Tenant shall be responsible for the payment of all outgoings in respect of the Property including rates, taxes, insurance, and the cost of all repairs and maintenance.</p>
+  <p>(f) The Trustees shall have power to sell the Property and to apply the proceeds of sale in the purchase of another property to be held upon the same trusts or to invest the same as if they were absolute beneficial owners thereof.</p>
+  ${notes}`;
+    }
+
+    case "discretionary": {
+      const benClass = tc.beneficiaries && tc.beneficiaries.length > 0
+        ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(", ")
+        : "my children and remoter issue and such other persons as my Trustees shall in their absolute discretion determine";
+      return `
+  <h2>${num}. Discretionary Trust</h2>
+  <p>(a) The Trustees of this Discretionary Trust shall be ${trNames} or such other persons as shall be appointed as trustees hereof from time to time.</p>
+  <p>(b) The Beneficiaries of this Discretionary Trust shall be ${benClass}.</p>
+  <p>(c) My Trustees shall hold the trust fund upon trust to pay or apply the income and/or capital thereof to or for the benefit of all or any one or more of the Beneficiaries in such shares and proportions and in such manner as my Trustees shall in their absolute discretion think fit.</p>
+  <p>(d) My Trustees shall have the widest possible powers of investment as if they were absolute beneficial owners of the trust fund and shall not be restricted to investments authorised by law for trustees.</p>
+  <p>(e) This Discretionary Trust shall terminate on the expiry of the period of 125 years from the date of my death (which period shall be the perpetuity period applicable to this trust) and upon such termination the trust fund shall be held for such of the Beneficiaries as are then living in equal shares absolutely.</p>
+  ${notes}`;
+    }
+
+    case "vulnerable": {
+      const vbName = tc.namedBeneficiary || "[Vulnerable Beneficiary Name]";
+      const disability = tc.namedBeneficiaryDisability ? `<p>The Vulnerable Beneficiary has the following disability or condition: ${tc.namedBeneficiaryDisability}.</p>` : "";
+      const ultBens = tc.beneficiaries && tc.beneficiaries.length > 0
+        ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>`).join(" and ")
+        : "my children and remoter issue as shall then be living in equal shares absolutely";
+      return `
+  <h2>${num}. Vulnerable Person's Trust (Finance Act 2005)</h2>
+  <p>I DECLARE that the following provisions shall apply to the Vulnerable Person's Trust created by this my Will for the benefit of <strong>${vbName}</strong> (hereinafter referred to as "the Vulnerable Beneficiary"):</p>
+  ${disability}
+  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
+  <p>(b) This trust is intended to qualify as a Vulnerable Beneficiary Trust within the meaning of the Finance Act 2005 and my Trustees shall use their best endeavours to ensure that the trust continues to qualify as such.</p>
+  <p>(c) My Trustees shall hold the trust fund upon trust to apply the income and capital thereof for the benefit of the Vulnerable Beneficiary during their lifetime in such manner as my Trustees in their absolute discretion think fit having regard to the needs and welfare of the Vulnerable Beneficiary.</p>
+  <p>(d) Subject to the life interest of the Vulnerable Beneficiary, the trust fund shall on the death of the Vulnerable Beneficiary be held for ${ultBens}.</p>
+  <p>(e) My Trustees shall have power to apply capital for the benefit of the Vulnerable Beneficiary at any time and from time to time as they in their absolute discretion think fit.</p>
+  ${notes}`;
+    }
+
+    case "nrb": {
+      const bens = tc.beneficiaries && tc.beneficiaries.length > 0
+        ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ")
+        : "my children and remoter issue in equal shares absolutely";
+      return `
+  <h2>${num}. Nil-Rate Band Discretionary Trust</h2>
+  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
+  <p>(b) I GIVE to my Trustees such sum as equals my available nil-rate band for inheritance tax purposes at the date of my death (the "NRB Sum") to hold upon the trusts hereinafter declared.</p>
+  <p>(c) My Trustees shall hold the NRB Sum upon trust for ${bens}.</p>
+  <p>(d) My Trustees shall have the widest possible powers of investment and management as if they were absolute beneficial owners of the trust fund.</p>
+  <p>(e) This trust shall terminate on the expiry of 125 years from the date of my death and upon such termination the trust fund shall be distributed to such of the Beneficiaries as are then living in equal shares absolutely.</p>
+  ${notes}`;
+    }
+
+    case "rnrb": {
+      const property = tc.propertyAddress || "my principal residence";
+      const bens = tc.beneficiaries && tc.beneficiaries.length > 0
+        ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ")
+        : "my lineal descendants";
+      return `
+  <h2>${num}. Residential Nil-Rate Band (RNRB)</h2>
+  <p>I direct that my Executors and Trustees shall use their best endeavours to ensure that the Residential Nil-Rate Band (as defined in section 8D of the Inheritance Tax Act 1984) is claimed in respect of my Estate.</p>
+  <p>For the purposes of qualifying for the Residential Nil-Rate Band, I give my interest in the property known as <strong>${property}</strong> to ${bens} absolutely, or if that property has been sold prior to my death, to such replacement residential property as I may own at the date of my death.</p>
+  <p>My Executors shall take all steps necessary to claim any transferable Residential Nil-Rate Band that may be available from my deceased spouse or civil partner's estate.</p>
+  ${notes}`;
+    }
+
+    case "bereaved_minor": {
+      const bName = tc.namedBeneficiary || "[Beneficiary Name]";
+      const age = tc.ageVesting ?? 18;
+      return `
+  <h2>${num}. Bereaved Minor's Trust (s.71A IHTA 1984)</h2>
+  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
+  <p>(b) This trust is intended to qualify as a Bereaved Minor's Trust within the meaning of section 71A of the Inheritance Tax Act 1984.</p>
+  <p>(c) My Trustees shall hold the trust fund upon trust to accumulate the income thereof until <strong>${bName}</strong> ("the Beneficiary") attains the age of ${age} years and thereafter to pay the income to the Beneficiary.</p>
+  <p>(d) Upon the Beneficiary attaining the age of ${age} years the Trustees shall hold the trust fund upon trust for the Beneficiary absolutely.</p>
+  <p>(e) If the Beneficiary shall die before attaining the age of ${age} years the trust fund shall fall into and form part of my Residuary Estate.</p>
+  ${notes}`;
+    }
+
+    case "age18to25": {
+      const bName = tc.namedBeneficiary || "[Beneficiary Name]";
+      const age = tc.ageVesting ?? 25;
+      return `
+  <h2>${num}. 18-to-25 Trust (s.71D IHTA 1984)</h2>
+  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
+  <p>(b) This trust is intended to qualify as an 18-to-25 trust within the meaning of section 71D of the Inheritance Tax Act 1984.</p>
+  <p>(c) My Trustees shall hold the trust fund upon trust to accumulate the income thereof until <strong>${bName}</strong> ("the Beneficiary") attains the age of 18 years and thereafter to pay the income to the Beneficiary until the Beneficiary attains the age of ${age} years.</p>
+  <p>(d) Upon the Beneficiary attaining the age of ${age} years the Trustees shall hold the trust fund upon trust for the Beneficiary absolutely.</p>
+  <p>(e) If the Beneficiary shall die before attaining the age of ${age} years the trust fund shall fall into and form part of my Residuary Estate.</p>
+  ${notes}`;
+    }
+
+    case "bpr": {
+      const bizName = tc.propertyAddress || "my business interests";
+      const bens = tc.beneficiaries && tc.beneficiaries.length > 0
+        ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ")
+        : "my children and remoter issue in equal shares absolutely";
+      return `
+  <h2>${num}. Business Property Relief Trust</h2>
+  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
+  <p>(b) I GIVE my business interests known as <strong>${bizName}</strong> to my Trustees to hold upon the trusts hereinafter declared, it being my intention that the Business Assets shall qualify for Business Property Relief pursuant to Chapter I of Part V of the Inheritance Tax Act 1984.</p>
+  <p>(c) My Trustees shall hold the Business Assets upon trust for ${bens}.</p>
+  <p>(d) My Trustees shall have the widest possible powers to manage, invest, realise, and deal with the Business Assets as if they were absolute beneficial owners thereof.</p>
+  <p>(e) My Trustees shall use their best endeavours to ensure that the Business Assets continue to qualify for Business Property Relief and shall not take any action that would jeopardise such qualification without first obtaining appropriate professional advice.</p>
+  ${notes}`;
+    }
+
+    default:
+      return "";
+  }
 }
 
 function buildGiftsClause(gifts: FullMatter["gifts"]): string {

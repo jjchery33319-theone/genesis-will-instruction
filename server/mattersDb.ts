@@ -10,6 +10,7 @@ import {
   matterPets,
   matterProperty,
   matterBusiness,
+  matterTrustClauses,
   type Matter,
   type MatterClient,
   type MatterExecutor,
@@ -20,6 +21,7 @@ import {
   type MatterPet,
   type MatterPropertyRecord,
   type MatterBusinessRecord,
+  type MatterTrustClause,
   type InsertMatter,
   type InsertMatterClient,
   type InsertMatterExecutor,
@@ -30,6 +32,7 @@ import {
   type InsertMatterPet,
   type InsertMatterPropertyRecord,
   type InsertMatterBusinessRecord,
+  type NewMatterTrustClause,
 } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -51,6 +54,7 @@ export type FullMatter = Matter & {
   pets: MatterPet[];
   properties: MatterPropertyRecord[];
   businesses: MatterBusinessRecord[];
+  trustClauses: MatterTrustClause[];
 };
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -70,7 +74,7 @@ export async function getMatterById(id: number): Promise<FullMatter | null> {
 
 async function enrichMatter(matter: Matter): Promise<FullMatter> {
   const db = await d();
-  const [clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses] = await Promise.all([
+  const [clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses] = await Promise.all([
     db.select().from(matterClients).where(eq(matterClients.matterId, matter.id)),
     db.select().from(matterExecutors).where(eq(matterExecutors.matterId, matter.id)).orderBy(matterExecutors.sortOrder),
     db.select().from(matterGuardians).where(eq(matterGuardians.matterId, matter.id)).orderBy(matterGuardians.sortOrder),
@@ -80,8 +84,9 @@ async function enrichMatter(matter: Matter): Promise<FullMatter> {
     db.select().from(matterPets).where(eq(matterPets.matterId, matter.id)).orderBy(matterPets.sortOrder),
     db.select().from(matterProperty).where(eq(matterProperty.matterId, matter.id)).orderBy(matterProperty.sortOrder),
     db.select().from(matterBusiness).where(eq(matterBusiness.matterId, matter.id)).orderBy(matterBusiness.sortOrder),
+    db.select().from(matterTrustClauses).where(eq(matterTrustClauses.matterId, matter.id)),
   ]);
-  return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses };
+  return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses };
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -99,6 +104,7 @@ export async function updateMatter(id: number, data: Partial<InsertMatter>): Pro
 
 export async function deleteMatter(id: number): Promise<void> {
   const db = await d();
+  await db.delete(matterTrustClauses).where(eq(matterTrustClauses.matterId, id));
   await db.delete(matterBusiness).where(eq(matterBusiness.matterId, id));
   await db.delete(matterProperty).where(eq(matterProperty.matterId, id));
   await db.delete(matterPets).where(eq(matterPets.matterId, id));
@@ -241,6 +247,23 @@ export async function replaceBusiness(
   if (rows.length > 0) {
     await db.insert(matterBusiness).values(
       rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+    );
+  }
+}
+
+export async function replaceTrustClauses(
+  matterId: number,
+  clientRole: string,
+  rows: Array<Omit<NewMatterTrustClause, "matterId" | "clientRole">>
+): Promise<void> {
+  const db = await d();
+  await db.delete(matterTrustClauses).where(
+    and(eq(matterTrustClauses.matterId, matterId), eq(matterTrustClauses.clientRole, clientRole))
+  );
+  if (rows.length > 0) {
+    const now = Date.now();
+    await db.insert(matterTrustClauses).values(
+      rows.map(r => ({ ...r, matterId, clientRole, createdAt: now, updatedAt: now }))
     );
   }
 }
