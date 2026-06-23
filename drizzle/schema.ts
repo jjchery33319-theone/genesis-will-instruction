@@ -342,3 +342,92 @@ export const lpaRecords = mysqlTable("lpa_records", {
 
 export type LpaRecord = typeof lpaRecords.$inferSelect;
 export type InsertLpaRecord = typeof lpaRecords.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Will V2 — Matters, Clients, Executors, Guardians, Beneficiaries, Wishes
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const matters = mysqlTable("matters", {
+  id: int("id").primaryKey().autoincrement(),
+  matterType: mysqlEnum("matter_type", ["single", "mirror"]).notNull(),
+  fileReference: varchar("file_reference", { length: 100 }),
+  status: mysqlEnum("status", ["draft", "complete"]).default("draft").notNull(),
+  editedWillHtmlTestator1: text("edited_will_html_testator1"),
+  editedWillHtmlTestator2: text("edited_will_html_testator2"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+export type Matter = typeof matters.$inferSelect;
+export type InsertMatter = typeof matters.$inferInsert;
+
+export const matterClients = mysqlTable("matter_clients", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: mysqlEnum("client_role", ["testator1", "testator2"]).notNull(),
+  fullName: varchar("full_name", { length: 200 }),
+  address: text("address"),
+  dateOfBirth: varchar("date_of_birth", { length: 20 }),
+  email: varchar("email", { length: 200 }),
+  phone: varchar("phone", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+export type MatterClient = typeof matterClients.$inferSelect;
+export type InsertMatterClient = typeof matterClients.$inferInsert;
+
+export const matterExecutors = mysqlTable("matter_executors", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: mysqlEnum("client_role", ["testator1", "testator2", "shared"]).default("shared").notNull(),
+  executorType: mysqlEnum("executor_type", ["primary", "substitute"]).default("primary").notNull(),
+  sortOrder: int("sort_order").default(0).notNull(),
+  fullName: varchar("full_name", { length: 200 }),
+  address: text("address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type MatterExecutor = typeof matterExecutors.$inferSelect;
+export type InsertMatterExecutor = typeof matterExecutors.$inferInsert;
+
+export const matterGuardians = mysqlTable("matter_guardians", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  guardianType: mysqlEnum("guardian_type", ["primary", "substitute"]).default("primary").notNull(),
+  sortOrder: int("sort_order").default(0).notNull(),
+  fullName: varchar("full_name", { length: 200 }),
+  address: text("address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type MatterGuardian = typeof matterGuardians.$inferSelect;
+export type InsertMatterGuardian = typeof matterGuardians.$inferInsert;
+
+export const matterBeneficiaries = mysqlTable("matter_beneficiaries", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: mysqlEnum("client_role", ["testator1", "testator2", "shared"]).default("shared").notNull(),
+  beneficiaryType: mysqlEnum("beneficiary_type", ["primary", "fallback"]).default("primary").notNull(),
+  sortOrder: int("sort_order").default(0).notNull(),
+  fullName: varchar("full_name", { length: 200 }),
+  relationship: varchar("relationship", { length: 100 }),
+  shareFraction: varchar("share_fraction", { length: 50 }),
+  includeIssue: int("include_issue").default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type MatterBeneficiary = typeof matterBeneficiaries.$inferSelect;
+export type InsertMatterBeneficiary = typeof matterBeneficiaries.$inferInsert;
+
+export const matterWishes = mysqlTable("matter_wishes", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: mysqlEnum("client_role", ["testator1", "testator2", "shared"]).default("shared").notNull(),
+  ageCondition: int("age_condition").default(18),
+  survivorshipDays: int("survivorship_days").default(28),
+  organDonation: int("organ_donation").default(0),
+  organDonationText: text("organ_donation_text"),
+  funeralWishes: text("funeral_wishes"),
+  extraNotes: text("extra_notes"),
+  residueToSpouseFirst: int("residue_to_spouse_first").default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+export type MatterWishes = typeof matterWishes.$inferSelect;
+export type InsertMatterWishes = typeof matterWishes.$inferInsert;

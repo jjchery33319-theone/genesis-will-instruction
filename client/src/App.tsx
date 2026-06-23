@@ -12,6 +12,7 @@ import AdminGuard from "./components/AdminGuard";
 import WillPreview from "./pages/WillPreview";
 import AdminSubmissionEditor from "./pages/AdminSubmissionEditor";
 import LpaManager from "./pages/LpaManager";
+import WillDraftingV2 from "./pages/WillDraftingV2";
 
 function Router() {
   return (
@@ -32,6 +33,9 @@ function Router() {
       </Route>
       <Route path={"/admin/submission/:id/lpa"}>
         <AdminGuard><LpaManager /></AdminGuard>
+      </Route>
+      <Route path={"/admin/wills"}>
+        <AdminGuard><WillDraftingV2 /></AdminGuard>
       </Route>
       <Route path={"/success/:ref"} component={SubmissionSuccess} />
       <Route path={"/404"} component={NotFound} />
