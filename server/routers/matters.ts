@@ -11,6 +11,10 @@ import {
   replaceGuardians,
   replaceBeneficiaries,
   upsertWishes,
+  replaceGifts,
+  replacePets,
+  replaceProperty,
+  replaceBusiness,
   saveEditedWillHtml,
   clearEditedWillHtml,
 } from "../mattersDb";
@@ -43,6 +47,38 @@ const wishesSchema = z.object({
   funeralWishes: z.string().optional(),
   extraNotes: z.string().optional(),
   residueToSpouseFirst: z.number().int().min(0).max(1).default(1),
+  disasterClauseNotes: z.string().optional(),
+  generalNotes: z.string().optional(),
+});
+
+const giftSchema = z.object({
+  recipientName: z.string().optional(),
+  recipientAddress: z.string().optional(),
+  giftDescription: z.string().optional(),
+  giftType: z.enum(["monetary", "asset", "residue"]).default("asset"),
+});
+
+const petSchema = z.object({
+  petName: z.string().optional(),
+  petType: z.string().optional(),
+  carerName: z.string().optional(),
+  carerAddress: z.string().optional(),
+  careNotes: z.string().optional(),
+});
+
+const propertySchema = z.object({
+  address: z.string().optional(),
+  ownershipType: z.enum(["sole", "joint_tenants", "tenants_in_common"]).default("sole"),
+  mortgageOutstanding: z.number().int().min(0).max(1).default(0),
+  mortgageLender: z.string().optional(),
+  propertyNotes: z.string().optional(),
+});
+
+const businessSchema = z.object({
+  businessName: z.string().optional(),
+  businessType: z.string().optional(),
+  sharePercentage: z.string().optional(),
+  businessNotes: z.string().optional(),
 });
 
 export const mattersRouter = router({
@@ -147,6 +183,47 @@ export const mattersRouter = router({
     }))
     .mutation(async ({ input }) => {
       await upsertWishes(input.matterId, input.clientRole, input.wishes);
+      return { success: true };
+    }),
+
+  saveGifts: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      clientRole: z.enum(["testator1", "testator2", "shared"]),
+      gifts: z.array(giftSchema),
+    }))
+    .mutation(async ({ input }) => {
+      await replaceGifts(input.matterId, input.clientRole, input.gifts);
+      return { success: true };
+    }),
+
+  savePets: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      pets: z.array(petSchema),
+    }))
+    .mutation(async ({ input }) => {
+      await replacePets(input.matterId, input.pets);
+      return { success: true };
+    }),
+
+  saveProperty: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      properties: z.array(propertySchema),
+    }))
+    .mutation(async ({ input }) => {
+      await replaceProperty(input.matterId, input.properties);
+      return { success: true };
+    }),
+
+  saveBusiness: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      businesses: z.array(businessSchema),
+    }))
+    .mutation(async ({ input }) => {
+      await replaceBusiness(input.matterId, input.businesses);
       return { success: true };
     }),
 

@@ -328,3 +328,42 @@
 - [x] Vitest: commentary generator — Part 1 and Part 2 sections present (6 tests)
 - [x] Vitest: signing guide — testator name appears in attestation block (5 tests)
 - [x] Total: 45 tests passing (19 existing + 26 new V2 tests)
+
+## Will V2 — Extended Sections (Phase 20)
+
+### Database
+- [ ] Add `matter_gifts` table: id, matter_id, client_role, sort_order, recipient_name, recipient_address, gift_description, gift_type (monetary|asset|residue)
+- [ ] Add `matter_pets` table: id, matter_id, sort_order, pet_name, pet_type, carer_name, carer_address, care_notes
+- [ ] Add `matter_property` table: id, matter_id, sort_order, address, ownership_type (sole|joint_tenants|tenants_in_common), mortgage_outstanding, mortgage_lender, property_notes
+- [ ] Add `matter_business` table: id, matter_id, sort_order, business_name, business_type, share_percentage, business_notes
+- [ ] Add disaster_clause_notes, extra_notes columns to matter_wishes (or separate matter_extras table)
+
+### tRPC procedures
+- [x] matters.saveGifts — upsert gifts list per client_role
+- [x] matters.savePets — upsert pets list
+- [x] matters.saveProperty — upsert property list
+- [x] matters.saveBusiness — upsert business list
+- [x] matters.saveWishes extended with disasterClauseNotes + generalNotes
+
+### Will generator updates
+- [x] Add specific gifts clause (before residuary estate)
+- [x] Add pets provision clause
+- [x] Add disaster clause (if notes provided; standard intestacy fallback if not)
+- [x] Add business interests clause (with BPR reference if applicable)
+- [x] Add property clause (tenancy severance note if tenants in common)
+
+### Commentary generator updates
+- [x] Add gifts section to Part 1 named people
+- [x] Add pets section to Part 1
+- [x] Add property section to Part 1
+- [x] Add business section to Part 1
+- [x] Add disaster clause explanation to Part 2
+- [x] Add business interests explanation to Part 2
+
+### Frontend form tabs
+- [x] Add "Gifts" tab to MatterForm with per-client gift rows (recipient, description, type, address)
+- [x] Add "Pets" tab to MatterForm with pet rows (name, type, carer details, care notes)
+- [x] Add "Property" tab to MatterForm with property rows (address, ownership type, mortgage toggle + lender, notes)
+- [x] Add "Business" tab to MatterForm with business rows (pre-filled with Genesis Wills and Estate Planning Ltd)
+- [x] Wishes tab extended with Disaster Clause textarea and General Notes textarea
+- [x] TypeScript: 0 errors | Tests: 45/45 passing

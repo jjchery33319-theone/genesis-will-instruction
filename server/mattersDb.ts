@@ -6,18 +6,30 @@ import {
   matterGuardians,
   matterBeneficiaries,
   matterWishes,
+  matterGifts,
+  matterPets,
+  matterProperty,
+  matterBusiness,
   type Matter,
   type MatterClient,
   type MatterExecutor,
   type MatterGuardian,
   type MatterBeneficiary,
   type MatterWishes,
+  type MatterGift,
+  type MatterPet,
+  type MatterPropertyRecord,
+  type MatterBusinessRecord,
   type InsertMatter,
   type InsertMatterClient,
   type InsertMatterExecutor,
   type InsertMatterGuardian,
   type InsertMatterBeneficiary,
   type InsertMatterWishes,
+  type InsertMatterGift,
+  type InsertMatterPet,
+  type InsertMatterPropertyRecord,
+  type InsertMatterBusinessRecord,
 } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -35,6 +47,10 @@ export type FullMatter = Matter & {
   guardians: MatterGuardian[];
   beneficiaries: MatterBeneficiary[];
   wishes: MatterWishes[];
+  gifts: MatterGift[];
+  pets: MatterPet[];
+  properties: MatterPropertyRecord[];
+  businesses: MatterBusinessRecord[];
 };
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -54,14 +70,18 @@ export async function getMatterById(id: number): Promise<FullMatter | null> {
 
 async function enrichMatter(matter: Matter): Promise<FullMatter> {
   const db = await d();
-  const [clients, executors, guardians, beneficiaries, wishes] = await Promise.all([
+  const [clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses] = await Promise.all([
     db.select().from(matterClients).where(eq(matterClients.matterId, matter.id)),
     db.select().from(matterExecutors).where(eq(matterExecutors.matterId, matter.id)).orderBy(matterExecutors.sortOrder),
     db.select().from(matterGuardians).where(eq(matterGuardians.matterId, matter.id)).orderBy(matterGuardians.sortOrder),
     db.select().from(matterBeneficiaries).where(eq(matterBeneficiaries.matterId, matter.id)).orderBy(matterBeneficiaries.sortOrder),
     db.select().from(matterWishes).where(eq(matterWishes.matterId, matter.id)),
+    db.select().from(matterGifts).where(eq(matterGifts.matterId, matter.id)).orderBy(matterGifts.sortOrder),
+    db.select().from(matterPets).where(eq(matterPets.matterId, matter.id)).orderBy(matterPets.sortOrder),
+    db.select().from(matterProperty).where(eq(matterProperty.matterId, matter.id)).orderBy(matterProperty.sortOrder),
+    db.select().from(matterBusiness).where(eq(matterBusiness.matterId, matter.id)).orderBy(matterBusiness.sortOrder),
   ]);
-  return { ...matter, clients, executors, guardians, beneficiaries, wishes };
+  return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses };
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -79,6 +99,10 @@ export async function updateMatter(id: number, data: Partial<InsertMatter>): Pro
 
 export async function deleteMatter(id: number): Promise<void> {
   const db = await d();
+  await db.delete(matterBusiness).where(eq(matterBusiness.matterId, id));
+  await db.delete(matterProperty).where(eq(matterProperty.matterId, id));
+  await db.delete(matterPets).where(eq(matterPets.matterId, id));
+  await db.delete(matterGifts).where(eq(matterGifts.matterId, id));
   await db.delete(matterWishes).where(eq(matterWishes.matterId, id));
   await db.delete(matterBeneficiaries).where(eq(matterBeneficiaries.matterId, id));
   await db.delete(matterGuardians).where(eq(matterGuardians.matterId, id));
@@ -163,6 +187,61 @@ export async function upsertWishes(
     await db.update(matterWishes).set(data).where(eq(matterWishes.id, existing[0].id));
   } else {
     await db.insert(matterWishes).values({ matterId, clientRole, ...data });
+  }
+}
+
+export async function replaceGifts(
+  matterId: number,
+  clientRole: "testator1" | "testator2" | "shared",
+  rows: Array<Omit<InsertMatterGift, "matterId" | "clientRole">>
+): Promise<void> {
+  const db = await d();
+  await db.delete(matterGifts).where(
+    and(eq(matterGifts.matterId, matterId), eq(matterGifts.clientRole, clientRole))
+  );
+  if (rows.length > 0) {
+    await db.insert(matterGifts).values(
+      rows.map((r, i) => ({ ...r, matterId, clientRole, sortOrder: i }))
+    );
+  }
+}
+
+export async function replacePets(
+  matterId: number,
+  rows: Array<Omit<InsertMatterPet, "matterId">>
+): Promise<void> {
+  const db = await d();
+  await db.delete(matterPets).where(eq(matterPets.matterId, matterId));
+  if (rows.length > 0) {
+    await db.insert(matterPets).values(
+      rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+    );
+  }
+}
+
+export async function replaceProperty(
+  matterId: number,
+  rows: Array<Omit<InsertMatterPropertyRecord, "matterId">>
+): Promise<void> {
+  const db = await d();
+  await db.delete(matterProperty).where(eq(matterProperty.matterId, matterId));
+  if (rows.length > 0) {
+    await db.insert(matterProperty).values(
+      rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+    );
+  }
+}
+
+export async function replaceBusiness(
+  matterId: number,
+  rows: Array<Omit<InsertMatterBusinessRecord, "matterId">>
+): Promise<void> {
+  const db = await d();
+  await db.delete(matterBusiness).where(eq(matterBusiness.matterId, matterId));
+  if (rows.length > 0) {
+    await db.insert(matterBusiness).values(
+      rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+    );
   }
 }
 

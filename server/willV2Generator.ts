@@ -5,7 +5,7 @@
  */
 
 import type { FullMatter } from "./mattersDb";
-import type { MatterClient, MatterExecutor, MatterGuardian, MatterBeneficiary, MatterWishes } from "../drizzle/schema";
+import type { MatterClient, MatterExecutor, MatterGuardian, MatterBeneficiary } from "../drizzle/schema";
 
 export type TestatorRole = "testator1" | "testator2";
 
@@ -27,18 +27,6 @@ function ordinal(n: number): string {
 function today(): string {
   const d = new Date();
   return `the ${ordinal(d.getDate())} day of ${d.toLocaleDateString("en-GB", { month: "long" })} ${d.getFullYear()}`;
-}
-
-function pronouns(name: string): { sub: string; obj: string; pos: string; ref: string } {
-  // Default to neutral — in practice the form could capture gender
-  return { sub: "they", obj: "them", pos: "their", ref: "the Testator" };
-}
-
-function listNames(people: Array<{ fullName?: string | null }>): string {
-  const names = people.map(p => p.fullName || "_______________").filter(Boolean);
-  if (names.length === 0) return "_______________";
-  if (names.length === 1) return names[0];
-  return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
 }
 
 function nameAndAddress(p: { fullName?: string | null; address?: string | null }): string {
@@ -82,13 +70,28 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   const organDonationText = wishes?.organDonationText || "I wish to donate my organs for medical purposes.";
   const funeralWishes = wishes?.funeralWishes || "";
   const residueToSpouseFirst = matter.matterType === "mirror" && (wishes?.residueToSpouseFirst ?? 1) === 1;
+  const disasterClauseNotes = (wishes as any)?.disasterClauseNotes || "";
+  const generalNotes = (wishes as any)?.generalNotes || "";
 
   const fileRef = matter.fileReference || "";
+
+  // Gifts for this testator
+  const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const specificGifts = (matter.gifts || []).filter(g => g.clientRole === giftRole || g.clientRole === "shared");
+
+  // Pets (shared)
+  const pets = matter.pets || [];
+
+  // Property
+  const properties = matter.properties || [];
+
+  // Business
+  const businesses = matter.businesses || [];
 
   // ── Clause builders ───────────────────────────────────────────────────────
 
   const executorClause = buildExecutorClause(primaryExecutors, substituteExecutors, name);
-  const guardianClause = buildGuardianClause(primaryGuardians, substituteGuardians, primaryExecutors);
+  const guardianClause = buildGuardianClause(primaryGuardians, substituteGuardians);
   const residueClause = buildResidueClause(
     primaryBeneficiaries,
     fallbackBeneficiaries,
@@ -97,6 +100,130 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     ageCondition,
     survivorshipDays
   );
+
+  // Clause numbering — dynamic based on optional sections
+  let clauseNum = 4; // 1=Revocation, 2=Executors, 3=Guardians, then dynamic
+  const clauses: string[] = [];
+
+  // 4. Definition and Administration
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Definition and Administration of my Estate</h2>
+  <p>My "Estate" shall mean all property, assets and rights to which I am beneficially entitled at the date of my death, including all property over which I have a general power of appointment or disposition by Will.</p>
+  <p>My Executors and Trustees shall have the widest powers of management and administration in relation to my Estate as are set out in this Will and as are conferred by law.</p>
+</div>`);
+
+  // Property clause (if any)
+  if (properties.length > 0) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Property</h2>
+  ${buildPropertyClause(properties)}
+</div>`);
+  }
+
+  // Business interests clause (if any)
+  if (businesses.length > 0) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Business Interests</h2>
+  ${buildBusinessClause(businesses)}
+</div>`);
+  }
+
+  // Specific gifts clause (if any)
+  if (specificGifts.length > 0) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Specific Gifts</h2>
+  ${buildGiftsClause(specificGifts)}
+</div>`);
+  }
+
+  // Pets clause (if any)
+  if (pets.length > 0) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Provision for Pets</h2>
+  ${buildPetsClause(pets)}
+</div>`);
+  }
+
+  // Distribution of the Residue
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Distribution of the Residue</h2>
+  ${residueClause}
+</div>`);
+
+  // Conditional Gift
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Conditional Gift at Specified Age of ${ageCondition} Years</h2>
+  <p>Any beneficiary who has not yet attained the age of ${ageCondition} years at the date of my death shall not be entitled to receive their share of my Estate absolutely until they attain that age. Until such time, my Trustees shall hold the share on trust for that beneficiary, with power to apply the income and capital for their maintenance, education and benefit.</p>
+  <p>If any beneficiary should die before attaining the age of ${ageCondition} years, their share shall pass as if they had predeceased me.</p>
+</div>`);
+
+  // Executor and Trustee Powers
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Executor and Trustee Powers</h2>
+  <p>My Executors and Trustees shall have the following powers in addition to those conferred by law:</p>
+  <p>(a) Power to sell, call in and convert into money all or any part of my Estate at such time and in such manner as they think fit, with power to postpone such sale, calling in and conversion for so long as they think fit without being liable for any loss.</p>
+  <p>(b) Power to invest the proceeds of sale and any ready money forming part of my Estate in any investments authorised by law for the investment of trust funds.</p>
+  <p>(c) Power to apply the income or capital of any share held on trust for a minor beneficiary for or towards the maintenance, education or benefit of that beneficiary.</p>
+  <p>(d) Power to appropriate any part of my Estate in or towards satisfaction of any legacy or share without requiring the consent of any beneficiary.</p>
+  <p>(e) Power to insure any property forming part of my Estate against any risk and to pay the premiums out of the income or capital of my Estate.</p>
+</div>`);
+
+  // Survivorship
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Survivorship</h2>
+  <p>Any beneficiary under this Will must survive me by a period of ${survivorshipDays} days in order to benefit under this Will. If any beneficiary fails to survive me by ${survivorshipDays} days, the gift to that beneficiary shall lapse and shall fall into the residue of my Estate to be distributed as if that beneficiary had predeceased me.</p>
+</div>`);
+
+  // Disaster Clause (if notes provided)
+  if (disasterClauseNotes) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Disaster Clause</h2>
+  <p>${disasterClauseNotes}</p>
+</div>`);
+  } else {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Disaster Clause</h2>
+  <p>In the event that all of my beneficiaries named in this Will predecease me or fail to survive me by the required survivorship period, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales at the date of my death.</p>
+</div>`);
+  }
+
+  // Organ Donation
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Organ Donation</h2>
+  ${organDonation
+    ? `<p>${organDonationText}</p>`
+    : `<p>I do not wish to make any specific direction in relation to organ donation.</p>`
+  }
+</div>`);
+
+  // Funeral Wishes
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Funeral Wishes</h2>
+  ${funeralWishes
+    ? `<p>${funeralWishes}</p>`
+    : `<p>I leave my funeral arrangements to the discretion of my Executors, having regard to any wishes I may have expressed to them during my lifetime.</p>`
+  }
+</div>`);
+
+  // STEP Powers
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. STEP Powers</h2>
+  <p>My Executors and Trustees shall have the benefit of the standard provisions of the Society of Trust and Estate Practitioners (1st Edition) as amended and updated from time to time, insofar as they are not inconsistent with the provisions of this Will.</p>
+</div>`);
+
+  // For the Avoidance of Doubt
+  clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. For the Avoidance of Doubt</h2>
+  <p>For the avoidance of doubt, any reference in this Will to a person's children shall include any child of that person whether legitimate, illegitimate or adopted, but shall not include any step-child unless expressly stated.</p>
+  <p>Words importing the masculine gender shall include the feminine and vice versa. Words in the singular shall include the plural and vice versa.</p>
+</div>`);
+
+  // General Notes (internal, shown as a note at the end if present)
+  const generalNotesSection = generalNotes ? `
+<div class="clause" style="border-top:2px solid #1a3a5c; margin-top:10mm; padding-top:6mm;">
+  <h2>Solicitor's Notes</h2>
+  <p style="font-style:italic; color:#555;">${generalNotes}</p>
+</div>` : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -181,10 +308,6 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   .clause {
     margin-bottom: 6mm;
   }
-  .clause-num {
-    font-weight: 600;
-    display: inline;
-  }
   p {
     margin-bottom: 3mm;
     text-align: justify;
@@ -251,14 +374,14 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 
 <!-- ══ COVER PAGE ══════════════════════════════════════════════════════════ -->
 <div class="page cover">
-  <div class="cover-logo">GENESIS ESTATE PLANNING</div>
+  <div class="cover-logo">GENESIS WILLS AND ESTATE PLANNING</div>
   <div class="cover-title">The Last Will<br>&amp; Testament</div>
   <div class="cover-subtitle">of</div>
   <div class="cover-name">${name}</div>
   <div class="cover-ref">${fileRef ? `File Reference: ${fileRef}` : ""}</div>
   <div class="cover-footer">
     This document is strictly private and confidential.<br>
-    Genesis Estate Planning Ltd &bull; England &amp; Wales
+    Genesis Wills and Estate Planning Ltd &bull; England &amp; Wales
   </div>
 </div>
 
@@ -290,73 +413,9 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   ${guardianClause}
 </div>
 
-<!-- 4. Definition and Administration -->
-<div class="clause">
-  <h2>4. Definition and Administration of my Estate</h2>
-  <p>My "Estate" shall mean all property, assets and rights to which I am beneficially entitled at the date of my death, including all property over which I have a general power of appointment or disposition by Will.</p>
-  <p>My Executors and Trustees shall have the widest powers of management and administration in relation to my Estate as are set out in this Will and as are conferred by law.</p>
-</div>
+${clauses.join("\n\n")}
 
-<!-- 5. Distribution of the Residue -->
-<div class="clause">
-  <h2>5. Distribution of the Residue</h2>
-  ${residueClause}
-</div>
-
-<!-- 6. Conditional Gift -->
-<div class="clause">
-  <h2>6. Conditional Gift at Specified Age of ${ageCondition} Years</h2>
-  <p>Any beneficiary who has not yet attained the age of ${ageCondition} years at the date of my death shall not be entitled to receive their share of my Estate absolutely until they attain that age. Until such time, my Trustees shall hold the share on trust for that beneficiary, with power to apply the income and capital for their maintenance, education and benefit.</p>
-  <p>If any beneficiary should die before attaining the age of ${ageCondition} years, their share shall pass as if they had predeceased me.</p>
-</div>
-
-<!-- 7. Executor and Trustee Powers -->
-<div class="clause">
-  <h2>7. Executor and Trustee Powers</h2>
-  <p>My Executors and Trustees shall have the following powers in addition to those conferred by law:</p>
-  <p>(a) Power to sell, call in and convert into money all or any part of my Estate at such time and in such manner as they think fit, with power to postpone such sale, calling in and conversion for so long as they think fit without being liable for any loss.</p>
-  <p>(b) Power to invest the proceeds of sale and any ready money forming part of my Estate in any investments authorised by law for the investment of trust funds.</p>
-  <p>(c) Power to apply the income or capital of any share held on trust for a minor beneficiary for or towards the maintenance, education or benefit of that beneficiary.</p>
-  <p>(d) Power to appropriate any part of my Estate in or towards satisfaction of any legacy or share without requiring the consent of any beneficiary.</p>
-  <p>(e) Power to insure any property forming part of my Estate against any risk and to pay the premiums out of the income or capital of my Estate.</p>
-</div>
-
-<!-- 8. Survivorship -->
-<div class="clause">
-  <h2>8. Survivorship</h2>
-  <p>Any beneficiary under this Will must survive me by a period of ${survivorshipDays} days in order to benefit under this Will. If any beneficiary fails to survive me by ${survivorshipDays} days, the gift to that beneficiary shall lapse and shall fall into the residue of my Estate to be distributed as if that beneficiary had predeceased me.</p>
-</div>
-
-<!-- 9. Organ Donation -->
-<div class="clause">
-  <h2>9. Organ Donation</h2>
-  ${organDonation
-    ? `<p>${organDonationText}</p>`
-    : `<p>I do not wish to make any specific direction in relation to organ donation.</p>`
-  }
-</div>
-
-<!-- 10. Funeral Wishes -->
-<div class="clause">
-  <h2>10. Funeral Wishes</h2>
-  ${funeralWishes
-    ? `<p>${funeralWishes}</p>`
-    : `<p>I leave my funeral arrangements to the discretion of my Executors, having regard to any wishes I may have expressed to them during my lifetime.</p>`
-  }
-</div>
-
-<!-- 11. STEP Powers -->
-<div class="clause">
-  <h2>11. STEP Powers</h2>
-  <p>My Executors and Trustees shall have the benefit of the standard provisions of the Society of Trust and Estate Practitioners (1st Edition) as amended and updated from time to time, insofar as they are not inconsistent with the provisions of this Will.</p>
-</div>
-
-<!-- 12. For the Avoidance of Doubt -->
-<div class="clause">
-  <h2>12. For the Avoidance of Doubt</h2>
-  <p>For the avoidance of doubt, any reference in this Will to a person's children shall include any child of that person whether legitimate, illegitimate or adopted, but shall not include any step-child unless expressly stated.</p>
-  <p>Words importing the masculine gender shall include the feminine and vice versa. Words in the singular shall include the plural and vice versa.</p>
-</div>
+${generalNotesSection}
 
 <!-- ══ ATTESTATION ══════════════════════════════════════════════════════════ -->
 <div class="attestation">
@@ -417,7 +476,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 </div>
 
 <div class="page-footer">
-  Genesis Estate Planning Ltd &bull; ${name} &bull; Last Will &amp; Testament
+  Genesis Wills and Estate Planning Ltd &bull; ${name} &bull; Last Will &amp; Testament
   ${fileRef ? `&bull; Ref: ${fileRef}` : ""}
 </div>
 
@@ -444,7 +503,7 @@ function buildExecutorClause(
   let substituteText = "";
   if (substitute.length > 0) {
     substituteText = substitute.length === 1
-      ? ` In the event that ${substitute.length === 1 ? "the above Executor is" : "both of the above Executors are"} unable or unwilling to act, I appoint <strong>${nameAndAddress(substitute[0])}</strong> as substitute Executor.`
+      ? ` In the event that ${primary.length === 1 ? "the above Executor is" : "all of the above Executors are"} unable or unwilling to act, I appoint <strong>${nameAndAddress(substitute[0])}</strong> as substitute Executor.`
       : ` In the event that the above Executor${primary.length > 1 ? "s are" : " is"} unable or unwilling to act, I appoint <strong>${substitute.map(nameAndAddress).join("</strong> and <strong>")}</strong> as substitute Executors.`;
   }
 
@@ -453,8 +512,7 @@ function buildExecutorClause(
 
 function buildGuardianClause(
   primary: MatterGuardian[],
-  substitute: MatterGuardian[],
-  executors: MatterExecutor[]
+  substitute: MatterGuardian[]
 ): string {
   if (primary.length === 0) {
     return `<p>In the event that any of my children are under the age of 18 years at the date of my death, I appoint my Executor(s) as Guardian(s) of my minor children.</p>`;
@@ -516,4 +574,63 @@ function buildResidueClause(
   }
 
   return parts.join("\n  ");
+}
+
+function buildGiftsClause(gifts: FullMatter["gifts"]): string {
+  if (gifts.length === 0) return "";
+  const items = gifts.map(g => {
+    const recipient = g.recipientName ? `<strong>${g.recipientName}</strong>${g.recipientAddress ? ` of ${g.recipientAddress}` : ""}` : "_______________";
+    const description = g.giftDescription || "_______________";
+    if (g.giftType === "monetary") {
+      return `<p>I give the sum of ${description} to ${recipient} absolutely, provided they survive me.</p>`;
+    }
+    return `<p>I give ${description} to ${recipient} absolutely, provided they survive me.</p>`;
+  });
+  return items.join("\n  ");
+}
+
+function buildPetsClause(pets: FullMatter["pets"]): string {
+  if (pets.length === 0) return "";
+  const items = pets.map(p => {
+    const petDesc = [p.petName, p.petType].filter(Boolean).join(" the ") || "my pet";
+    const carer = p.carerName ? `<strong>${p.carerName}</strong>${p.carerAddress ? ` of ${p.carerAddress}` : ""}` : "my Executors";
+    const notes = p.careNotes ? ` ${p.careNotes}` : "";
+    return `<p>I request that ${carer} take care of ${petDesc} and I ask that my Executors make such reasonable financial provision for their care as they see fit.${notes}</p>`;
+  });
+  return items.join("\n  ");
+}
+
+function buildPropertyClause(properties: FullMatter["properties"]): string {
+  if (properties.length === 0) return "";
+  const items = properties.map(p => {
+    const addr = p.address || "_______________";
+    const ownership = p.ownershipType === "joint_tenants"
+      ? "held as joint tenants"
+      : p.ownershipType === "tenants_in_common"
+      ? "held as tenants in common"
+      : "held in my sole name";
+    const mortgage = p.mortgageOutstanding
+      ? ` There is an outstanding mortgage with ${p.mortgageLender || "the mortgage lender"} which my Executors shall discharge from my Estate.`
+      : "";
+    const notes = p.propertyNotes ? ` ${p.propertyNotes}` : "";
+    return `<p>The property at <strong>${addr}</strong> is ${ownership}.${mortgage}${notes}</p>`;
+  });
+
+  const hasTIC = properties.some(p => p.ownershipType === "tenants_in_common");
+  const ticNote = hasTIC ? `<p>Where any property is held as tenants in common, my share in that property shall form part of my Estate and shall pass in accordance with the terms of this Will.</p>` : "";
+
+  return items.join("\n  ") + (ticNote ? "\n  " + ticNote : "");
+}
+
+function buildBusinessClause(businesses: FullMatter["businesses"]): string {
+  if (businesses.length === 0) return "";
+  const items = businesses.map(b => {
+    const bizName = b.businessName ? `<strong>${b.businessName}</strong>` : "my business interest";
+    const bizType = b.businessType ? ` (${b.businessType})` : "";
+    const share = b.sharePercentage ? `, representing approximately ${b.sharePercentage} of the issued share capital,` : "";
+    const notes = b.businessNotes ? ` ${b.businessNotes}` : "";
+    return `<p>My interest in ${bizName}${bizType}${share} shall form part of my Estate. My Executors shall have full power to deal with, sell, or continue my business interests as they consider appropriate in the best interests of my Estate and beneficiaries.${notes}</p>`;
+  });
+
+  return items.join("\n  ") + `\n  <p>For the avoidance of doubt, my Executors shall be entitled to claim Business Property Relief where applicable in accordance with the Inheritance Tax Act 1984.</p>`;
 }
