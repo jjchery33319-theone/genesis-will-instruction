@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -933,6 +935,8 @@ export default function LpaManager() {
 
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [editingLpa, setEditingLpa] = useState<{ lpaType: "property_finance" | "health_welfare"; clientNumber: 1 | 2; existingId?: number } | null>(null);
+  const [pdfPreview, setPdfPreview] = useState<{ lpaId: number; lpaData: Record<string, any> } | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: willRecord, isLoading: willLoading } = trpc.will.getById.useQuery(
     { id: submissionId },
@@ -1130,11 +1134,62 @@ export default function LpaManager() {
                             {existing ? "Edit LPA" : "Create LPA"}
                           </Button>
                           {existing && (
-                            <a href={`/api/lpa/${existing.id}/pdf`} download>
-                              <Button size="sm" variant="outline" className="text-xs gap-1">
-                                <Download className="w-3 h-3" /> PDF
-                              </Button>
-                            </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs gap-1"
+                              onClick={() => {
+                                const safeArr = (v: unknown): any[] => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v as string) ?? []; } catch { return []; } };
+                                setPdfPreview({
+                                  lpaId: existing.id,
+                                  lpaData: {
+                                    lpaType: existing.lpaType ?? "property_finance",
+                                    donorTitle: existing.donorTitle ?? "",
+                                    donorFirstNames: existing.donorFirstNames ?? "",
+                                    donorLastName: existing.donorLastName ?? "",
+                                    donorOtherNames: existing.donorOtherNames ?? "",
+                                    donorDob: existing.donorDob ?? "",
+                                    donorAddress: existing.donorAddress ?? "",
+                                    donorPostcode: existing.donorPostcode ?? "",
+                                    donorEmail: existing.donorEmail ?? "",
+                                    attorneys: safeArr(existing.attorneys),
+                                    replacementAttorneys: safeArr(existing.replacementAttorneys),
+                                    attorneyDecisionType: existing.attorneyDecisionType ?? "",
+                                    certProviderTitle: existing.certProviderTitle ?? "",
+                                    certProviderFirstNames: existing.certProviderFirstNames ?? "",
+                                    certProviderLastName: existing.certProviderLastName ?? "",
+                                    certProviderAddress: existing.certProviderAddress ?? "",
+                                    certProviderPostcode: existing.certProviderPostcode ?? "",
+                                    certProviderEmail: existing.certProviderEmail ?? "",
+                                    whenAttorneysCanAct: existing.whenAttorneysCanAct ?? "",
+                                    lifeSustainingTreatment: existing.lifeSustainingTreatment ?? "",
+                                    preferences: existing.preferences ?? "",
+                                    instructions: existing.instructions ?? "",
+                                    applicantType: existing.applicantType ?? "",
+                                    recipientType: existing.recipientType ?? "",
+                                    recipientTitle: existing.recipientTitle ?? "",
+                                    recipientFirstNames: existing.recipientFirstNames ?? "",
+                                    recipientLastName: existing.recipientLastName ?? "",
+                                    recipientCompany: existing.recipientCompany ?? "",
+                                    recipientAddressLine1: existing.recipientAddressLine1 ?? "",
+                                    recipientAddressLine2: existing.recipientAddressLine2 ?? "",
+                                    recipientAddressLine3: existing.recipientAddressLine3 ?? "",
+                                    recipientPostcode: existing.recipientPostcode ?? "",
+                                    deliveryPost: !!(existing.deliveryPost),
+                                    deliveryPhone: !!(existing.deliveryPhone),
+                                    deliveryEmail: !!(existing.deliveryEmail),
+                                    deliveryWelsh: !!(existing.deliveryWelsh),
+                                    feePaymentMethod: existing.feePaymentMethod ?? "",
+                                    feeContactPhone: existing.feeContactPhone ?? "",
+                                    reducedFee: !!(existing.reducedFee),
+                                    repeatApplication: !!(existing.repeatApplication),
+                                    caseNumber: existing.caseNumber ?? "",
+                                  },
+                                });
+                              }}
+                            >
+                              <Download className="w-3 h-3" /> PDF
+                            </Button>
                           )}
                           {/* Copy LP1F → LP1H (or LP1H → LP1F) for same client */}
                           {existing && (
@@ -1215,6 +1270,192 @@ export default function LpaManager() {
           </Card>
         )}
       </div>
+
+      {/* PDF Manual Field Editor Modal */}
+      {pdfPreview && (
+        <Dialog open={true} onOpenChange={() => setPdfPreview(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Review &amp; Edit LPA Fields Before Generating PDF</DialogTitle>
+              <p className="text-sm text-muted-foreground">Review the pre-filled data below. Edit any field, then click Generate PDF to download.</p>
+            </DialogHeader>
+            <ScrollArea className="flex-1 pr-2">
+              <div className="space-y-6 py-2">
+                {/* Section 1: Donor */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 1 — Donor</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label className="text-xs">Title</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.donorTitle ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorTitle: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">First Names</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.donorFirstNames ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorFirstNames: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Last Name</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.donorLastName ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorLastName: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Other Names</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.donorOtherNames ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorOtherNames: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Date of Birth (DD/MM/YYYY)</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.donorDob ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorDob: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Email</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.donorEmail ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorEmail: e.target.value } } : p)} /></div>
+                    <div className="col-span-2"><Label className="text-xs">Address (comma-separated lines)</Label><Textarea className="text-sm" rows={2} value={pdfPreview.lpaData.donorAddress ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorAddress: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Postcode</Label><Input className="h-8 text-sm w-40" value={pdfPreview.lpaData.donorPostcode ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, donorPostcode: e.target.value } } : p)} /></div>
+                  </div>
+                </div>
+                {/* Section 2: Attorneys */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 2 — Attorneys</h3>
+                  {(pdfPreview.lpaData.attorneys as any[]).map((a: any, i: number) => (
+                    <div key={i} className="border border-border/60 rounded-lg p-3 mb-3">
+                      <p className="text-xs font-medium mb-2 text-muted-foreground">Attorney {i + 1}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><Label className="text-xs">Title</Label><Input className="h-8 text-sm" value={a.title ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.attorneys]; arr[i] = { ...arr[i], title: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, attorneys: arr } } : p); }} /></div>
+                        <div><Label className="text-xs">First Names</Label><Input className="h-8 text-sm" value={a.firstNames ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.attorneys]; arr[i] = { ...arr[i], firstNames: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, attorneys: arr } } : p); }} /></div>
+                        <div><Label className="text-xs">Last Name</Label><Input className="h-8 text-sm" value={a.lastName ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.attorneys]; arr[i] = { ...arr[i], lastName: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, attorneys: arr } } : p); }} /></div>
+                        <div><Label className="text-xs">Date of Birth</Label><Input className="h-8 text-sm" value={a.dob ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.attorneys]; arr[i] = { ...arr[i], dob: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, attorneys: arr } } : p); }} /></div>
+                        <div className="col-span-2"><Label className="text-xs">Address (comma-separated lines)</Label><Textarea className="text-sm" rows={2} value={a.address ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.attorneys]; arr[i] = { ...arr[i], address: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, attorneys: arr } } : p); }} /></div>
+                        <div><Label className="text-xs">Postcode</Label><Input className="h-8 text-sm" value={a.postcode ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.attorneys]; arr[i] = { ...arr[i], postcode: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, attorneys: arr } } : p); }} /></div>
+                        <div><Label className="text-xs">Email</Label><Input className="h-8 text-sm" value={a.email ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.attorneys]; arr[i] = { ...arr[i], email: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, attorneys: arr } } : p); }} /></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Section 4: Replacement Attorneys */}
+                {(pdfPreview.lpaData.replacementAttorneys as any[]).length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 4 — Replacement Attorneys</h3>
+                    {(pdfPreview.lpaData.replacementAttorneys as any[]).map((r: any, i: number) => (
+                      <div key={i} className="border border-border/60 rounded-lg p-3 mb-3">
+                        <p className="text-xs font-medium mb-2 text-muted-foreground">Replacement {i + 1}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div><Label className="text-xs">Title</Label><Input className="h-8 text-sm" value={r.title ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.replacementAttorneys]; arr[i] = { ...arr[i], title: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, replacementAttorneys: arr } } : p); }} /></div>
+                          <div><Label className="text-xs">First Names</Label><Input className="h-8 text-sm" value={r.firstNames ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.replacementAttorneys]; arr[i] = { ...arr[i], firstNames: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, replacementAttorneys: arr } } : p); }} /></div>
+                          <div><Label className="text-xs">Last Name</Label><Input className="h-8 text-sm" value={r.lastName ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.replacementAttorneys]; arr[i] = { ...arr[i], lastName: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, replacementAttorneys: arr } } : p); }} /></div>
+                          <div><Label className="text-xs">Date of Birth</Label><Input className="h-8 text-sm" value={r.dob ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.replacementAttorneys]; arr[i] = { ...arr[i], dob: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, replacementAttorneys: arr } } : p); }} /></div>
+                          <div className="col-span-2"><Label className="text-xs">Address (comma-separated lines)</Label><Textarea className="text-sm" rows={2} value={r.address ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.replacementAttorneys]; arr[i] = { ...arr[i], address: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, replacementAttorneys: arr } } : p); }} /></div>
+                          <div><Label className="text-xs">Postcode</Label><Input className="h-8 text-sm" value={r.postcode ?? ""} onChange={e => { const arr = [...pdfPreview.lpaData.replacementAttorneys]; arr[i] = { ...arr[i], postcode: e.target.value }; setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, replacementAttorneys: arr } } : p); }} /></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Section 10: Certificate Provider */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 10 — Certificate Provider</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label className="text-xs">Title</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.certProviderTitle ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, certProviderTitle: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">First Names</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.certProviderFirstNames ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, certProviderFirstNames: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Last Name</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.certProviderLastName ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, certProviderLastName: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Email</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.certProviderEmail ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, certProviderEmail: e.target.value } } : p)} /></div>
+                    <div className="col-span-2"><Label className="text-xs">Address (comma-separated lines)</Label><Textarea className="text-sm" rows={2} value={pdfPreview.lpaData.certProviderAddress ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, certProviderAddress: e.target.value } } : p)} /></div>
+                    <div><Label className="text-xs">Postcode</Label><Input className="h-8 text-sm w-40" value={pdfPreview.lpaData.certProviderPostcode ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, certProviderPostcode: e.target.value } } : p)} /></div>
+                  </div>
+                </div>
+                {/* Section 12 */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 12 — Who is Applying</h3>
+                  <div className="flex gap-4">
+                    {[{val:"donor",label:"Donor"},{val:"attorneys",label:"Attorney(s)"}].map(opt => (
+                      <label key={opt.val} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="applicantType" value={opt.val} checked={pdfPreview.lpaData.applicantType === opt.val} onChange={() => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, applicantType: opt.val } } : p)} />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {/* Section 13 */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 13 — Who Receives the LPA</h3>
+                  <div className="flex gap-4 mb-3">
+                    {[{val:"donor",label:"The donor"},{val:"attorney",label:"An attorney"},{val:"other",label:"Someone else"}].map(opt => (
+                      <label key={opt.val} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="recipientType" value={opt.val} checked={pdfPreview.lpaData.recipientType === opt.val} onChange={() => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientType: opt.val } } : p)} />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                  {pdfPreview.lpaData.recipientType === "other" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label className="text-xs">Title</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientTitle ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientTitle: e.target.value } } : p)} /></div>
+                      <div><Label className="text-xs">First Names</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientFirstNames ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientFirstNames: e.target.value } } : p)} /></div>
+                      <div><Label className="text-xs">Last Name</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientLastName ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientLastName: e.target.value } } : p)} /></div>
+                      <div><Label className="text-xs">Company (optional)</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientCompany ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientCompany: e.target.value } } : p)} /></div>
+                      <div><Label className="text-xs">Address Line 1</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientAddressLine1 ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientAddressLine1: e.target.value } } : p)} /></div>
+                      <div><Label className="text-xs">Address Line 2</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientAddressLine2 ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientAddressLine2: e.target.value } } : p)} /></div>
+                      <div><Label className="text-xs">Address Line 3</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientAddressLine3 ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientAddressLine3: e.target.value } } : p)} /></div>
+                      <div><Label className="text-xs">Postcode</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.recipientPostcode ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, recipientPostcode: e.target.value } } : p)} /></div>
+                    </div>
+                  )}
+                  <div className="mt-3 space-y-1">
+                    <p className="text-xs font-medium mb-1">Preferred contact method:</p>
+                    {[{key:"deliveryPost",label:"Post"},{key:"deliveryPhone",label:"Phone"},{key:"deliveryEmail",label:"Email"},{key:"deliveryWelsh",label:"Welsh"}].map(opt => (
+                      <label key={opt.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" checked={!!pdfPreview.lpaData[opt.key]} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, [opt.key]: e.target.checked } } : p)} />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {/* Section 14 */}
+                <div>
+                  <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 14 — Application Fee</h3>
+                  <div className="flex gap-4 mb-3">
+                    {[{val:"card",label:"Card"},{val:"cheque",label:"Cheque"}].map(opt => (
+                      <label key={opt.val} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="feePaymentMethod" value={opt.val} checked={pdfPreview.lpaData.feePaymentMethod === opt.val} onChange={() => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, feePaymentMethod: opt.val } } : p)} />
+                        {opt.label}
+                      </label>
+                    ))}
+                  </div>
+                  {pdfPreview.lpaData.feePaymentMethod === "card" && (
+                    <div className="mb-3"><Label className="text-xs">Phone Number for Card Payment</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.feeContactPhone ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, feeContactPhone: e.target.value } } : p)} /></div>
+                  )}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={!!pdfPreview.lpaData.reducedFee} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, reducedFee: e.target.checked } } : p)} />
+                      Apply for reduced fee (income below £12,000/year)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={!!pdfPreview.lpaData.repeatApplication} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, repeatApplication: e.target.checked } } : p)} />
+                      Repeat application
+                    </label>
+                    {pdfPreview.lpaData.repeatApplication && (
+                      <div><Label className="text-xs">Case Number</Label><Input className="h-8 text-sm" value={pdfPreview.lpaData.caseNumber ?? ""} onChange={e => setPdfPreview(p => p ? { ...p, lpaData: { ...p.lpaData, caseNumber: e.target.value } } : p)} /></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+            <DialogFooter className="pt-4 border-t">
+              <Button variant="outline" onClick={() => setPdfPreview(null)}>Cancel</Button>
+              <Button
+                disabled={isGenerating}
+                onClick={async () => {
+                  setIsGenerating(true);
+                  try {
+                    const res = await fetch(`/api/lpa/${pdfPreview.lpaId}/pdf`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(pdfPreview.lpaData),
+                    });
+                    if (!res.ok) throw new Error(await res.text());
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    const lpaType = pdfPreview.lpaData.lpaType === "property_finance" ? "LP1F" : "LP1H";
+                    const donorName = [pdfPreview.lpaData.donorFirstNames, pdfPreview.lpaData.donorLastName].filter(Boolean).join("_") || String(pdfPreview.lpaId);
+                    a.download = `LPA_${lpaType}_${donorName}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setPdfPreview(null);
+                    toast.success("LPA PDF downloaded");
+                  } catch (err: any) {
+                    toast.error("Failed to generate PDF: " + err.message);
+                  } finally {
+                    setIsGenerating(false);
+                  }
+                }}
+              >
+                {isGenerating ? "Generating..." : "Generate & Download PDF"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

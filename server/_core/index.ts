@@ -168,14 +168,29 @@ async function startServer() {
         attorneys: safeArr(lpa.attorneys),
         replacementAttorneys: safeArr(lpa.replacementAttorneys),
         peopleToNotify: safeArr(lpa.peopleToNotify),
+        // Section 12: applicant type — DB stores as snake_case
+        applicantType: (lpa.applicant_type as string) ?? (lpa.applicantType as string) ?? "",
+        // Section 13: recipient — DB stores as snake_case
+        recipientType: (lpa.recipient_type as string) ?? (lpa.recipientType as string) ?? "",
+        recipientTitle: (lpa.recipient_title as string) ?? (lpa.recipientTitle as string) ?? "",
+        recipientFirstNames: (lpa.recipient_first_names as string) ?? (lpa.recipientFirstNames as string) ?? "",
+        recipientLastName: (lpa.recipient_last_name as string) ?? (lpa.recipientLastName as string) ?? "",
+        recipientCompany: (lpa.recipient_company as string) ?? (lpa.recipientCompany as string) ?? "",
+        recipientAddressLine1: (lpa.recipient_address_line1 as string) ?? (lpa.recipientAddressLine1 as string) ?? "",
+        recipientAddressLine2: (lpa.recipient_address_line2 as string) ?? (lpa.recipientAddressLine2 as string) ?? "",
+        recipientAddressLine3: (lpa.recipient_address_line3 as string) ?? (lpa.recipientAddressLine3 as string) ?? "",
+        recipientPostcode: (lpa.recipient_postcode as string) ?? (lpa.recipientPostcode as string) ?? "",
         // Section 13: delivery preferences stored as 0/1 ints — convert to boolean
-        deliveryPost: !!lpa.deliveryPost,
-        deliveryPhone: !!lpa.deliveryPhone,
-        deliveryEmail: !!lpa.deliveryEmail,
-        deliveryWelsh: !!lpa.deliveryWelsh,
-        // Section 14: fee options
-        reducedFee: !!lpa.reducedFee,
-        repeatApplication: !!lpa.repeatApplication,
+        deliveryPost: !!(lpa.delivery_post ?? lpa.deliveryPost),
+        deliveryPhone: !!(lpa.delivery_phone ?? lpa.deliveryPhone),
+        deliveryEmail: !!(lpa.delivery_email ?? lpa.deliveryEmail),
+        deliveryWelsh: !!(lpa.delivery_welsh ?? lpa.deliveryWelsh),
+        // Section 14: fee options — DB stores as snake_case
+        feePaymentMethod: (lpa.fee_payment_method as string) ?? (lpa.feePaymentMethod as string) ?? "",
+        feeContactPhone: (lpa.fee_contact_phone as string) ?? (lpa.feeContactPhone as string) ?? "",
+        reducedFee: !!(lpa.reduced_fee ?? lpa.reducedFee),
+        repeatApplication: !!(lpa.repeat_application ?? lpa.repeatApplication),
+        caseNumber: (lpa.case_number as string) ?? (lpa.caseNumber as string) ?? "",
       };
       const pdfBuffer = await fillLpaPdf(data as Parameters<typeof fillLpaPdf>[0]);
       const donorName = [lpa.donorFirstNames, lpa.donorLastName].filter(Boolean).join("_") || String(id);
@@ -186,6 +201,60 @@ async function startServer() {
       res.send(pdfBuffer);
     } catch (err) {
       console.error("[LPA PDF] Error:", err);
+      res.status(500).json({ error: "Failed to generate LPA PDF" });
+    }
+  });
+
+  // LPA PDF export with manual overrides (POST body merges over DB data)
+  app.post("/api/lpa/:id/pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const rows = await db.select().from(lpaRecords).where(eq(lpaRecords.id, id)).limit(1);
+      if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const lpa = rows[0] as Record<string, unknown>;
+      const overrides = (req.body ?? {}) as Record<string, unknown>;
+      const lpaType = (overrides.lpaType as string) ?? (lpa.lpaType as string) ?? "property_finance";
+      const safeArr = (v: unknown) => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v as string) ?? []; } catch { return []; } };
+      const data = {
+        ...lpa,
+        ...overrides,
+        lpaType,
+        attorneys: Array.isArray(overrides.attorneys) ? overrides.attorneys : safeArr(lpa.attorneys),
+        replacementAttorneys: Array.isArray(overrides.replacementAttorneys) ? overrides.replacementAttorneys : safeArr(lpa.replacementAttorneys),
+        peopleToNotify: Array.isArray(overrides.peopleToNotify) ? overrides.peopleToNotify : safeArr(lpa.peopleToNotify),
+        applicantType: (overrides.applicantType as string) ?? (lpa.applicant_type as string) ?? (lpa.applicantType as string) ?? "",
+        recipientType: (overrides.recipientType as string) ?? (lpa.recipient_type as string) ?? "",
+        recipientTitle: (overrides.recipientTitle as string) ?? (lpa.recipient_title as string) ?? "",
+        recipientFirstNames: (overrides.recipientFirstNames as string) ?? (lpa.recipient_first_names as string) ?? "",
+        recipientLastName: (overrides.recipientLastName as string) ?? (lpa.recipient_last_name as string) ?? "",
+        recipientCompany: (overrides.recipientCompany as string) ?? (lpa.recipient_company as string) ?? "",
+        recipientAddressLine1: (overrides.recipientAddressLine1 as string) ?? (lpa.recipient_address_line1 as string) ?? "",
+        recipientAddressLine2: (overrides.recipientAddressLine2 as string) ?? (lpa.recipient_address_line2 as string) ?? "",
+        recipientAddressLine3: (overrides.recipientAddressLine3 as string) ?? (lpa.recipient_address_line3 as string) ?? "",
+        recipientPostcode: (overrides.recipientPostcode as string) ?? (lpa.recipient_postcode as string) ?? "",
+        deliveryPost: overrides.deliveryPost !== undefined ? !!overrides.deliveryPost : !!(lpa.delivery_post ?? lpa.deliveryPost),
+        deliveryPhone: overrides.deliveryPhone !== undefined ? !!overrides.deliveryPhone : !!(lpa.delivery_phone ?? lpa.deliveryPhone),
+        deliveryEmail: overrides.deliveryEmail !== undefined ? !!overrides.deliveryEmail : !!(lpa.delivery_email ?? lpa.deliveryEmail),
+        deliveryWelsh: overrides.deliveryWelsh !== undefined ? !!overrides.deliveryWelsh : !!(lpa.delivery_welsh ?? lpa.deliveryWelsh),
+        feePaymentMethod: (overrides.feePaymentMethod as string) ?? (lpa.fee_payment_method as string) ?? "",
+        feeContactPhone: (overrides.feeContactPhone as string) ?? (lpa.fee_contact_phone as string) ?? "",
+        reducedFee: overrides.reducedFee !== undefined ? !!overrides.reducedFee : !!(lpa.reduced_fee ?? lpa.reducedFee),
+        repeatApplication: overrides.repeatApplication !== undefined ? !!overrides.repeatApplication : !!(lpa.repeat_application ?? lpa.repeatApplication),
+        caseNumber: (overrides.caseNumber as string) ?? (lpa.case_number as string) ?? "",
+      };
+      const pdfBuffer = await fillLpaPdf(data as Parameters<typeof fillLpaPdf>[0]);
+      const d = data as Record<string, unknown>;
+      const donorName = [d.donorFirstNames, d.donorLastName].filter(Boolean).join("_") || String(id);
+      const typeLabel = lpaType === "property_finance" ? "LP1F" : "LP1H";
+      const filename = `LPA_${typeLabel}_${donorName}.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (err) {
+      console.error("[LPA PDF POST] Error:", err);
       res.status(500).json({ error: "Failed to generate LPA PDF" });
     }
   });
