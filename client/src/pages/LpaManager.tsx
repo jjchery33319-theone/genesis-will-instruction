@@ -1274,13 +1274,13 @@ export default function LpaManager() {
       {/* PDF Manual Field Editor Modal */}
       {pdfPreview && (
         <Dialog open={true} onOpenChange={() => setPdfPreview(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
-            <DialogHeader>
+          <DialogContent className="max-w-3xl w-[95vw] h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
+            <DialogHeader className="px-6 pt-6 pb-3 border-b shrink-0">
               <DialogTitle>Review &amp; Edit LPA Fields Before Generating PDF</DialogTitle>
               <p className="text-sm text-muted-foreground">Review the pre-filled data below. Edit any field, then click Generate PDF to download.</p>
             </DialogHeader>
-            <ScrollArea className="flex-1 pr-2">
-              <div className="space-y-6 py-2">
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-6 px-6 py-4">
                 {/* Section 1: Donor */}
                 <div>
                   <h3 className="font-semibold text-sm mb-3 text-primary border-b pb-1">Section 1 — Donor</h3>
@@ -1419,7 +1419,7 @@ export default function LpaManager() {
                 </div>
               </div>
             </ScrollArea>
-            <DialogFooter className="pt-4 border-t">
+            <DialogFooter className="px-6 py-4 border-t shrink-0">
               <Button variant="outline" onClick={() => setPdfPreview(null)}>Cancel</Button>
               <Button
                 disabled={isGenerating}
