@@ -21,6 +21,9 @@ import { generateWillHtml as generateWillV2Html } from "../willV2Generator";
 import { generateCommentaryHtml } from "../willV2Commentary";
 import { generateSigningGuideHtml } from "../willV2SigningGuide";
 import { getMatterById } from "../mattersDb";
+import { htmlToPdf } from "../htmlToPdf";
+import { createRequire } from "module";
+const _require = createRequire(import.meta.url);
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -388,9 +391,10 @@ async function startServer() {
       const html = savedHtml || generateWillV2Html(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.html"`);
-      res.send(html);
+      const pdfBuffer = await htmlToPdf(html);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.pdf"`);
+      res.send(pdfBuffer);
     } catch (err) {
       console.error("[Will V2 PDF] Error:", err);
       res.status(500).json({ error: "Failed to generate Will PDF" });
@@ -446,7 +450,7 @@ async function startServer() {
     }
   });
 
-  // Commentary — printable PDF page (open in browser → print/save as PDF)
+  // Commentary — real PDF download
   app.get("/api/matters/:id/commentary-pdf", async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
@@ -457,11 +461,10 @@ async function startServer() {
       const html = generateCommentaryHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      // Wrap in a print-ready page that auto-triggers print dialog
-      const printPage = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeName} — Will Commentary</title><style>@media print{body{margin:0}}.no-print{display:none}</style><script>window.addEventListener('load',()=>{window.print();});<\/script></head><body>${html}</body></html>`;
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillCommentary.html"`);
-      res.send(printPage);
+      const pdfBuffer = await htmlToPdf(html);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillCommentary.pdf"`);
+      res.send(pdfBuffer);
     } catch (err) {
       console.error("[Commentary PDF] Error:", err);
       res.status(500).json({ error: "Failed to generate commentary PDF" });
@@ -479,8 +482,8 @@ async function startServer() {
       const html = generateCommentaryHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const HTMLtoDOCX = require("html-to-docx");
+      // html-to-docx is CJS — loaded via createRequire at module top
+      const HTMLtoDOCX = _require("html-to-docx");
       const docxBuffer = await HTMLtoDOCX(html, null, {
         title: `${safeName} — Will Commentary`,
         font: "Times New Roman",
@@ -515,7 +518,7 @@ async function startServer() {
     }
   });
 
-  // Signing Guide — printable PDF page
+  // Signing Guide — real PDF download
   app.get("/api/matters/:id/signing-guide-pdf", async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
@@ -526,10 +529,10 @@ async function startServer() {
       const html = generateSigningGuideHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "SigningGuide").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      const printPage = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeName} — Will Signing Guide</title><style>@media print{body{margin:0}}</style><script>window.addEventListener('load',()=>{window.print();});<\/script></head><body>${html}</body></html>`;
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillSigningGuide.html"`);
-      res.send(printPage);
+      const pdfBuffer = await htmlToPdf(html);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillSigningGuide.pdf"`);
+      res.send(pdfBuffer);
     } catch (err) {
       console.error("[Signing Guide PDF] Error:", err);
       res.status(500).json({ error: "Failed to generate signing guide PDF" });
