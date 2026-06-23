@@ -438,11 +438,61 @@ async function startServer() {
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillCommentary.html"`);
+      res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillCommentary.html"`);
       res.send(html);
     } catch (err) {
       console.error("[Commentary] Error:", err);
       res.status(500).json({ error: "Failed to generate commentary" });
+    }
+  });
+
+  // Commentary — printable PDF page (open in browser → print/save as PDF)
+  app.get("/api/matters/:id/commentary-pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      const html = generateCommentaryHtml(matter, testatorRole);
+      const client = matter.clients.find(c => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      // Wrap in a print-ready page that auto-triggers print dialog
+      const printPage = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeName} — Will Commentary</title><style>@media print{body{margin:0}}.no-print{display:none}</style><script>window.addEventListener('load',()=>{window.print();});<\/script></head><body>${html}</body></html>`;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillCommentary.html"`);
+      res.send(printPage);
+    } catch (err) {
+      console.error("[Commentary PDF] Error:", err);
+      res.status(500).json({ error: "Failed to generate commentary PDF" });
+    }
+  });
+
+  // Commentary — Word (.docx) download
+  app.get("/api/matters/:id/commentary-docx", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      const html = generateCommentaryHtml(matter, testatorRole);
+      const client = matter.clients.find(c => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const HTMLtoDOCX = require("html-to-docx");
+      const docxBuffer = await HTMLtoDOCX(html, null, {
+        title: `${safeName} — Will Commentary`,
+        font: "Times New Roman",
+        fontSize: 24,
+        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+      });
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillCommentary.docx"`);
+      res.send(Buffer.from(docxBuffer));
+    } catch (err) {
+      console.error("[Commentary DOCX] Error:", err);
+      res.status(500).json({ error: "Failed to generate commentary Word document" });
     }
   });
 
@@ -457,11 +507,32 @@ async function startServer() {
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "SigningGuide").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillSigningGuide.html"`);
+      res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillSigningGuide.html"`);
       res.send(html);
     } catch (err) {
       console.error("[Signing Guide] Error:", err);
       res.status(500).json({ error: "Failed to generate signing guide" });
+    }
+  });
+
+  // Signing Guide — printable PDF page
+  app.get("/api/matters/:id/signing-guide-pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      const html = generateSigningGuideHtml(matter, testatorRole);
+      const client = matter.clients.find(c => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "SigningGuide").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      const printPage = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeName} — Will Signing Guide</title><style>@media print{body{margin:0}}</style><script>window.addEventListener('load',()=>{window.print();});<\/script></head><body>${html}</body></html>`;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillSigningGuide.html"`);
+      res.send(printPage);
+    } catch (err) {
+      console.error("[Signing Guide PDF] Error:", err);
+      res.status(500).json({ error: "Failed to generate signing guide PDF" });
     }
   });
 

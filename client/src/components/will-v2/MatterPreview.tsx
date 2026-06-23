@@ -19,8 +19,12 @@ interface DocTab {
   label: string;
   icon: React.ReactNode;
   endpoint: (matterId: number, testator: string) => string;
-  downloadEndpoint: (matterId: number, testator: string) => string;
-  downloadLabel: string;
+  /** Primary download — opens in new tab (print-to-PDF for PDF types, direct download for DOCX) */
+  downloadPdfEndpoint: (matterId: number, testator: string) => string;
+  downloadPdfLabel: string;
+  /** Secondary download — Word .docx (only for Will and Commentary) */
+  downloadDocxEndpoint?: (matterId: number, testator: string) => string;
+  downloadDocxLabel?: string;
 }
 
 const DOC_TABS: DocTab[] = [
@@ -29,24 +33,28 @@ const DOC_TABS: DocTab[] = [
     label: "Will",
     icon: <FileText className="h-3.5 w-3.5" />,
     endpoint: (id, t) => `/api/matters/${id}/will?testator=${t}`,
-    downloadEndpoint: (id, t) => `/api/matters/${id}/will-pdf?testator=${t}`,
-    downloadLabel: "Download Will",
+    downloadPdfEndpoint: (id, t) => `/api/matters/${id}/will-pdf?testator=${t}`,
+    downloadPdfLabel: "Download Will (PDF)",
+    downloadDocxEndpoint: undefined, // Will DOCX not yet wired for V2 matters
+    downloadDocxLabel: undefined,
   },
   {
     id: "commentary",
     label: "Commentary",
     icon: <MessageSquare className="h-3.5 w-3.5" />,
     endpoint: (id, t) => `/api/matters/${id}/commentary?testator=${t}`,
-    downloadEndpoint: (id, t) => `/api/matters/${id}/commentary?testator=${t}`,
-    downloadLabel: "Download Commentary",
+    downloadPdfEndpoint: (id, t) => `/api/matters/${id}/commentary-pdf?testator=${t}`,
+    downloadPdfLabel: "Download Commentary (PDF)",
+    downloadDocxEndpoint: (id, t) => `/api/matters/${id}/commentary-docx?testator=${t}`,
+    downloadDocxLabel: "Download Commentary (Word)",
   },
   {
     id: "signing-guide",
     label: "Signing Guide",
     icon: <ClipboardList className="h-3.5 w-3.5" />,
     endpoint: (id, t) => `/api/matters/${id}/signing-guide?testator=${t}`,
-    downloadEndpoint: (id, t) => `/api/matters/${id}/signing-guide?testator=${t}`,
-    downloadLabel: "Download Signing Guide",
+    downloadPdfEndpoint: (id, t) => `/api/matters/${id}/signing-guide-pdf?testator=${t}`,
+    downloadPdfLabel: "Download Signing Guide (PDF)",
   },
 ];
 
@@ -71,7 +79,8 @@ function DocViewer({
   const [showResetDialog, setShowResetDialog] = useState(false);
 
   const url = doc.endpoint(matterId, testatorRole);
-  const downloadUrl = doc.downloadEndpoint(matterId, testatorRole);
+  const downloadPdfUrl = doc.downloadPdfEndpoint(matterId, testatorRole);
+  const downloadDocxUrl = doc.downloadDocxEndpoint ? doc.downloadDocxEndpoint(matterId, testatorRole) : null;
 
   // Check if a saved version exists on mount
   useEffect(() => {
@@ -135,9 +144,17 @@ function DocViewer({
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadPdf = () => {
     const a = document.createElement("a");
-    a.href = downloadUrl;
+    a.href = downloadPdfUrl;
+    a.target = "_blank";
+    a.click();
+  };
+
+  const handleDownloadDocx = () => {
+    if (!downloadDocxUrl) return;
+    const a = document.createElement("a");
+    a.href = downloadDocxUrl;
     a.target = "_blank";
     a.click();
   };
@@ -174,10 +191,16 @@ function DocViewer({
               Reset to Original
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownload}>
+          <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadPdf}>
             <Download className="h-3 w-3" />
-            {isEdited && doc.id === "will" ? "Download Edited" : doc.downloadLabel}
+            {isEdited && doc.id === "will" ? "Download Edited (PDF)" : doc.downloadPdfLabel}
           </Button>
+          {downloadDocxUrl && (
+            <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadDocx}>
+              <Download className="h-3 w-3" />
+              {doc.downloadDocxLabel}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -268,10 +291,10 @@ export function MatterPreview({ matter }: Props) {
             size="sm"
             className="h-7 px-2.5 text-xs gap-1"
             onClick={() => {
-              // Download all three documents
+              // Download all three documents (PDF versions)
               DOC_TABS.forEach(doc => {
                 const a = document.createElement("a");
-                a.href = doc.downloadEndpoint(matter.id, testatorRole);
+                a.href = doc.downloadPdfEndpoint(matter.id, testatorRole);
                 a.target = "_blank";
                 a.click();
               });
