@@ -14,13 +14,18 @@ import https from "https";
 import http from "http";
 
 // Logo URL (served via Manus static storage proxy)
-const LOGO_URL = "/manus-storage/GenesisEstatePlanningLogoUSETHISONE_52afc400.png";
+const LOGO_URL = "/manus-storage/GenesisEstatePlanningLogoUSETHISONE_edc6d153.png";
 
 // Fetch a URL as a Buffer (works for both http and https)
 function fetchBuffer(url: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith("https") ? https : http;
     mod.get(url, (res) => {
+      // Follow redirects (manus-storage returns 307)
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        fetchBuffer(res.headers.location).then(resolve).catch(reject);
+        return;
+      }
       const chunks: Buffer[] = [];
       res.on("data", (c: Buffer) => chunks.push(c));
       res.on("end", () => resolve(Buffer.concat(chunks)));

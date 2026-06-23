@@ -97,20 +97,26 @@ export async function fillLpaPdf(data: LpaData): Promise<Buffer> {
   const isFinance = data.lpaType === "property_finance";
   const templateName = isFinance ? "lpa-lp1f.pdf" : "lpa-lp1h.pdf";
 
-  // Load template — try local file first, then storage URL
+  // Load template — try local file first (dev), then storage URL (production)
   let pdfBytes: Uint8Array;
-  const localPath = path.join(__dirname, templateName);
+  // Use import.meta.dirname (ESM-safe) or fall back to process.cwd()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const metaAny = import.meta as any;
+  const serverDir = typeof metaAny.dirname === "string"
+    ? metaAny.dirname as string
+    : path.join(process.cwd(), "server");
+  const localPath = path.join(serverDir, templateName);
   if (fs.existsSync(localPath)) {
     pdfBytes = fs.readFileSync(localPath);
   } else {
-    // Fallback: fetch from manus-storage (production)
+    // Fallback: fetch from manus-storage (production) — must follow redirects
     const storageUrl = isFinance
-      ? "/manus-storage/lpa-lp1f_1e980d0d.pdf"
-      : "/manus-storage/lpa-lp1h_72125735.pdf";
-    // In production the app serves on the same origin, so use the internal URL
-    const baseUrl = process.env.INTERNAL_BASE_URL ?? "http://localhost:3000";
-    const res = await fetch(`${baseUrl}${storageUrl}`);
-    if (!res.ok) throw new Error(`Failed to fetch LPA template: ${res.status}`);
+      ? "/manus-storage/lpa-lp1f_3d2a3de9.pdf"
+      : "/manus-storage/lpa-lp1h_b2d46e3d.pdf";
+    const baseUrl = process.env.INTERNAL_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+    // node-fetch follows redirects by default (redirect: "follow")
+    const res = await fetch(`${baseUrl}${storageUrl}`, { redirect: "follow" });
+    if (!res.ok) throw new Error(`Failed to fetch LPA template: ${res.status} ${storageUrl}`);
     pdfBytes = new Uint8Array(await res.arrayBuffer());
   }
 
