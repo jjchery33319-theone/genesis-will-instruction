@@ -426,8 +426,65 @@ export const matterWishes = mysqlTable("matter_wishes", {
   funeralWishes: text("funeral_wishes"),
   extraNotes: text("extra_notes"),
   residueToSpouseFirst: int("residue_to_spouse_first").default(1),
+  disasterClauseNotes: text("disaster_clause_notes"),
+  generalNotes: text("general_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 export type MatterWishes = typeof matterWishes.$inferSelect;
 export type InsertMatterWishes = typeof matterWishes.$inferInsert;
+
+// ── Matter Gifts ──────────────────────────────────────────────────────────────
+export const matterGifts = mysqlTable("matter_gifts", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: mysqlEnum("client_role", ["testator1", "testator2", "shared"]).default("shared").notNull(),
+  sortOrder: int("sort_order").default(1).notNull(),
+  recipientName: varchar("recipient_name", { length: 255 }),
+  recipientAddress: text("recipient_address"),
+  giftDescription: text("gift_description"),
+  giftType: mysqlEnum("gift_type", ["monetary", "asset", "residue"]).default("asset").notNull(),
+});
+export type MatterGift = typeof matterGifts.$inferSelect;
+export type InsertMatterGift = typeof matterGifts.$inferInsert;
+
+// ── Matter Pets ───────────────────────────────────────────────────────────────
+export const matterPets = mysqlTable("matter_pets", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  sortOrder: int("sort_order").default(1).notNull(),
+  petName: varchar("pet_name", { length: 255 }),
+  petType: varchar("pet_type", { length: 100 }),
+  carerName: varchar("carer_name", { length: 255 }),
+  carerAddress: text("carer_address"),
+  careNotes: text("care_notes"),
+});
+export type MatterPet = typeof matterPets.$inferSelect;
+export type InsertMatterPet = typeof matterPets.$inferInsert;
+
+// ── Matter Property ───────────────────────────────────────────────────────────
+export const matterProperty = mysqlTable("matter_property", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  sortOrder: int("sort_order").default(1).notNull(),
+  address: text("address"),
+  ownershipType: mysqlEnum("ownership_type", ["sole", "joint_tenants", "tenants_in_common"]).default("sole").notNull(),
+  mortgageOutstanding: int("mortgage_outstanding").default(0),
+  mortgageLender: varchar("mortgage_lender", { length: 255 }),
+  propertyNotes: text("property_notes"),
+});
+export type MatterPropertyRecord = typeof matterProperty.$inferSelect;
+export type InsertMatterPropertyRecord = typeof matterProperty.$inferInsert;
+
+// ── Matter Business ───────────────────────────────────────────────────────────
+export const matterBusiness = mysqlTable("matter_business", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  sortOrder: int("sort_order").default(1).notNull(),
+  businessName: varchar("business_name", { length: 255 }),
+  businessType: varchar("business_type", { length: 100 }),
+  sharePercentage: varchar("share_percentage", { length: 50 }),
+  businessNotes: text("business_notes"),
+});
+export type MatterBusinessRecord = typeof matterBusiness.$inferSelect;
+export type InsertMatterBusinessRecord = typeof matterBusiness.$inferInsert;

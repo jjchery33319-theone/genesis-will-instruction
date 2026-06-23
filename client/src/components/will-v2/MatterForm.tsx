@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Trash2, User, Users, Baby, Heart, Scroll, Settings, UserCog } from "lucide-react";
+import {
+  Plus, Trash2, User, Baby, Heart, Scroll, UserCog,
+  Gift, PawPrint, Home, Briefcase
+} from "lucide-react";
 
 type FullMatter = any;
 
@@ -81,9 +83,6 @@ export function MatterForm({ matter, onSaved }: Props) {
   });
 
   // ── Executor state ────────────────────────────────────────────────────────
-  const execRole = isMirror ? "testator1" : "shared";
-  const exec2Role = "testator2";
-
   const toExecRows = (role: string) =>
     (matter.executors || []).filter((e: any) => e.clientRole === role).map((e: any) => ({
       fullName: e.fullName || "",
@@ -109,7 +108,9 @@ export function MatterForm({ matter, onSaved }: Props) {
 
   // ── Beneficiary state ─────────────────────────────────────────────────────
   const toBenRows = (role: string) =>
-    (matter.beneficiaries || []).filter((b: any) => b.clientRole === role).map((b: any): { fullName: string; address: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number } => ({
+    (matter.beneficiaries || []).filter((b: any) => b.clientRole === role).map((b: any): {
+      fullName: string; address: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number;
+    } => ({
       fullName: b.fullName || "",
       address: b.address || "",
       relationship: b.relationship || "",
@@ -132,11 +133,65 @@ export function MatterForm({ matter, onSaved }: Props) {
       funeralWishes: w.funeralWishes || "",
       extraNotes: w.extraNotes || "",
       residueToSpouseFirst: w.residueToSpouseFirst ?? 1,
+      disasterClauseNotes: w.disasterClauseNotes || "",
+      generalNotes: w.generalNotes || "",
     };
   };
 
   const [wishes1, setWishes1] = useState(getWishes(isMirror ? "testator1" : "shared"));
   const [wishes2, setWishes2] = useState(getWishes("testator2"));
+
+  // ── Gifts state ───────────────────────────────────────────────────────────
+  const toGiftRows = (role: string) =>
+    (matter.gifts || []).filter((g: any) => g.clientRole === role || g.clientRole === "shared").map((g: any) => ({
+      recipientName: g.recipientName || "",
+      recipientAddress: g.recipientAddress || "",
+      giftDescription: g.giftDescription || "",
+      giftType: g.giftType || "asset",
+    }));
+
+  const [gifts1, setGifts1] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string }>>(toGiftRows(isMirror ? "testator1" : "shared"));
+  const [gifts2, setGifts2] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string }>>(toGiftRows("testator2"));
+
+  // ── Pets state ────────────────────────────────────────────────────────────
+  const [pets, setPets] = useState<Array<{
+    petName: string; petType: string; carerName: string; carerAddress: string; careNotes: string;
+  }>>(
+    (matter.pets || []).map((p: any) => ({
+      petName: p.petName || "",
+      petType: p.petType || "",
+      carerName: p.carerName || "",
+      carerAddress: p.carerAddress || "",
+      careNotes: p.careNotes || "",
+    }))
+  );
+
+  // ── Property state ────────────────────────────────────────────────────────
+  const [properties, setProperties] = useState<Array<{
+    address: string; ownershipType: string; mortgageOutstanding: number; mortgageLender: string; propertyNotes: string;
+  }>>(
+    (matter.properties || []).map((p: any) => ({
+      address: p.address || "",
+      ownershipType: p.ownershipType || "sole",
+      mortgageOutstanding: p.mortgageOutstanding ?? 0,
+      mortgageLender: p.mortgageLender || "",
+      propertyNotes: p.propertyNotes || "",
+    }))
+  );
+
+  // ── Business state ────────────────────────────────────────────────────────
+  const [businesses, setBusinesses] = useState<Array<{
+    businessName: string; businessType: string; sharePercentage: string; businessNotes: string;
+  }>>(
+    (matter.businesses || []).length > 0
+      ? (matter.businesses || []).map((b: any) => ({
+          businessName: b.businessName || "",
+          businessType: b.businessType || "",
+          sharePercentage: b.sharePercentage || "",
+          businessNotes: b.businessNotes || "",
+        }))
+      : [{ businessName: "Genesis Wills and Estate Planning Ltd", businessType: "Limited Company", sharePercentage: "", businessNotes: "" }]
+  );
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const saveClient = trpc.matters.saveClient.useMutation();
@@ -144,6 +199,10 @@ export function MatterForm({ matter, onSaved }: Props) {
   const saveGuardians = trpc.matters.saveGuardians.useMutation();
   const saveBeneficiaries = trpc.matters.saveBeneficiaries.useMutation();
   const saveWishes = trpc.matters.saveWishes.useMutation();
+  const saveGifts = trpc.matters.saveGifts.useMutation();
+  const savePets = trpc.matters.savePets.useMutation();
+  const saveProperty = trpc.matters.saveProperty.useMutation();
+  const saveBusiness = trpc.matters.saveBusiness.useMutation();
 
   const handleSaveAll = async () => {
     try {
@@ -177,7 +236,7 @@ export function MatterForm({ matter, onSaved }: Props) {
       ops.push(saveBeneficiaries.mutateAsync({
         matterId: matter.id,
         clientRole: isMirror ? "testator1" : "shared",
-        beneficiaries: bens1.map((b: { fullName?: string; address?: string; relationship?: string; shareFraction?: string; beneficiaryType: string; includeIssue: number }) => ({
+        beneficiaries: bens1.map((b: any) => ({
           ...b,
           beneficiaryType: b.beneficiaryType as "primary" | "fallback",
           includeIssue: b.includeIssue as 0 | 1,
@@ -187,7 +246,7 @@ export function MatterForm({ matter, onSaved }: Props) {
         ops.push(saveBeneficiaries.mutateAsync({
           matterId: matter.id,
           clientRole: "testator2",
-          beneficiaries: bens2.map((b: { fullName?: string; address?: string; relationship?: string; shareFraction?: string; beneficiaryType: string; includeIssue: number }) => ({
+          beneficiaries: bens2.map((b: any) => ({
             ...b,
             beneficiaryType: b.beneficiaryType as "primary" | "fallback",
             includeIssue: b.includeIssue as 0 | 1,
@@ -209,6 +268,36 @@ export function MatterForm({ matter, onSaved }: Props) {
         }));
       }
 
+      // Gifts
+      ops.push(saveGifts.mutateAsync({
+        matterId: matter.id,
+        clientRole: isMirror ? "testator1" : "shared",
+        gifts: gifts1.map(g => ({ ...g, giftType: g.giftType as "monetary" | "asset" | "residue" })),
+      }));
+      if (isMirror) {
+        ops.push(saveGifts.mutateAsync({
+          matterId: matter.id,
+          clientRole: "testator2",
+          gifts: gifts2.map(g => ({ ...g, giftType: g.giftType as "monetary" | "asset" | "residue" })),
+        }));
+      }
+
+      // Pets
+      ops.push(savePets.mutateAsync({ matterId: matter.id, pets }));
+
+      // Property
+      ops.push(saveProperty.mutateAsync({
+        matterId: matter.id,
+        properties: properties.map(p => ({
+          ...p,
+          ownershipType: p.ownershipType as "sole" | "joint_tenants" | "tenants_in_common",
+          mortgageOutstanding: p.mortgageOutstanding as 0 | 1,
+        })),
+      }));
+
+      // Business
+      ops.push(saveBusiness.mutateAsync({ matterId: matter.id, businesses }));
+
       await Promise.all(ops);
       utils.matters.list.invalidate();
       utils.matters.getById.invalidate({ id: matter.id });
@@ -220,7 +309,8 @@ export function MatterForm({ matter, onSaved }: Props) {
   };
 
   const isSaving = saveClient.isPending || saveExecutors.isPending || saveGuardians.isPending ||
-    saveBeneficiaries.isPending || saveWishes.isPending;
+    saveBeneficiaries.isPending || saveWishes.isPending || saveGifts.isPending ||
+    savePets.isPending || saveProperty.isPending || saveBusiness.isPending;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -236,6 +326,18 @@ export function MatterForm({ matter, onSaved }: Props) {
             </TabsTrigger>
             <TabsTrigger value="guardians" className="text-xs gap-1.5">
               <Baby className="h-3.5 w-3.5" /> Guardians
+            </TabsTrigger>
+            <TabsTrigger value="property" className="text-xs gap-1.5">
+              <Home className="h-3.5 w-3.5" /> Property
+            </TabsTrigger>
+            <TabsTrigger value="business" className="text-xs gap-1.5">
+              <Briefcase className="h-3.5 w-3.5" /> Business
+            </TabsTrigger>
+            <TabsTrigger value="gifts" className="text-xs gap-1.5">
+              <Gift className="h-3.5 w-3.5" /> Gifts
+            </TabsTrigger>
+            <TabsTrigger value="pets" className="text-xs gap-1.5">
+              <PawPrint className="h-3.5 w-3.5" /> Pets
             </TabsTrigger>
             <TabsTrigger value="beneficiaries" className="text-xs gap-1.5">
               <Heart className="h-3.5 w-3.5" /> Beneficiaries
@@ -281,6 +383,40 @@ export function MatterForm({ matter, onSaved }: Props) {
               Guardians are shared across both Wills for minor children.
             </div>
             <GuardianSection rows={guardians} onChange={setGuardians} />
+          </TabsContent>
+
+          {/* ── PROPERTY ─────────────────────────────────────────────────── */}
+          <TabsContent value="property" className="space-y-4">
+            <PropertySection rows={properties} onChange={setProperties} />
+          </TabsContent>
+
+          {/* ── BUSINESS ─────────────────────────────────────────────────── */}
+          <TabsContent value="business" className="space-y-4">
+            <BusinessSection rows={businesses} onChange={setBusinesses} />
+          </TabsContent>
+
+          {/* ── GIFTS ────────────────────────────────────────────────────── */}
+          <TabsContent value="gifts" className="space-y-4">
+            <GiftsSection
+              label={isMirror ? `Specific Gifts from ${t1.fullName || "Testator 1"}` : "Specific Gifts"}
+              rows={gifts1}
+              onChange={setGifts1}
+            />
+            {isMirror && (
+              <>
+                <Separator />
+                <GiftsSection
+                  label={`Specific Gifts from ${t2.fullName || "Testator 2"}`}
+                  rows={gifts2}
+                  onChange={setGifts2}
+                />
+              </>
+            )}
+          </TabsContent>
+
+          {/* ── PETS ─────────────────────────────────────────────────────── */}
+          <TabsContent value="pets" className="space-y-4">
+            <PetsSection rows={pets} onChange={setPets} />
           </TabsContent>
 
           {/* ── BENEFICIARIES ─────────────────────────────────────────────── */}
@@ -383,7 +519,6 @@ function ExecutorSection({ label, rows, onChange }: { label: string; rows: any[]
   return (
     <div className="space-y-3">
       <h3 className="font-medium text-sm">{label}</h3>
-
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Primary Executors</span>
@@ -393,18 +528,10 @@ function ExecutorSection({ label, rows, onChange }: { label: string; rows: any[]
         </div>
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary executors added.</p>}
         {rows.map((r, i) => r.executorType === "primary" && (
-          <PersonRow
-            key={i}
-            label={`Primary Executor ${primary.indexOf(r) + 1}`}
-            name={r.fullName}
-            address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)}
-            onChangeAddress={v => updateRow(i, "address", v)}
-            onRemove={() => removeRow(i)}
-          />
+          <PersonRow key={i} label={`Primary Executor ${primary.indexOf(r) + 1}`} name={r.fullName} address={r.address}
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
         ))}
       </div>
-
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Substitute Executors</span>
@@ -414,15 +541,8 @@ function ExecutorSection({ label, rows, onChange }: { label: string; rows: any[]
         </div>
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute executors added.</p>}
         {rows.map((r, i) => r.executorType === "substitute" && (
-          <PersonRow
-            key={i}
-            label={`Substitute Executor ${substitute.indexOf(r) + 1}`}
-            name={r.fullName}
-            address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)}
-            onChangeAddress={v => updateRow(i, "address", v)}
-            onRemove={() => removeRow(i)}
-          />
+          <PersonRow key={i} label={`Substitute Executor ${substitute.indexOf(r) + 1}`} name={r.fullName} address={r.address}
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
         ))}
       </div>
     </div>
@@ -448,18 +568,10 @@ function GuardianSection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
         </div>
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "primary" && (
-          <PersonRow
-            key={i}
-            label={`Primary Guardian ${primary.indexOf(r) + 1}`}
-            name={r.fullName}
-            address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)}
-            onChangeAddress={v => updateRow(i, "address", v)}
-            onRemove={() => removeRow(i)}
-          />
+          <PersonRow key={i} label={`Primary Guardian ${primary.indexOf(r) + 1}`} name={r.fullName} address={r.address}
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
         ))}
       </div>
-
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Substitute Guardians</span>
@@ -469,17 +581,240 @@ function GuardianSection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
         </div>
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "substitute" && (
-          <PersonRow
-            key={i}
-            label={`Substitute Guardian ${substitute.indexOf(r) + 1}`}
-            name={r.fullName}
-            address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)}
-            onChangeAddress={v => updateRow(i, "address", v)}
-            onRemove={() => removeRow(i)}
-          />
+          <PersonRow key={i} label={`Substitute Guardian ${substitute.indexOf(r) + 1}`} name={r.fullName} address={r.address}
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function PropertySection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => void }) {
+  const addRow = () => onChange([...rows, { address: "", ownershipType: "sole", mortgageOutstanding: 0, mortgageLender: "", propertyNotes: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium text-sm">Property</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Record property interests — this informs the property clause in the Will.</p>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={addRow}>
+          <Plus className="h-3 w-3" /> Add Property
+        </Button>
+      </div>
+      {rows.length === 0 && <p className="text-xs text-muted-foreground italic">No properties added — no property clause will appear in the Will.</p>}
+      {rows.map((r, i) => (
+        <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Property {i + 1}</span>
+            <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Full Address</Label>
+            <Textarea value={r.address} onChange={e => updateRow(i, "address", e.target.value)} placeholder="Full property address" rows={2} className="text-sm resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Ownership Type</Label>
+              <Select value={r.ownershipType} onValueChange={v => updateRow(i, "ownershipType", v)}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sole">Sole Ownership</SelectItem>
+                  <SelectItem value="joint_tenants">Joint Tenants</SelectItem>
+                  <SelectItem value="tenants_in_common">Tenants in Common</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end gap-2 pb-0.5">
+              <Switch
+                checked={!!r.mortgageOutstanding}
+                onCheckedChange={v => updateRow(i, "mortgageOutstanding", v ? 1 : 0)}
+                id={`mortgage-${i}`}
+              />
+              <Label htmlFor={`mortgage-${i}`} className="text-xs cursor-pointer">Mortgage outstanding</Label>
+            </div>
+          </div>
+          {!!r.mortgageOutstanding && (
+            <div className="space-y-1">
+              <Label className="text-xs">Mortgage Lender</Label>
+              <Input value={r.mortgageLender} onChange={e => updateRow(i, "mortgageLender", e.target.value)} placeholder="e.g. Nationwide, Halifax" className="h-8 text-sm" />
+            </div>
+          )}
+          <div className="space-y-1">
+            <Label className="text-xs">Notes</Label>
+            <Textarea value={r.propertyNotes} onChange={e => updateRow(i, "propertyNotes", e.target.value)} placeholder="Any additional notes about this property..." rows={2} className="text-sm resize-none" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BusinessSection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => void }) {
+  const addRow = () => onChange([...rows, { businessName: "", businessType: "", sharePercentage: "", businessNotes: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: string, value: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium text-sm">Business Interests</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Record business interests — this informs the business clause in the Will.</p>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={addRow}>
+          <Plus className="h-3 w-3" /> Add Business
+        </Button>
+      </div>
+      {rows.length === 0 && <p className="text-xs text-muted-foreground italic">No business interests added — no business clause will appear in the Will.</p>}
+      {rows.map((r, i) => (
+        <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Business {i + 1}</span>
+            <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Business Name</Label>
+              <Input value={r.businessName} onChange={e => updateRow(i, "businessName", e.target.value)} placeholder="e.g. Genesis Wills and Estate Planning Ltd" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Business Type</Label>
+              <Input value={r.businessType} onChange={e => updateRow(i, "businessType", e.target.value)} placeholder="e.g. Limited Company, Partnership" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Share / Interest</Label>
+              <Input value={r.sharePercentage} onChange={e => updateRow(i, "sharePercentage", e.target.value)} placeholder="e.g. 50%, sole trader" className="h-8 text-sm" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Notes</Label>
+            <Textarea value={r.businessNotes} onChange={e => updateRow(i, "businessNotes", e.target.value)} placeholder="Any additional notes about this business interest..." rows={2} className="text-sm resize-none" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GiftsSection({ label, rows, onChange }: { label: string; rows: any[]; onChange: (r: any[]) => void }) {
+  const addRow = () => onChange([...rows, { recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: string, value: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium text-sm">{label}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Specific gifts are paid before the residue is distributed.</p>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={addRow}>
+          <Plus className="h-3 w-3" /> Add Gift
+        </Button>
+      </div>
+      {rows.length === 0 && <p className="text-xs text-muted-foreground italic">No specific gifts added.</p>}
+      {rows.map((r, i) => (
+        <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gift {i + 1}</span>
+            <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Gift Type</Label>
+              <Select value={r.giftType} onValueChange={v => updateRow(i, "giftType", v)}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asset">Specific Asset / Item</SelectItem>
+                  <SelectItem value="monetary">Monetary Sum</SelectItem>
+                  <SelectItem value="residue">Share of Residue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Recipient Name</Label>
+              <Input value={r.recipientName} onChange={e => updateRow(i, "recipientName", e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs">Gift Description</Label>
+              <Input value={r.giftDescription} onChange={e => updateRow(i, "giftDescription", e.target.value)}
+                placeholder={r.giftType === "monetary" ? "e.g. £5,000" : "e.g. my gold watch, my car registration AB12 CDE"}
+                className="h-8 text-sm" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs">Recipient Address (optional)</Label>
+              <Input value={r.recipientAddress} onChange={e => updateRow(i, "recipientAddress", e.target.value)} placeholder="Recipient's address" className="h-8 text-sm" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PetsSection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => void }) {
+  const addRow = () => onChange([...rows, { petName: "", petType: "", carerName: "", carerAddress: "", careNotes: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: string, value: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium text-sm">Pets</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Record pets and their nominated carers. Pets are shared across both Wills for mirror matters.</p>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={addRow}>
+          <Plus className="h-3 w-3" /> Add Pet
+        </Button>
+      </div>
+      {rows.length === 0 && <p className="text-xs text-muted-foreground italic">No pets added — no pets clause will appear in the Will.</p>}
+      {rows.map((r, i) => (
+        <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pet {i + 1}</span>
+            <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Pet Name</Label>
+              <Input value={r.petName} onChange={e => updateRow(i, "petName", e.target.value)} placeholder="e.g. Bella" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Type of Animal</Label>
+              <Input value={r.petType} onChange={e => updateRow(i, "petType", e.target.value)} placeholder="e.g. dog, cat, rabbit" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Nominated Carer Name</Label>
+              <Input value={r.carerName} onChange={e => updateRow(i, "carerName", e.target.value)} placeholder="Full name of carer" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Carer Address</Label>
+              <Input value={r.carerAddress} onChange={e => updateRow(i, "carerAddress", e.target.value)} placeholder="Carer's address" className="h-8 text-sm" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs">Care Notes</Label>
+              <Textarea value={r.careNotes} onChange={e => updateRow(i, "careNotes", e.target.value)} placeholder="Any special care instructions..." rows={2} className="text-sm resize-none" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -529,9 +864,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
         {rows.map((r, i) => r.beneficiaryType === "primary" && (
           <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Beneficiary {primary.indexOf(r) + 1}
-              </span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Beneficiary {primary.indexOf(r) + 1}</span>
               <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -550,11 +883,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Input value={r.shareFraction} onChange={e => updateRow(i, "shareFraction", e.target.value)} placeholder="e.g. 50% or equal share" className="h-8 text-sm" />
               </div>
               <div className="flex items-end gap-2 pb-0.5">
-                <Switch
-                  checked={!!r.includeIssue}
-                  onCheckedChange={v => updateRow(i, "includeIssue", v ? 1 : 0)}
-                  id={`issue-${i}`}
-                />
+                <Switch checked={!!r.includeIssue} onCheckedChange={v => updateRow(i, "includeIssue", v ? 1 : 0)} id={`issue-${i}`} />
                 <Label htmlFor={`issue-${i}`} className="text-xs cursor-pointer">Pass to their children if they predecease</Label>
               </div>
             </div>
@@ -574,9 +903,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
         {rows.map((r, i) => r.beneficiaryType === "fallback" && (
           <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Fallback {fallback.indexOf(r) + 1}
-              </span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Fallback {fallback.indexOf(r) + 1}</span>
               <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -606,70 +933,54 @@ function WishesSection({ label, data, onChange }: { label: string; data: any; on
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Age condition for inheritance</Label>
-          <Input
-            type="number"
-            min={0}
-            max={99}
-            value={data.ageCondition}
-            onChange={e => onChange({ ...data, ageCondition: parseInt(e.target.value) || 18 })}
-            className="h-8 text-sm"
-          />
+          <Input type="number" min={0} max={99} value={data.ageCondition}
+            onChange={e => onChange({ ...data, ageCondition: parseInt(e.target.value) || 18 })} className="h-8 text-sm" />
           <p className="text-[10px] text-muted-foreground">Beneficiaries must reach this age to inherit outright (default 18)</p>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Survivorship period (days)</Label>
-          <Input
-            type="number"
-            min={0}
-            max={365}
-            value={data.survivorshipDays}
-            onChange={e => onChange({ ...data, survivorshipDays: parseInt(e.target.value) || 28 })}
-            className="h-8 text-sm"
-          />
+          <Input type="number" min={0} max={365} value={data.survivorshipDays}
+            onChange={e => onChange({ ...data, survivorshipDays: parseInt(e.target.value) || 28 })} className="h-8 text-sm" />
           <p className="text-[10px] text-muted-foreground">Beneficiary must survive testator by this many days (default 28)</p>
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Switch
-            checked={!!data.organDonation}
-            onCheckedChange={v => onChange({ ...data, organDonation: v })}
-            id="organ-donation"
-          />
+          <Switch checked={!!data.organDonation} onCheckedChange={v => onChange({ ...data, organDonation: v })} id="organ-donation" />
           <Label htmlFor="organ-donation" className="text-sm cursor-pointer">Include organ donation direction</Label>
         </div>
         {data.organDonation && (
-          <Textarea
-            value={data.organDonationText}
-            onChange={e => onChange({ ...data, organDonationText: e.target.value })}
-            placeholder="I wish to donate my organs for medical purposes."
-            rows={2}
-            className="text-sm resize-none"
-          />
+          <Textarea value={data.organDonationText} onChange={e => onChange({ ...data, organDonationText: e.target.value })}
+            placeholder="I wish to donate my organs for medical purposes." rows={2} className="text-sm resize-none" />
         )}
       </div>
 
       <div className="space-y-1">
         <Label className="text-xs">Funeral Wishes</Label>
-        <Textarea
-          value={data.funeralWishes}
-          onChange={e => onChange({ ...data, funeralWishes: e.target.value })}
-          placeholder="e.g. I wish to be cremated. I would like a simple ceremony..."
-          rows={3}
-          className="text-sm resize-none"
-        />
+        <Textarea value={data.funeralWishes} onChange={e => onChange({ ...data, funeralWishes: e.target.value })}
+          placeholder="e.g. I wish to be cremated. I would like a simple ceremony..." rows={3} className="text-sm resize-none" />
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs">Disaster Clause — Custom Instructions</Label>
+        <Textarea value={data.disasterClauseNotes} onChange={e => onChange({ ...data, disasterClauseNotes: e.target.value })}
+          placeholder="Optional: specify what happens if ALL beneficiaries predecease you. Leave blank to use the standard intestacy fallback."
+          rows={3} className="text-sm resize-none" />
+        <p className="text-[10px] text-muted-foreground">If left blank, the Will will include a standard clause directing the estate to pass under the intestacy rules.</p>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs">General Notes / Solicitor's Notes</Label>
+        <Textarea value={data.generalNotes} onChange={e => onChange({ ...data, generalNotes: e.target.value })}
+          placeholder="Any internal notes or additional instructions for the file (these will appear as a Solicitor's Notes section at the end of the Will document)..."
+          rows={3} className="text-sm resize-none" />
       </div>
 
       <div className="space-y-1">
         <Label className="text-xs">Additional Notes / Instructions</Label>
-        <Textarea
-          value={data.extraNotes}
-          onChange={e => onChange({ ...data, extraNotes: e.target.value })}
-          placeholder="Any other instructions or notes for the file..."
-          rows={3}
-          className="text-sm resize-none"
-        />
+        <Textarea value={data.extraNotes} onChange={e => onChange({ ...data, extraNotes: e.target.value })}
+          placeholder="Any other instructions or notes for the file..." rows={3} className="text-sm resize-none" />
       </div>
     </div>
   );
