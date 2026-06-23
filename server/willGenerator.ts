@@ -310,6 +310,63 @@ function buildExecutorsClause(
   );
 }
 
+function buildReservedExecutorsClause(
+  doc: PDFDocument,
+  clauseNum: number,
+  reservedExecutors: PersonEntry[]
+) {
+  if (!reservedExecutors.length) return;
+  clauseHeading(doc, clauseNum, "Appointment of Reserve Executors");
+  const names = reservedExecutors
+    .map((e) => {
+      let t = fullName(e);
+      if (personAddress(e)) t += ` of ${personAddress(e)}`;
+      return t;
+    })
+    .filter(Boolean);
+  if (names.length === 1) {
+    bodyText(doc, `In the event that my primary Executor is unable or unwilling to act I APPOINT ${names[0]} as Reserve Executor of this my Will (hereinafter also referred to as 'my Executors').`);
+  } else {
+    bodyText(doc, `In the event that my primary Executor is unable or unwilling to act I APPOINT ${names.join(" and ")} as Reserve Executors of this my Will (hereinafter also referred to as 'my Executors').`);
+  }
+}
+
+function buildGuardiansClause(
+  doc: PDFDocument,
+  clauseNum: number,
+  guardians: PersonEntry[],
+  reservedGuardians: PersonEntry[]
+) {
+  if (!guardians.length && !reservedGuardians.length) return;
+  clauseHeading(doc, clauseNum, "Appointment of Guardians");
+  if (guardians.length > 0) {
+    const names = guardians
+      .map((g) => {
+        let t = fullName(g);
+        if (personAddress(g)) t += ` of ${personAddress(g)}`;
+        return t;
+      })
+      .filter(Boolean);
+    bodyText(
+      doc,
+      `In the event of my death whilst my children are under the age of eighteen years I APPOINT ${names.join(" and ")} to be the Guardian${names.length > 1 ? "s" : ""} of my minor children.`
+    );
+  }
+  if (reservedGuardians.length > 0) {
+    const rNames = reservedGuardians
+      .map((g) => {
+        let t = fullName(g);
+        if (personAddress(g)) t += ` of ${personAddress(g)}`;
+        return t;
+      })
+      .filter(Boolean);
+    bodyText(
+      doc,
+      `In the event that the above-named Guardian${reservedGuardians.length > 1 ? "s are" : " is"} unable or unwilling to act I APPOINT ${rNames.join(" and ")} as Reserve Guardian${rNames.length > 1 ? "s" : ""} of my minor children.`
+    );
+  }
+}
+
 function buildDefinitionClause(doc: PDFDocument, clauseNum: number, excludedCountry?: string) {
   clauseHeading(doc, clauseNum, "Definition and Administration of my Estate");
   const excl = excludedCountry ? ` excluding that in ${excludedCountry.toUpperCase()}` : "";
@@ -422,7 +479,7 @@ function buildStepPowersClause(doc: PDFDocument, clauseNum: number) {
   clauseHeading(doc, clauseNum, "STEP Powers");
   bodyText(
     doc,
-    "In this my Will where the context so admits any reference to the STEP Powers shall mean the Standard Provisions and all of the Special Provisions (with the exception of 18.2) of the Society of Trust and Estate Practitioners (3rd edition) shall apply"
+    "In this my Will where the context so admits any reference to the STEP Powers shall mean the Standard Provisions (2nd edition) of the Society of Trust and Estate Practitioners together with the Special Provisions (2nd edition) (with the exception of Special Provision 5) shall apply to this my Will"
   );
 }
 
@@ -929,16 +986,50 @@ export async function generateWillDocument(
       }
     }
 
+    // ── Reserved executors ───────────────────────────────────────────────────
+    let reservedExecutors: PersonEntry[] = [];
+    if (options.willType === "mirror_client2") {
+      reservedExecutors = safeArr(record.client2ReservedExecutors);
+    } else {
+      reservedExecutors = safeArr(record.client1ReservedExecutors);
+    }
+
+    // ── Guardians ────────────────────────────────────────────────────────────
+    let guardians: PersonEntry[] = [];
+    let reservedGuardians: PersonEntry[] = [];
+    if (options.willType === "mirror_client2") {
+      guardians = safeArr(record.client2Guardians);
+      reservedGuardians = safeArr(record.client2ReservedGuardians);
+    } else {
+      guardians = safeArr(record.client1Guardians);
+      reservedGuardians = safeArr(record.client1ReservedGuardians);
+    }
+
     // ── Specific gifts ───────────────────────────────────────────────────────
-    const specificGifts = safeArr(record.specificGifts) as Array<{
-      description?: string;
-      recipient?: string;
-   
-    }>;
+    let specificGifts: Array<{ description?: string; recipient?: string; value?: string }> = [];
+    if (options.willType === "mirror_client2") {
+      specificGifts = safeArr(record.client2SpecificGifts) as typeof specificGifts;
+    } else {
+      // Use per-client field; fall back to legacy field for older records
+      const perClient = safeArr(record.client1SpecificGifts) as typeof specificGifts;
+      specificGifts = perClient.length > 0 ? perClient : (safeArr(record.specificGifts) as typeof specificGifts);
+    }
 
     // ── Funeral / organ donation ─────────────────────────────────────────────
-    const funeralWishes = safe(record.funeralWishes);
-    const organDonation = safe(record.organDonation).toLowerCase() === "yes";
+    let funeralWishes: string;
+    let organDonation: boolean;
+    if (options.willType === "mirror_client2") {
+      funeralWishes = safe(record.client2FuneralWishes) || safe(record.funeralWishes);
+      organDonation = safe(record.client2OrganDonation).toLowerCase() === "yes";
+    } else {
+      funeralWishes = safe(record.client1FuneralWishes) || safe(record.funeralWishes);
+      organDonation = safe(record.client1OrganDonation).toLowerCase() === "yes" || safe(record.organDonation).toLowerCase() === "yes";
+    }
+
+    // ── Residual estate backup ────────────────────────────────────────────────
+    const residualBackup = options.willType === "mirror_client2"
+      ? safe(record.client2ResidualBackup)
+      : safe(record.client1ResidualBackup);
 
     // ── Trust data ───────────────────────────────────────────────────────────
     const trustees = safeArr(record.trustees);
@@ -947,11 +1038,14 @@ export async function generateWillDocument(
         ? [safe(record.client2Prefix), safe(record.client2FirstName), safe(record.client2LastName)].filter(Boolean).join(" ")
         : [safe(record.client1Prefix), safe(record.client1FirstName), safe(record.client1LastName)].filter(Boolean).join(" ");
 
-    const children = safeArr(record.client1ChildrenUnder18).map((c) =>
-      fullName(c as PersonEntry)
-    ).filter(Boolean);
+    const children = (options.willType === "mirror_client2"
+      ? safeArr(record.client2ChildrenUnder18)
+      : safeArr(record.client1ChildrenUnder18)
+    ).map((c) => fullName(c as PersonEntry)).filter(Boolean);
 
-    const vulnerableBeneficiary = safe(record.vulnerableBeneficiaryDetails);
+    const vulnerableBeneficiary = options.willType === "mirror_client2"
+      ? safe(record.client2VulnerableBeneficiaryDetails) || safe(record.vulnerableBeneficiaryDetails)
+      : safe(record.client1VulnerableBeneficiaryDetails) || safe(record.vulnerableBeneficiaryDetails);
 
     // ── Build clause list ────────────────────────────────────────────────────
     let clauseNum = 1;
@@ -966,6 +1060,12 @@ export async function generateWillDocument(
 
     buildRevocationClause(doc, clauseNum++, testatorName, dob, fullAddress);
     buildExecutorsClause(doc, clauseNum++, executors);
+    if (reservedExecutors.length > 0) {
+      buildReservedExecutorsClause(doc, clauseNum++, reservedExecutors);
+    }
+    if (guardians.length > 0 || reservedGuardians.length > 0) {
+      buildGuardiansClause(doc, clauseNum++, guardians, reservedGuardians);
+    }
     buildDefinitionClause(doc, clauseNum++);
     buildDistributionClause(doc, clauseNum++, primaryBeneficiary, residuaryBeneficiaries, specificGifts);
 

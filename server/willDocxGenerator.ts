@@ -266,6 +266,12 @@ export async function generateWillDocx(
     ? safeArr(record.client2Guardians)
     : safeArr(record.client1Guardians);
 
+  const reservedExecutors: PersonEntry[] = isClient2
+    ? safeArr(record.client2ReservedExecutors)
+    : safeArr(record.client1ReservedExecutors);
+  const reservedGuardians: PersonEntry[] = isClient2
+    ? safeArr(record.client2ReservedGuardians)
+    : safeArr(record.client1ReservedGuardians);
   // ── Beneficiaries (mirrors willGenerator.ts logic) ────────────────────────
   let primaryBeneficiary: PersonEntry | null = null;
   let residuaryBeneficiaries: PersonEntry[] = [];
@@ -393,18 +399,42 @@ export async function generateWillDocx(
     ));
   }
 
-  // ── 3. Guardians (only if present) ───────────────────────────────────────
-  if (guardians.length > 0) {
-    paras.push(clauseHeading(clauseNum++, "Appointment of Guardians"));
-    paras.push(body(
-      "In the event that my spouse/civil partner shall predecease me or die within 30 days of my death, I appoint the following as Guardian(s) of any of my children who are under the age of 18 years at the date of my death:"
-    ));
-    guardians.forEach(g => {
-      const name = personFullName(g) || "[Guardian]";
-      const rel  = g.relationship ? ` (${g.relationship})` : "";
-      const addr = g.address ? ` of ${g.address}` : "";
-      paras.push(body(`${name}${rel}${addr}`));
+  // ── 3. Reserve Executors (only if present) ──────────────────────────────
+  if (reservedExecutors.length > 0) {
+    paras.push(clauseHeading(clauseNum++, "Appointment of Reserve Executors"));
+    const rExecNames = reservedExecutors.map(e => {
+      let t = personFullName(e) || "[Reserve Executor]";
+      if (e.address) t += ` of ${e.address}`;
+      return t;
     });
+    paras.push(body(
+      `In the event that my primary Executor is unable or unwilling to act I APPOINT ${rExecNames.join(" and ")} as Reserve Executor${rExecNames.length > 1 ? "s" : ""} of this my Will (hereinafter also referred to as 'my Executors').`
+    ));
+  }
+
+  // ── 4. Guardians (only if present) ───────────────────────────────────────
+  if (guardians.length > 0 || reservedGuardians.length > 0) {
+    paras.push(clauseHeading(clauseNum++, "Appointment of Guardians"));
+    if (guardians.length > 0) {
+      const gNames = guardians.map(g => {
+        let t = personFullName(g) || "[Guardian]";
+        if (g.address) t += ` of ${g.address}`;
+        return t;
+      });
+      paras.push(body(
+        `In the event of my death whilst my children are under the age of eighteen years I APPOINT ${gNames.join(" and ")} to be the Guardian${gNames.length > 1 ? "s" : ""} of my minor children.`
+      ));
+    }
+    if (reservedGuardians.length > 0) {
+      const rgNames = reservedGuardians.map(g => {
+        let t = personFullName(g) || "[Reserve Guardian]";
+        if (g.address) t += ` of ${g.address}`;
+        return t;
+      });
+      paras.push(body(
+        `In the event that the above-named Guardian${reservedGuardians.length > 1 ? "s are" : " is"} unable or unwilling to act I APPOINT ${rgNames.join(" and ")} as Reserve Guardian${rgNames.length > 1 ? "s" : ""} of my minor children.`
+      ));
+    }
   }
 
   // ── Definition / Administration ───────────────────────────────────────────
@@ -666,7 +696,7 @@ export async function generateWillDocx(
   // ── STEP Powers ───────────────────────────────────────────────────────────
   paras.push(clauseHeading(clauseNum++, "STEP Powers"));
   paras.push(body(
-    "In this my Will where the context so admits any reference to the STEP Powers shall mean the Standard Provisions and all of the Special Provisions (with the exception of 18.2) of the Society of Trust and Estate Practitioners (3rd edition) shall apply."
+    "In this my Will where the context so admits any reference to the STEP Powers shall mean the Standard Provisions and all of the Special Provisions (with the exception of Special Provision 6) of the Society of Trust and Estate Practitioners (2nd edition) shall apply."
   ));
 
   // ── Testimonium ───────────────────────────────────────────────────────────
