@@ -114,6 +114,16 @@ export const willInstructions = mysqlTable("will_instructions", {
   ddKnewAppointees: varchar("ddKnewAppointees", { length: 8 }),
   ddKnewAppointeesNotes: text("ddKnewAppointeesNotes"),
 
+  // ── Extended Due Diligence ─────────────────────────────────────────────────
+  ddClientSince: varchar("ddClientSince", { length: 128 }),
+  ddFirstContactDate: varchar("ddFirstContactDate", { length: 32 }),
+  ddMeetingType: varchar("ddMeetingType", { length: 64 }),     // Consultant office / Client house / Video Call / Telephone
+  ddOthersPresent: varchar("ddOthersPresent", { length: 8 }),  // yes/no
+  ddOthersPresentNotes: text("ddOthersPresentNotes"),
+  ddClientCanSee: varchar("ddClientCanSee", { length: 8 }),    // yes/no
+  ddClientCanHear: varchar("ddClientCanHear", { length: 8 }),  // yes/no
+  ddClientCanSpeak: varchar("ddClientCanSpeak", { length: 8 }), // yes/no
+
   // ── People ─────────────────────────────────────────────────────────────────
   executors: json("executors"),
   reservedExecutors: json("reservedExecutors"),

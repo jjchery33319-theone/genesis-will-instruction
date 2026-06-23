@@ -1080,20 +1080,57 @@ export default function AdminSubmissionEditor() {
 
           {/* ── DUE DILIGENCE ────────────────────────────────────────────────── */}
           <TabsContent value="duediligence">
-            <SectionCard title="Due Diligence Compliance" icon={<AlertTriangle className="w-4 h-4" />}>
-              {[
-                { yesNo: "ddArrangedAppointment", notes: "ddArrangedAppointmentNotes", label: "Did the client arrange the appointment themselves?" },
-                { yesNo: "ddKnowledgeOfEstate", notes: "ddKnowledgeOfEstateNotes", label: "Did the client have knowledge of their estate?" },
-                { yesNo: "ddKnewBeneficiaries", notes: "ddKnewBeneficiariesNotes", label: "Did the client know their beneficiaries?" },
-                { yesNo: "ddSignsOfInfluence", notes: "ddSignsOfInfluenceNotes", label: "Were there any signs of undue influence?" },
-                { yesNo: "ddKnewAppointees", notes: "ddKnewAppointeesNotes", label: "Did the client know their appointees (executors/guardians)?" },
-              ].map(q => (
-                <div key={q.yesNo} className="space-y-2 pb-4 border-b border-border last:border-0 last:pb-0">
-                  <YesNoInput label={q.label} value={f(q.yesNo)} onChange={v => set(q.yesNo, v)} />
-                  <TextAreaInput label="Notes" value={f(q.notes)} onChange={v => set(q.notes, v)} rows={2} />
+            <div className="space-y-4">
+              {/* Meeting Details */}
+              <SectionCard title="Meeting Details" icon={<ClipboardList className="w-4 h-4" />}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <TextInput label="How long has the client been our client?" value={f("ddClientSince")} onChange={v => set("ddClientSince", v)} placeholder="e.g. 2 years, New client" />
+                  <TextInput label="When was contact first made?" value={f("ddFirstContactDate")} onChange={v => set("ddFirstContactDate", v)} placeholder="e.g. 01/01/2024" />
                 </div>
-              ))}
-            </SectionCard>
+                <SelectInput
+                  label="How did the meeting take place?"
+                  value={f("ddMeetingType")}
+                  onChange={v => set("ddMeetingType", v)}
+                  options={[
+                    { value: "consultant_office", label: "Consultant office" },
+                    { value: "client_house", label: "Client house" },
+                    { value: "video_call", label: "Video Call" },
+                    { value: "telephone", label: "Telephone" },
+                  ]}
+                />
+                <div className="space-y-2">
+                  <YesNoInput label="Was anyone else present at the meeting other than yourself and the client?" value={f("ddOthersPresent")} onChange={v => set("ddOthersPresent", v)} />
+                  {f("ddOthersPresent") === "yes" && (
+                    <TextAreaInput label="Name and relation to client of person(s) present" value={f("ddOthersPresentNotes")} onChange={v => set("ddOthersPresentNotes", v)} rows={2} />
+                  )}
+                </div>
+              </SectionCard>
+
+              {/* Client Capacity */}
+              <SectionCard title="Client Capacity" icon={<AlertTriangle className="w-4 h-4" />}>
+                <div className="space-y-3">
+                  <YesNoInput label="Is the client able to see (i.e. not blind or visually impaired)?" value={f("ddClientCanSee")} onChange={v => set("ddClientCanSee", v)} />
+                  <YesNoInput label="Is the client able to hear (i.e. not suffering from hearing loss or impairment)?" value={f("ddClientCanHear")} onChange={v => set("ddClientCanHear", v)} />
+                  <YesNoInput label="Is the client able to speak?" value={f("ddClientCanSpeak")} onChange={v => set("ddClientCanSpeak", v)} />
+                </div>
+              </SectionCard>
+
+              {/* Standard Compliance Questions */}
+              <SectionCard title="Compliance Questions" icon={<AlertTriangle className="w-4 h-4" />}>
+                {[
+                  { yesNo: "ddArrangedAppointment", notes: "ddArrangedAppointmentNotes", label: "Did the client arrange the appointment themselves?" },
+                  { yesNo: "ddKnowledgeOfEstate", notes: "ddKnowledgeOfEstateNotes", label: "Did the client have knowledge of their estate?" },
+                  { yesNo: "ddKnewBeneficiaries", notes: "ddKnewBeneficiariesNotes", label: "Did the client know their beneficiaries?" },
+                  { yesNo: "ddSignsOfInfluence", notes: "ddSignsOfInfluenceNotes", label: "Were there any signs of undue influence?" },
+                  { yesNo: "ddKnewAppointees", notes: "ddKnewAppointeesNotes", label: "Did the client know their appointees (executors/guardians)?" },
+                ].map(q => (
+                  <div key={q.yesNo} className="space-y-2 pb-4 border-b border-border last:border-0 last:pb-0">
+                    <YesNoInput label={q.label} value={f(q.yesNo)} onChange={v => set(q.yesNo, v)} />
+                    <TextAreaInput label="Notes" value={f(q.notes)} onChange={v => set(q.notes, v)} rows={2} />
+                  </div>
+                ))}
+              </SectionCard>
+            </div>
           </TabsContent>
 
           {/* ── OPTIONAL CLAUSES ───────────────────────────────────────────── */}

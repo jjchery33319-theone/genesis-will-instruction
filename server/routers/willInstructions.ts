@@ -290,6 +290,16 @@ const willInstructionInputSchema = z.object({
   ddKnewAppointees: z.string().optional(),
   ddKnewAppointeesNotes: z.string().optional(),
 
+  // Extended Due Diligence
+  ddClientSince: z.string().optional(),
+  ddFirstContactDate: z.string().optional(),
+  ddMeetingType: z.string().optional(),
+  ddOthersPresent: z.string().optional(),
+  ddOthersPresentNotes: z.string().optional(),
+  ddClientCanSee: z.string().optional(),
+  ddClientCanHear: z.string().optional(),
+  ddClientCanSpeak: z.string().optional(),
+
   // Overseas assets
   assetsOutsideUK: z.string().optional(),
   assetsOutsideUKDetails: z.string().optional(),
