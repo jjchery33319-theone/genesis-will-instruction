@@ -71,6 +71,31 @@ const lpaInputSchema = z.object({
   preferences: z.string().optional(),
   instructions: z.string().optional(),
 
+  // Section 12: who is applying to register
+  applicantType: z.string().optional(),  // 'donor' | 'attorneys'
+
+  // Section 13: who receives the LPA
+  recipientType: z.string().optional(),  // 'donor' | 'attorney' | 'other'
+  recipientTitle: z.string().optional(),
+  recipientFirstNames: z.string().optional(),
+  recipientLastName: z.string().optional(),
+  recipientCompany: z.string().optional(),
+  recipientAddressLine1: z.string().optional(),
+  recipientAddressLine2: z.string().optional(),
+  recipientAddressLine3: z.string().optional(),
+  recipientPostcode: z.string().optional(),
+  deliveryPost: z.boolean().optional(),
+  deliveryPhone: z.boolean().optional(),
+  deliveryEmail: z.boolean().optional(),
+  deliveryWelsh: z.boolean().optional(),
+
+  // Section 14: application fee
+  feePaymentMethod: z.string().optional(),  // 'card' | 'cheque'
+  feeContactPhone: z.string().optional(),
+  reducedFee: z.boolean().optional(),
+  repeatApplication: z.boolean().optional(),
+  caseNumber: z.string().optional(),
+
   status: z.enum(["draft", "complete"]).optional(),
 });
 
@@ -148,6 +173,25 @@ export const lpaRouter = router({
         preferences: input.preferences,
         instructions: input.instructions,
         status: input.status ?? "draft",
+        applicantType: input.applicantType,
+        recipientType: input.recipientType,
+        recipientTitle: input.recipientTitle,
+        recipientFirstNames: input.recipientFirstNames,
+        recipientLastName: input.recipientLastName,
+        recipientCompany: input.recipientCompany,
+        recipientAddressLine1: input.recipientAddressLine1,
+        recipientAddressLine2: input.recipientAddressLine2,
+        recipientAddressLine3: input.recipientAddressLine3,
+        recipientPostcode: input.recipientPostcode,
+        deliveryPost: input.deliveryPost ? 1 : 0,
+        deliveryPhone: input.deliveryPhone ? 1 : 0,
+        deliveryEmail: input.deliveryEmail ? 1 : 0,
+        deliveryWelsh: input.deliveryWelsh ? 1 : 0,
+        feePaymentMethod: input.feePaymentMethod,
+        feeContactPhone: input.feeContactPhone,
+        reducedFee: input.reducedFee ? 1 : 0,
+        repeatApplication: input.repeatApplication ? 1 : 0,
+        caseNumber: input.caseNumber,
       });
       return { success: true };
     }),
@@ -188,6 +232,25 @@ export const lpaRouter = router({
           preferences: rest.preferences,
           instructions: rest.instructions,
           status: rest.status ?? "draft",
+          applicantType: rest.applicantType,
+          recipientType: rest.recipientType,
+          recipientTitle: rest.recipientTitle,
+          recipientFirstNames: rest.recipientFirstNames,
+          recipientLastName: rest.recipientLastName,
+          recipientCompany: rest.recipientCompany,
+          recipientAddressLine1: rest.recipientAddressLine1,
+          recipientAddressLine2: rest.recipientAddressLine2,
+          recipientAddressLine3: rest.recipientAddressLine3,
+          recipientPostcode: rest.recipientPostcode,
+          deliveryPost: rest.deliveryPost ? 1 : 0,
+          deliveryPhone: rest.deliveryPhone ? 1 : 0,
+          deliveryEmail: rest.deliveryEmail ? 1 : 0,
+          deliveryWelsh: rest.deliveryWelsh ? 1 : 0,
+          feePaymentMethod: rest.feePaymentMethod,
+          feeContactPhone: rest.feeContactPhone,
+          reducedFee: rest.reducedFee ? 1 : 0,
+          repeatApplication: rest.repeatApplication ? 1 : 0,
+          caseNumber: rest.caseNumber,
         })
         .where(eq(lpaRecords.id, id));
       return { success: true };

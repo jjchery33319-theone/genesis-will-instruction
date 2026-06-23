@@ -304,6 +304,31 @@ export const lpaRecords = mysqlTable("lpa_records", {
   preferences: text("preferences"),
   instructions: text("instructions"),
 
+  // ── Section 12: Registration applicant ─────────────────────────────────
+  applicantType: varchar("applicant_type", { length: 20 }),  // 'donor' | 'attorneys'
+
+  // ── Section 13: Who receives the LPA ────────────────────────────────────
+  recipientType: varchar("recipient_type", { length: 20 }),  // 'donor' | 'attorney' | 'other'
+  recipientTitle: varchar("recipient_title", { length: 20 }),
+  recipientFirstNames: varchar("recipient_first_names", { length: 100 }),
+  recipientLastName: varchar("recipient_last_name", { length: 100 }),
+  recipientCompany: varchar("recipient_company", { length: 200 }),
+  recipientAddressLine1: varchar("recipient_address_line1", { length: 200 }),
+  recipientAddressLine2: varchar("recipient_address_line2", { length: 200 }),
+  recipientAddressLine3: varchar("recipient_address_line3", { length: 200 }),
+  recipientPostcode: varchar("recipient_postcode", { length: 20 }),
+  deliveryPost: int("delivery_post").default(0),
+  deliveryPhone: int("delivery_phone").default(0),
+  deliveryEmail: int("delivery_email").default(0),
+  deliveryWelsh: int("delivery_welsh").default(0),
+
+  // ── Section 14: Application fee ─────────────────────────────────────────
+  feePaymentMethod: varchar("fee_payment_method", { length: 20 }),  // 'card' | 'cheque'
+  feeContactPhone: varchar("fee_contact_phone", { length: 30 }),
+  reducedFee: int("reduced_fee").default(0),
+  repeatApplication: int("repeat_application").default(0),
+  caseNumber: varchar("case_number", { length: 50 }),
+
   // ── Meta ──────────────────────────────────────────────────────────────────
   status: mysqlEnum("status", ["draft", "complete"]).default("draft").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

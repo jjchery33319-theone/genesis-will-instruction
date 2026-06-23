@@ -168,6 +168,14 @@ async function startServer() {
         attorneys: safeArr(lpa.attorneys),
         replacementAttorneys: safeArr(lpa.replacementAttorneys),
         peopleToNotify: safeArr(lpa.peopleToNotify),
+        // Section 13: delivery preferences stored as 0/1 ints — convert to boolean
+        deliveryPost: !!lpa.deliveryPost,
+        deliveryPhone: !!lpa.deliveryPhone,
+        deliveryEmail: !!lpa.deliveryEmail,
+        deliveryWelsh: !!lpa.deliveryWelsh,
+        // Section 14: fee options
+        reducedFee: !!lpa.reducedFee,
+        repeatApplication: !!lpa.repeatApplication,
       };
       const pdfBuffer = await fillLpaPdf(data as Parameters<typeof fillLpaPdf>[0]);
       const donorName = [lpa.donorFirstNames, lpa.donorLastName].filter(Boolean).join("_") || String(id);

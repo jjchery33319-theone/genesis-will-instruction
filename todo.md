@@ -216,3 +216,21 @@
 - [x] Meeting Details: client since, first contact date, meeting type dropdown (Consultant office / Client house / Video Call / Telephone), others present Yes/No with conditional notes field
 - [x] Client Capacity: can see, can hear, can speak Yes/No questions
 - [x] Build passes (0 errors), all 19 tests pass
+
+## LPA PDF Field Mapping Fixes (Phase 16)
+- [ ] LPA PDF: populate donor address lines (Address 1_2, Address 1_2b, Address 1_2c) and postcode (Postcode)
+- [ ] LPA PDF: populate attorney 1 address lines (Address 1_2, Address 1_2b, Address 1_2c) and postcode (undefined_2)
+- [ ] LPA PDF: populate attorney 2 address lines (Address 1_3, Address 1_3b, Address 1_3c) and postcode (undefined_3)
+- [ ] LPA PDF: populate attorney 3 address lines (Address 1_4a, Address 1_4b, Address 1_4c) and postcode (undefined_4)
+- [ ] LPA PDF: populate attorney 4 address lines (Address 1_5a, Address 1_5b, Address 1_5c) and postcode (undefined_5)
+- [ ] LPA PDF: populate replacement attorney 1 address lines (Address 1_6a, Address 1_6b, Address 1_6c) and postcode (undefined_6)
+- [ ] LPA PDF: populate replacement attorney 2 address lines (Address 1_7a, Address 1_7b, Address 1_7c) and postcode (undefined_7)
+- [ ] LPA PDF: populate certificate provider address lines (Address 1_8a, Address 1_8b, Address 1_8c)
+- [ ] LPA PDF: populate section 11 attorney name fields (Title_13/First names_13/Last name_13 through Title_16/First names_16/Last name_16)
+- [ ] LPA PDF: populate section 12 applicant fields (Title_17 through Title_20 / First names / Last name) based on who is applying
+- [ ] LPA PDF: tick Donor or Attorney(s) checkbox in section 12 based on applicant selection
+- [ ] LPA PDF: populate section 13 recipient fields (Title_21, First names_21, Last name_21, Company, Address 1_18a/b/c, undefined_29)
+- [ ] LPA PDF: tick section 13 delivery preference checkboxes (Post, Phone, Email, receive the lpa)
+- [ ] LPA PDF: populate section 14 fee fields (Your phone number, I want to apply to pay a reduced fee, Im making a repeat application, Case number)
+- [ ] DB schema: add registration fields to lpa_records (applicantType, recipientType, recipientName, recipientCompany, recipientAddress, deliveryPreference, feePaymentMethod, reducedFee, repeatApplication, caseNumber, contactPhone)
+- [ ] LPA admin editor: add Registration tab with all section 12-14 fields
