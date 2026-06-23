@@ -62,6 +62,28 @@ interface LpaFormData {
   preferences?: string;
   instructions?: string;
   status?: "draft" | "complete";
+  // Section 12
+  applicantType?: string;
+  // Section 13
+  recipientType?: string;
+  recipientTitle?: string;
+  recipientFirstNames?: string;
+  recipientLastName?: string;
+  recipientCompany?: string;
+  recipientAddressLine1?: string;
+  recipientAddressLine2?: string;
+  recipientAddressLine3?: string;
+  recipientPostcode?: string;
+  deliveryPost?: boolean;
+  deliveryPhone?: boolean;
+  deliveryEmail?: boolean;
+  deliveryWelsh?: boolean;
+  // Section 14
+  feePaymentMethod?: string;
+  feeContactPhone?: string;
+  reducedFee?: boolean;
+  repeatApplication?: boolean;
+  caseNumber?: string;
 }
 
 const GENESIS_COMPANY: LpaPerson = {
@@ -350,6 +372,25 @@ function LpaEditorForm({
         preferences: existingLpa.preferences ?? "",
         instructions: existingLpa.instructions ?? "",
         status: existingLpa.status ?? "draft",
+        applicantType: (existingLpa as any).applicantType ?? "",
+        recipientType: (existingLpa as any).recipientType ?? "",
+        recipientTitle: (existingLpa as any).recipientTitle ?? "",
+        recipientFirstNames: (existingLpa as any).recipientFirstNames ?? "",
+        recipientLastName: (existingLpa as any).recipientLastName ?? "",
+        recipientCompany: (existingLpa as any).recipientCompany ?? "",
+        recipientAddressLine1: (existingLpa as any).recipientAddressLine1 ?? "",
+        recipientAddressLine2: (existingLpa as any).recipientAddressLine2 ?? "",
+        recipientAddressLine3: (existingLpa as any).recipientAddressLine3 ?? "",
+        recipientPostcode: (existingLpa as any).recipientPostcode ?? "",
+        deliveryPost: !!(existingLpa as any).deliveryPost,
+        deliveryPhone: !!(existingLpa as any).deliveryPhone,
+        deliveryEmail: !!(existingLpa as any).deliveryEmail,
+        deliveryWelsh: !!(existingLpa as any).deliveryWelsh,
+        feePaymentMethod: (existingLpa as any).feePaymentMethod ?? "",
+        feeContactPhone: (existingLpa as any).feeContactPhone ?? "",
+        reducedFee: !!(existingLpa as any).reducedFee,
+        repeatApplication: !!(existingLpa as any).repeatApplication,
+        caseNumber: (existingLpa as any).caseNumber ?? "",
       };
     }
     return {
@@ -374,6 +415,25 @@ function LpaEditorForm({
       preferences: "",
       instructions: "",
       status: "draft",
+      applicantType: "",
+      recipientType: "",
+      recipientTitle: "",
+      recipientFirstNames: "",
+      recipientLastName: "",
+      recipientCompany: "",
+      recipientAddressLine1: "",
+      recipientAddressLine2: "",
+      recipientAddressLine3: "",
+      recipientPostcode: "",
+      deliveryPost: false,
+      deliveryPhone: false,
+      deliveryEmail: false,
+      deliveryWelsh: false,
+      feePaymentMethod: "",
+      feeContactPhone: "",
+      reducedFee: false,
+      repeatApplication: false,
+      caseNumber: "",
     };
   });
 
@@ -417,6 +477,25 @@ function LpaEditorForm({
       preferences: form.preferences,
       instructions: form.instructions,
       status: form.status,
+      applicantType: form.applicantType,
+      recipientType: form.recipientType,
+      recipientTitle: form.recipientTitle,
+      recipientFirstNames: form.recipientFirstNames,
+      recipientLastName: form.recipientLastName,
+      recipientCompany: form.recipientCompany,
+      recipientAddressLine1: form.recipientAddressLine1,
+      recipientAddressLine2: form.recipientAddressLine2,
+      recipientAddressLine3: form.recipientAddressLine3,
+      recipientPostcode: form.recipientPostcode,
+      deliveryPost: form.deliveryPost,
+      deliveryPhone: form.deliveryPhone,
+      deliveryEmail: form.deliveryEmail,
+      deliveryWelsh: form.deliveryWelsh,
+      feePaymentMethod: form.feePaymentMethod,
+      feeContactPhone: form.feeContactPhone,
+      reducedFee: form.reducedFee,
+      repeatApplication: form.repeatApplication,
+      caseNumber: form.caseNumber,
     };
     if (existingLpa) {
       updateMutation.mutate({ ...payload, id: existingLpa.id });
@@ -471,6 +550,7 @@ function LpaEditorForm({
           <TabsTrigger value="certprovider" className="text-xs">Certificate Provider</TabsTrigger>
           <TabsTrigger value="notify" className="text-xs">Section 6: Notify</TabsTrigger>
           <TabsTrigger value="preferences" className="text-xs">Section 7: Preferences</TabsTrigger>
+          <TabsTrigger value="registration" className="text-xs">Sections 12–14: Registration</TabsTrigger>
         </TabsList>
 
         {/* Section 1: Donor */}
@@ -708,6 +788,104 @@ function LpaEditorForm({
             showEmail={false}
             suggestedPeople={suggestedPeople.map(s => ({ name: s.name, person: s.person }))}
           />
+        </TabsContent>
+
+        {/* Sections 12-14: Registration */}
+        <TabsContent value="registration" className="space-y-6 pt-4">
+
+          {/* Section 12: Who is applying */}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-base font-medium">Section 12 — Who is applying to register the LPA?</Label>
+              <p className="text-xs text-muted-foreground mt-1">The applicant is the person or people sending the LPA to the OPG for registration.</p>
+            </div>
+            {[{ value: "donor", label: "The donor" }, { value: "attorneys", label: "The attorneys" }].map(opt => (
+              <label key={opt.value} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${form.applicantType === opt.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"}`}>
+                <input type="radio" name="applicantType" value={opt.value} checked={form.applicantType === opt.value} onChange={() => setForm(prev => ({ ...prev, applicantType: opt.value }))} />
+                <span className="text-sm">{opt.label}</span>
+              </label>
+            ))}
+          </div>
+
+          <Separator />
+
+          {/* Section 13: Who receives the LPA */}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-base font-medium">Section 13 — Who do you want to receive the registered LPA?</Label>
+              <p className="text-xs text-muted-foreground mt-1">The OPG will send the registered LPA to this person.</p>
+            </div>
+            {[{ value: "donor", label: "The donor" }, { value: "attorney", label: "An attorney" }, { value: "other", label: "Someone else" }].map(opt => (
+              <label key={opt.value} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${form.recipientType === opt.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"}`}>
+                <input type="radio" name="recipientType" value={opt.value} checked={form.recipientType === opt.value} onChange={() => setForm(prev => ({ ...prev, recipientType: opt.value }))} />
+                <span className="text-sm">{opt.label}</span>
+              </label>
+            ))}
+            {form.recipientType === "other" && (
+              <div className="space-y-3 pl-4 border-l-2 border-primary/30 mt-2">
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label>Title</Label><Input value={form.recipientTitle ?? ""} onChange={f("recipientTitle")} placeholder="Mr/Mrs/Ms/Dr" /></div>
+                  <div><Label>First Names</Label><Input value={form.recipientFirstNames ?? ""} onChange={f("recipientFirstNames")} /></div>
+                  <div><Label>Last Name</Label><Input value={form.recipientLastName ?? ""} onChange={f("recipientLastName")} /></div>
+                </div>
+                <div><Label>Company (if applicable)</Label><Input value={form.recipientCompany ?? ""} onChange={f("recipientCompany")} /></div>
+                <div><Label>Address Line 1</Label><Input value={form.recipientAddressLine1 ?? ""} onChange={f("recipientAddressLine1")} /></div>
+                <div><Label>Address Line 2</Label><Input value={form.recipientAddressLine2 ?? ""} onChange={f("recipientAddressLine2")} /></div>
+                <div><Label>Address Line 3</Label><Input value={form.recipientAddressLine3 ?? ""} onChange={f("recipientAddressLine3")} /></div>
+                <div className="w-48"><Label>Postcode</Label><Input value={form.recipientPostcode ?? ""} onChange={f("recipientPostcode")} /></div>
+              </div>
+            )}
+            <div className="space-y-2 pt-2">
+              <Label className="text-sm font-medium">How would you like to be contacted about the registration?</Label>
+              {[{ key: "deliveryPost" as const, label: "Post" }, { key: "deliveryPhone" as const, label: "Phone" }, { key: "deliveryEmail" as const, label: "Email" }, { key: "deliveryWelsh" as const, label: "Welsh language" }].map(opt => (
+                <label key={opt.key} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={!!form[opt.key]} onChange={(e) => setForm(prev => ({ ...prev, [opt.key]: e.target.checked }))} className="rounded" />
+                  <span className="text-sm">{opt.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Section 14: Application fee */}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-base font-medium">Section 14 — Application Fee</Label>
+              <p className="text-xs text-muted-foreground mt-1">The current fee is £82 per LPA. You can apply for a reduced fee if the donor's income is below £12,000/year.</p>
+            </div>
+            <div>
+              <Label>Payment method</Label>
+              <div className="flex gap-4 mt-2">
+                {[{ value: "card", label: "Card" }, { value: "cheque", label: "Cheque" }].map(opt => (
+                  <label key={opt.value} className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${form.feePaymentMethod === opt.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"}`}>
+                    <input type="radio" name="feeMethod" value={opt.value} checked={form.feePaymentMethod === opt.value} onChange={() => setForm(prev => ({ ...prev, feePaymentMethod: opt.value }))} />
+                    <span className="text-sm">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {form.feePaymentMethod === "card" && (
+              <div className="w-72">
+                <Label>Contact phone number for card payment</Label>
+                <Input value={form.feeContactPhone ?? ""} onChange={f("feeContactPhone")} placeholder="e.g. 07700 900000" />
+              </div>
+            )}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!form.reducedFee} onChange={(e) => setForm(prev => ({ ...prev, reducedFee: e.target.checked }))} className="rounded" />
+              <span className="text-sm">Apply for a reduced fee (donor's income below £12,000/year)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!form.repeatApplication} onChange={(e) => setForm(prev => ({ ...prev, repeatApplication: e.target.checked }))} className="rounded" />
+              <span className="text-sm">This is a repeat application (previously rejected LPA)</span>
+            </label>
+            {form.repeatApplication && (
+              <div className="w-64">
+                <Label>Previous case number</Label>
+                <Input value={form.caseNumber ?? ""} onChange={f("caseNumber")} placeholder="OPG case number" />
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         {/* Section 7: Preferences & instructions */}
