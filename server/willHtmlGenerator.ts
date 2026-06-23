@@ -66,18 +66,22 @@ function revocationClause(
   );
 }
 
-function executorsClause(num: number, executors: string[]): string {
+function executorsClause(num: number, executors: string[], reservedExecutors: string[]): string {
   if (!executors.length) executors = ["[Executor Name]"];
   const list = executors.map((e) => `<li>${e}</li>`).join("\n");
   const appoint =
     executors.length === 1
       ? `I appoint <strong>${executors[0]}</strong> to be the Executor of this my Will.`
       : `I appoint the following persons to be the Executors of this my Will:\n<ol>${list}</ol>`;
+  let reservedHtml = "";
+  if (reservedExecutors.length) {
+    const rList = reservedExecutors.map((e) => `<li>${e}</li>`).join("\n");
+    reservedHtml = `<p><strong>Reserve Executors:</strong> In the event that all of the above-named Executors shall predecease me or be unable or unwilling to act, I appoint the following as Reserve Executor(s):</p><ol>${rList}</ol>`;
+  }
   return clauseHtml(
     num,
     "Appointment of Executors",
-    `<p>${appoint}</p>
-     <p>If any of the above-named Executors shall predecease me or be unable or unwilling to act, I appoint such other person or persons as my remaining Executors shall nominate in writing.</p>`
+    `<p>${appoint}</p>${reservedHtml}`
   );
 }
 
@@ -225,15 +229,23 @@ function organDonationClause(num: number): string {
   );
 }
 
-function funeralWishesClause(num: number, funeralWishes: string): string {
-  const wishText = funeralWishes
-    ? `<p>I express the following wishes regarding my funeral and the disposal of my remains:</p><p>${funeralWishes}</p>`
-    : `<p>I leave the arrangements for my funeral to the discretion of my Executors.</p>`;
+function funeralWishesClause(num: number, funeralType: string, funeralWishes: string): string {
+  let typeText = "";
+  const ft = funeralType ? funeralType.toLowerCase() : "";
+  if (ft === "burial" || ft === "burial") {
+    typeText = `<p>I desire that my body be <strong>buried</strong> and the expense thereof shall be a first charge on my Estate.</p>`;
+  } else if (ft === "cremation") {
+    typeText = `<p>I desire that my body be <strong>cremated</strong> and my ashes disposed of as my Executors shall think fit, and the expense thereof shall be a first charge on my Estate.</p>`;
+  } else if (ft === "no preference" || ft === "no_preference") {
+    typeText = `<p>I leave the choice of burial or cremation to the discretion of my Executors.</p>`;
+  } else {
+    typeText = `<p>I desire that my body be [cremated/buried] and the expense thereof shall be a first charge on my Estate.</p>`;
+  }
+  const notesText = funeralWishes ? `<p>${funeralWishes}</p>` : "";
   return clauseHtml(
     num,
     "Funeral Wishes",
-    wishText +
-      `<p>These wishes are not legally binding on my Executors but I ask that they be given due consideration.</p>`
+    typeText + notesText + `<p>These wishes are not legally binding on my Executors but I ask that they be given due consideration.</p>`
   );
 }
 
@@ -492,24 +504,35 @@ export function generateWillHtml(
   const fullAddress = [addr1, city, postcode].filter(Boolean).join(", ");
   const reference = safe(record.referenceNumber);
 
-  // Executors
-  type PersonEntry = { firstName?: string; lastName?: string; relationship?: string };
+  // Executors (with DOB)
+  type PersonEntry = { firstName?: string; lastName?: string; relationship?: string; dob?: string };
   const rawExec = isClient2
     ? parseJson<PersonEntry[]>(record.client2Executors, [])
     : parseJson<PersonEntry[]>(record.client1Executors, []);
-  const executors = rawExec.map((e) => fullName(safe(e.firstName), safe(e.lastName))).filter(Boolean);
+  const executors = rawExec.map((e) => {
+    const name = fullName(safe(e.firstName), safe(e.lastName));
+    const dobPart = e.dob ? ` (born ${e.dob})` : "";
+    return name ? name + dobPart : "";
+  }).filter(Boolean);
 
-  // Beneficiaries
+  // Beneficiaries (with DOB)
   const rawBenef = isClient2
     ? parseJson<PersonEntry[]>(record.client2Beneficiaries, [])
     : parseJson<PersonEntry[]>(record.client1Beneficiaries, []);
-  const beneficiaries = rawBenef.map((b) => fullName(safe(b.firstName), safe(b.lastName))).filter(Boolean);
+  const beneficiaries = rawBenef.map((b) => {
+    const name = fullName(safe(b.firstName), safe(b.lastName));
+    const dobPart = b.dob ? ` (born ${b.dob})` : "";
+    return name ? name + dobPart : "";
+  }).filter(Boolean);
   const primaryBeneficiary = beneficiaries[0] || "";
   const residuaryBeneficiaries = beneficiaries.slice(1);
 
-  // Specific gifts
+  // Specific gifts (per-client, with legacy fallback)
   type GiftEntry = { description?: string; recipient?: string };
-  const specificGifts = parseJson<GiftEntry[]>(record.specificGifts, []).map((g) => ({
+  const specificGifts = parseJson<GiftEntry[]>(
+    isClient2 ? record.client2SpecificGifts : (record.client1SpecificGifts || record.specificGifts),
+    []
+  ).map((g) => ({
     description: safe(g.description),
     recipient: safe(g.recipient),
   }));
@@ -534,20 +557,63 @@ export function generateWillHtml(
     .map((c) => fullName(safe(c.firstName), safe(c.lastName)))
     .filter(Boolean);
 
+  // Reserved executors
+  type ReservedExecEntry = { firstName?: string; lastName?: string; dob?: string };
+  const rawReservedExec = isClient2
+    ? parseJson<ReservedExecEntry[]>(record.client2ReservedExecutors, [])
+    : parseJson<ReservedExecEntry[]>(record.client1ReservedExecutors, []);
+  const reservedExecutors = rawReservedExec
+    .map((e) => {
+      const name = fullName(safe(e.firstName), safe(e.lastName));
+      const dobPart = e.dob ? ` (born ${e.dob})` : "";
+      return name ? name + dobPart : "";
+    })
+    .filter(Boolean);
+
+  // Guardians
+  type GuardianEntry = { firstName?: string; lastName?: string; dob?: string };
+  const rawGuardians = isClient2
+    ? parseJson<GuardianEntry[]>(record.client2Guardians, [])
+    : parseJson<GuardianEntry[]>(record.client1Guardians, []);
+  const guardians = rawGuardians
+    .map((g) => {
+      const name = fullName(safe(g.firstName), safe(g.lastName));
+      const dobPart = g.dob ? ` (born ${g.dob})` : "";
+      return name ? name + dobPart : "";
+    })
+    .filter(Boolean);
+
+  const rawReservedGuardians = isClient2
+    ? parseJson<GuardianEntry[]>(record.client2ReservedGuardians, [])
+    : parseJson<GuardianEntry[]>(record.client1ReservedGuardians, []);
+  const reservedGuardians = rawReservedGuardians
+    .map((g) => {
+      const name = fullName(safe(g.firstName), safe(g.lastName));
+      const dobPart = g.dob ? ` (born ${g.dob})` : "";
+      return name ? name + dobPart : "";
+    })
+    .filter(Boolean);
+
   // Trustees (executors act as trustees)
   const trustees = executors.length ? executors : ["[Trustee Name]"];
 
   // Vulnerable beneficiary (first beneficiary with disability flag or just first)
   const vulnerableBeneficiary = beneficiaries[0] || "[Vulnerable Beneficiary]";
 
-  const organDonation = safe(record.organDonation) === "yes";
-  const funeralWishes = safe(record.funeralWishes);
+  const organDonation = (isClient2
+    ? safe(record.client2OrganDonation)
+    : safe(record.client1OrganDonation) || safe(record.organDonation)
+  ).toLowerCase() === "yes";
+  const funeralType = isClient2 ? safe(record.client2FuneralType) : safe(record.client1FuneralType) || safe((record as any).funeralType);
+  const funeralWishes = isClient2
+    ? safe(record.client2FuneralWishes)
+    : safe(record.client1FuneralWishes) || safe(record.funeralWishes);
 
   // Build clauses
   let clauseNum = 1;
   let clausesHtml = "";
   clausesHtml += revocationClause(clauseNum++, testatorName, dob, fullAddress);
-  clausesHtml += executorsClause(clauseNum++, executors);
+  clausesHtml += executorsClause(clauseNum++, executors, reservedExecutors);
   clausesHtml += definitionClause(clauseNum++);
   clausesHtml += distributionClause(clauseNum++, primaryBeneficiary, residuaryBeneficiaries, specificGifts);
 
@@ -561,12 +627,24 @@ export function generateWillHtml(
     clausesHtml += vulnerableTrustClause(clauseNum++, vulnerableBeneficiary, trustees);
   }
 
+  // Guardians clause
+  if (guardians.length) {
+    const gList = guardians.map((g) => `<li>${g}</li>`).join("\n");
+    let guardianBody = `<p>In the event of my death while any of my children are minors, I appoint the following as Guardian(s) of my minor children:</p><ol>${gList}</ol>`;
+    if (reservedGuardians.length) {
+      const rgList = reservedGuardians.map((g) => `<li>${g}</li>`).join("\n");
+      guardianBody += `<p>In the event that the above-named Guardian(s) shall predecease me or be unable or unwilling to act, I appoint the following as Reserve Guardian(s):</p><ol>${rgList}</ol>`;
+    }
+    clausesHtml += clauseHtml(clauseNum++, "Appointment of Guardians", guardianBody);
+  }
+
   clausesHtml += ageConditionClause(clauseNum++);
   clausesHtml += executorPowersClause(clauseNum++);
   clausesHtml += survivorshipClause(clauseNum++);
+  clausesHtml += funeralWishesClause(clauseNum++, funeralType, funeralWishes);
   if (organDonation) clausesHtml += organDonationClause(clauseNum++);
-  clausesHtml += funeralWishesClause(clauseNum++, funeralWishes);
-  clausesHtml += stepPowersClause(clauseNum++);
+  clausesHtml += clauseHtml(clauseNum++, "STEP Powers",
+    "<p>In this my Will where the context so admits any reference to the STEP Powers shall mean the Standard Provisions (2nd edition) of the Society of Trust and Estate Practitioners together with the Special Provisions (2nd edition) (with the exception of Special Provision 5) shall apply to this my Will.</p>");
   clausesHtml += avoidanceOfDoubtClause(clauseNum++);
   clausesHtml += attestationHtml(testatorName);
 
