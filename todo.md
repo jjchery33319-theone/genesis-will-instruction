@@ -207,3 +207,12 @@
 - [x] Each button passes clientNumber to /api/submissions/:id/will-pdf and /api/submissions/:id/will-docx
 - [x] Downloaded filename uses the respective client's name
 - [x] Build passes (0 errors), all 19 tests pass
+
+## Submission & Due Diligence Improvements (Phase 15)
+- [x] Confirmed all willInstructionInputSchema fields are .optional() — no required fields block submission
+- [x] Added 8 new due diligence DB columns: ddClientSince, ddFirstContactDate, ddMeetingType, ddOthersPresent, ddOthersPresentNotes, ddClientCanSee, ddClientCanHear, ddClientCanSpeak
+- [x] Added new fields to willInstructionInputSchema (all optional)
+- [x] Due Diligence tab in AdminSubmissionEditor rebuilt into 3 sections: Meeting Details, Client Capacity, Compliance Questions
+- [x] Meeting Details: client since, first contact date, meeting type dropdown (Consultant office / Client house / Video Call / Telephone), others present Yes/No with conditional notes field
+- [x] Client Capacity: can see, can hear, can speak Yes/No questions
+- [x] Build passes (0 errors), all 19 tests pass
