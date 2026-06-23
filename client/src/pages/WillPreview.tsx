@@ -2,8 +2,9 @@
  * WillPreview.tsx
  *
  * Admin back-office page that loads a Will document as editable HTML.
- * Staff can make manual changes directly in the document, then export
- * as PDF (via browser print) or as a Word (.docx) file.
+ * Staff can make manual changes directly in the document, save them
+ * permanently, and then export as PDF or Word — the saved version is
+ * always used for downloads when present.
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -25,6 +26,8 @@ import {
   Printer,
   RefreshCw,
   ChevronDown,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,6 +35,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -84,17 +97,26 @@ export default function WillPreview() {
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [htmlContent, setHtmlContent] = useState<string>("");
   const [dirty, setDirty] = useState(false);
+  const [isEdited, setIsEdited] = useState(false); // true when server has a saved version
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
-  // Load the HTML Will
-  const loadWill = useCallback(async () => {
+  // Load the HTML Will (server returns saved version if present)
+  const loadWill = useCallback(async (forceRegenerate = false) => {
     setLoading(true);
     setDirty(false);
     try {
-      const res = await fetch(buildUrl(id!, opts));
+      const url = forceRegenerate
+        ? buildUrl(id!, opts) + "&_regen=1"
+        : buildUrl(id!, opts);
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const html = await res.text();
+      // Check if the server returned a saved edited version
+      const edited = res.headers.get("X-Will-Edited") === "true";
+      setIsEdited(edited);
       setHtmlContent(html);
     } catch (err) {
       toast.error("Failed to load Will document");
@@ -130,6 +152,59 @@ export default function WillPreview() {
     });
   }, [htmlContent]);
 
+  // ── Get current edited HTML from iframe ──────────────────────────────────
+
+  const getCurrentHtml = (): string | null => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return null;
+    const willDiv = doc.getElementById("will-content");
+    if (willDiv) return willDiv.outerHTML;
+    return doc.body?.innerHTML ?? null;
+  };
+
+  // ── Save edits to server ──────────────────────────────────────────────────
+
+  const saveEdits = async () => {
+    const html = getCurrentHtml();
+    if (!html) { toast.error("Could not read document content"); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/submissions/${id}/will-html`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html, willType: opts.willType }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      setDirty(false);
+      setIsEdited(true);
+      toast.success("Edits saved — PDF and Word downloads will now use this version");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save edits");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Reset to original (clear saved version) ───────────────────────────────
+
+  const resetToOriginal = async () => {
+    try {
+      const res = await fetch(
+        `/api/submissions/${id}/will-html?willType=${opts.willType}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      setIsEdited(false);
+      setDirty(false);
+      toast.success("Saved edits cleared — reloading original…");
+      await loadWill();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to reset Will");
+    }
+  };
+
   // ── Formatting commands ──────────────────────────────────────────────────
 
   const execCmd = (cmd: string, value?: string) => {
@@ -139,10 +214,9 @@ export default function WillPreview() {
     iframeRef.current?.contentWindow?.focus();
   };
 
-  // ── Export: PDF via browser print ────────────────────────────────────────
+  // ── Export: PDF via server ────────────────────────────────────────────────
 
   const downloadPdf = () => {
-    // Use the server-generated PDF (preserves exact formatting)
     const url = buildPdfUrl(id!, opts);
     const a = document.createElement("a");
     a.href = url;
@@ -216,6 +290,13 @@ export default function WillPreview() {
         {opts.discretionary && <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200">Discretionary</Badge>}
         {opts.vulnerable && <Badge className="text-xs bg-purple-100 text-purple-800 border-purple-200">Vulnerable</Badge>}
 
+        {/* Edited badge — shown when a saved version exists on the server */}
+        {isEdited && !dirty && (
+          <Badge className="text-xs bg-green-100 text-green-800 border-green-200 border">
+            ✓ Edited version saved
+          </Badge>
+        )}
+
         {dirty && (
           <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">
             Unsaved changes
@@ -256,17 +337,32 @@ export default function WillPreview() {
 
         <div className="h-5 w-px bg-gray-200 mx-1 hidden sm:block" />
 
-        {/* Reload */}
+        {/* Save Edits */}
         <Button
-          variant="ghost"
           size="sm"
-          onClick={loadWill}
-          title="Reload from original"
-          className="gap-1"
+          variant="outline"
+          onClick={saveEdits}
+          disabled={saving || loading}
+          className="gap-1 border-green-300 text-green-700 hover:bg-green-50"
+          title="Save edits — PDF and Word downloads will use this version"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline text-xs">Reset</span>
+          <Save className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline text-xs">{saving ? "Saving…" : "Save Edits"}</span>
         </Button>
+
+        {/* Reset to Original */}
+        {isEdited && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowResetDialog(true)}
+            title="Discard saved edits and restore the auto-generated version"
+            className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline text-xs">Reset to Original</span>
+          </Button>
+        )}
 
         {/* Print */}
         <Button variant="ghost" size="sm" onClick={printDoc} className="gap-1" title="Print">
@@ -286,11 +382,11 @@ export default function WillPreview() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={downloadPdf} className="gap-2">
               <FileText className="h-4 w-4 text-red-500" />
-              Download as PDF
+              {isEdited ? "Download Edited PDF" : "Download as PDF"}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={downloadDocx} className="gap-2">
               <FileText className="h-4 w-4 text-blue-500" />
-              Download as Word (.docx)
+              {isEdited ? "Download Edited Word (.docx)" : "Download as Word (.docx)"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -317,9 +413,33 @@ export default function WillPreview() {
 
       {/* ── Footer hint ──────────────────────────────────────────────────── */}
       <div className="bg-white border-t border-gray-200 px-4 py-1.5 text-xs text-gray-400 text-center">
-        Click anywhere in the document to edit. Changes are local only — use Reset to restore the original.
-        Download as Word to save your edits permanently.
+        {isEdited
+          ? "Showing your saved edited version. Downloads will use this version. Click \"Reset to Original\" to discard edits."
+          : "Click anywhere in the document to edit. Click \"Save Edits\" to save your changes — PDF and Word downloads will then use your saved version."}
       </div>
+
+      {/* ── Reset confirmation dialog ─────────────────────────────────────── */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to Original?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently discard your saved edits for this Will and restore the
+              auto-generated version. PDF and Word downloads will be regenerated from the
+              form data. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={resetToOriginal}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Reset to Original
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

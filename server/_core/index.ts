@@ -74,18 +74,32 @@ async function startServer() {
       if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const willType = (req.query.willType as WillOptions["willType"]) || "single";
+      const record = rows[0] as Record<string, unknown>;
+      const clientName = willType === "mirror_client2"
+        ? [rows[0].client2FirstName, rows[0].client2LastName].filter(Boolean).join("_")
+        : [rows[0].client1FirstName, rows[0].client1LastName].filter(Boolean).join("_");
+      // Use saved edited HTML if present — serve as printable HTML page
+      const savedHtmlKey = willType === "mirror_client2" ? "editedWillHtmlClient2"
+        : willType === "mirror_client1" ? "editedWillHtmlClient1"
+        : "editedWillHtmlSingle";
+      const savedHtml = record[savedHtmlKey] as string | null;
+      if (savedHtml) {
+        const printableHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Will</title><style>@media print{body{margin:0}}body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:20px}</style></head><body>${savedHtml}<script>window.onload=function(){window.print()}<\/script></body></html>`;
+        const filename = `Will_${clientName || rows[0].referenceNumber}_${willType}_edited.html`;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.send(printableHtml);
+        return;
+      }
       const options: WillOptions = {
-        willType: (req.query.willType as WillOptions["willType"]) || "single",
+        willType,
         includePPT: req.query.ppt === "1",
         includeDiscretionaryTrust: req.query.discretionary === "1",
         includeVulnerableTrust: req.query.vulnerable === "1",
       };
-      const record = rows[0];
-      const pdfBuffer = await generateWillDocument(record, options);
-      const clientName = options.willType === "mirror_client2"
-        ? [record.client2FirstName, record.client2LastName].filter(Boolean).join("_")
-        : [record.client1FirstName, record.client1LastName].filter(Boolean).join("_");
-      const filename = `Will_${clientName || record.referenceNumber}_${options.willType}.pdf`;
+      const pdfBuffer = await generateWillDocument(rows[0], options);
+      const filename = `Will_${clientName || rows[0].referenceNumber}_${willType}.pdf`;
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.send(pdfBuffer);
@@ -104,18 +118,39 @@ async function startServer() {
       if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const willType = (req.query.willType as "single" | "mirror_client1" | "mirror_client2") || "single";
+      const record = rows[0] as Record<string, unknown>;
+      const clientName = willType === "mirror_client2"
+        ? [rows[0].client2FirstName, rows[0].client2LastName].filter(Boolean).join("_")
+        : [rows[0].client1FirstName, rows[0].client1LastName].filter(Boolean).join("_");
+      // Use saved edited HTML if present — convert to DOCX via html-to-docx
+      const savedHtmlKey = willType === "mirror_client2" ? "editedWillHtmlClient2"
+        : willType === "mirror_client1" ? "editedWillHtmlClient1"
+        : "editedWillHtmlSingle";
+      const savedHtml = record[savedHtmlKey] as string | null;
+      if (savedHtml) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const HTMLtoDOCX = require("html-to-docx");
+        const docxBuffer = await HTMLtoDOCX(savedHtml, null, {
+          title: `Will - ${clientName || rows[0].referenceNumber}`,
+          font: "Times New Roman",
+          fontSize: 24,
+          margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+        });
+        const filename = `Will_${clientName || rows[0].referenceNumber}_${willType}_edited.docx`;
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.send(Buffer.from(docxBuffer));
+        return;
+      }
       const opts = {
-        willType: (req.query.willType as "single" | "mirror_client1" | "mirror_client2") || "single",
+        willType,
         ppt: req.query.ppt === "1",
         discretionary: req.query.discretionary === "1",
         vulnerable: req.query.vulnerable === "1",
       };
-      const record = rows[0] as Record<string, unknown>;
       const docxBuffer = await generateWillDocx(record, opts);
-      const clientName = opts.willType === "mirror_client2"
-        ? [rows[0].client2FirstName, rows[0].client2LastName].filter(Boolean).join("_")
-        : [rows[0].client1FirstName, rows[0].client1LastName].filter(Boolean).join("_");
-      const filename = `Will_${clientName || rows[0].referenceNumber}_${opts.willType}.docx`;
+      const filename = `Will_${clientName || rows[0].referenceNumber}_${willType}.docx`;
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.send(docxBuffer);
@@ -125,7 +160,7 @@ async function startServer() {
     }
   });
 
-  // Will HTML preview endpoint (returns editable HTML)
+  // Will HTML preview endpoint (returns saved HTML if present, else regenerates)
   app.get("/api/submissions/:id/will-html", async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
@@ -134,18 +169,76 @@ async function startServer() {
       if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const willType = (req.query.willType as WillHtmlOptions["willType"]) || "single";
+      const record = rows[0] as Record<string, unknown>;
+      // Return saved edited HTML if present for this willType
+      const savedHtmlKey = willType === "mirror_client2" ? "editedWillHtmlClient2"
+        : willType === "mirror_client1" ? "editedWillHtmlClient1"
+        : "editedWillHtmlSingle";
+      const savedHtml = record[savedHtmlKey] as string | null;
+      if (savedHtml) {
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("X-Will-Edited", "true");
+        res.send(savedHtml);
+        return;
+      }
       const options: WillHtmlOptions = {
-        willType: (req.query.willType as WillHtmlOptions["willType"]) || "single",
+        willType,
         includePPT: req.query.ppt === "1",
         includeDiscretionaryTrust: req.query.discretionary === "1",
         includeVulnerableTrust: req.query.vulnerable === "1",
       };
       const html = generateWillHtml(rows[0], options);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Will-Edited", "false");
       res.send(html);
     } catch (err) {
       console.error("[WillHTML] Error:", err);
       res.status(500).json({ error: "Failed to generate Will HTML" });
+    }
+  });
+
+  // Save edited Will HTML endpoint
+  app.post("/api/submissions/:id/will-html", express.json({ limit: "10mb" }), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const { html, willType } = req.body as { html: string; willType: string };
+      if (!html || typeof html !== "string") { res.status(400).json({ error: "html required" }); return; }
+      const wt = (willType || "single") as string;
+      const colName = wt === "mirror_client2" ? "editedWillHtmlClient2"
+        : wt === "mirror_client1" ? "editedWillHtmlClient1"
+        : "editedWillHtmlSingle";
+      await db.update(willInstructions)
+        .set({ [colName]: html } as Partial<typeof willInstructions.$inferInsert>)
+        .where(eq(willInstructions.id, id));
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[WillHTML Save] Error:", err);
+      res.status(500).json({ error: "Failed to save Will HTML" });
+    }
+  });
+
+  // Reset edited Will HTML (clear saved version)
+  app.delete("/api/submissions/:id/will-html", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const wt = (req.query.willType as string) || "single";
+      const colName = wt === "mirror_client2" ? "editedWillHtmlClient2"
+        : wt === "mirror_client1" ? "editedWillHtmlClient1"
+        : "editedWillHtmlSingle";
+      await db.update(willInstructions)
+        .set({ [colName]: null } as Partial<typeof willInstructions.$inferInsert>)
+        .where(eq(willInstructions.id, id));
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[WillHTML Reset] Error:", err);
+      res.status(500).json({ error: "Failed to reset Will HTML" });
     }
   });
 

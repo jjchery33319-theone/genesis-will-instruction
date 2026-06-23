@@ -245,6 +245,11 @@ export const willInstructions = mysqlTable("will_instructions", {
   aiRecommendationNarrative: text("aiRecommendationNarrative"),
   aiClientEmailDraft: text("aiClientEmailDraft"),
 
+  // ── Edited Will HTML (manual back-office edits saved per willType) ───────────
+  editedWillHtmlSingle: text("editedWillHtmlSingle"),
+  editedWillHtmlClient1: text("editedWillHtmlClient1"),
+  editedWillHtmlClient2: text("editedWillHtmlClient2"),
+
   // ── Meta ───────────────────────────────────────────────────────────────────
   status: mysqlEnum("status", ["draft", "submitted", "processing", "complete", "cancelled"]).default("submitted").notNull(),
   currentStep: int("currentStep").notNull().default(1),
