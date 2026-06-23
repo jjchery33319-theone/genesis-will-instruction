@@ -17,6 +17,10 @@ import { eq } from "drizzle-orm";
 import path from "path";
 import { fillLpaPdf } from "../lpaFillPdf";
 import { serveStatic, setupVite } from "./vite";
+import { generateWillHtml as generateWillV2Html } from "../willV2Generator";
+import { generateCommentaryHtml } from "../willV2Commentary";
+import { generateSigningGuideHtml } from "../willV2SigningGuide";
+import { getMatterById } from "../mattersDb";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -349,6 +353,115 @@ async function startServer() {
     } catch (err) {
       console.error("[LPA PDF POST] Error:", err);
       res.status(500).json({ error: "Failed to generate LPA PDF" });
+    }
+  });
+
+  // ── Will V2 document endpoints ─────────────────────────────────────────────
+  app.get("/api/matters/:id/will", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      // Return saved edited HTML if present, otherwise generate fresh
+      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const html = savedHtml || generateWillV2Html(matter, testatorRole);
+      const isEdited = !!savedHtml;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Will-Edited", isEdited ? "true" : "false");
+      res.send(html);
+    } catch (err) {
+      console.error("[Will V2] Error:", err);
+      res.status(500).json({ error: "Failed to generate Will" });
+    }
+  });
+
+  app.get("/api/matters/:id/will-pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const html = savedHtml || generateWillV2Html(matter, testatorRole);
+      const client = matter.clients.find(c => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.html"`);
+      res.send(html);
+    } catch (err) {
+      console.error("[Will V2 PDF] Error:", err);
+      res.status(500).json({ error: "Failed to generate Will PDF" });
+    }
+  });
+
+  app.post("/api/matters/:id/will-html", express.json({ limit: "10mb" }), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const { html, testatorRole } = req.body as { html: string; testatorRole?: string };
+      if (!html) { res.status(400).json({ error: "html is required" }); return; }
+      const role = testatorRole === "testator2" ? "testator2" : "testator1";
+      const { saveEditedWillHtml } = await import("../mattersDb");
+      await saveEditedWillHtml(id, role, html);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Will V2 Save] Error:", err);
+      res.status(500).json({ error: "Failed to save Will HTML" });
+    }
+  });
+
+  app.delete("/api/matters/:id/will-html", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      const { clearEditedWillHtml } = await import("../mattersDb");
+      await clearEditedWillHtml(id, testatorRole);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Will V2 Reset] Error:", err);
+      res.status(500).json({ error: "Failed to reset Will HTML" });
+    }
+  });
+
+  app.get("/api/matters/:id/commentary", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      const html = generateCommentaryHtml(matter, testatorRole);
+      const client = matter.clients.find(c => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillCommentary.html"`);
+      res.send(html);
+    } catch (err) {
+      console.error("[Commentary] Error:", err);
+      res.status(500).json({ error: "Failed to generate commentary" });
+    }
+  });
+
+  app.get("/api/matters/:id/signing-guide", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      const html = generateSigningGuideHtml(matter, testatorRole);
+      const client = matter.clients.find(c => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "SigningGuide").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillSigningGuide.html"`);
+      res.send(html);
+    } catch (err) {
+      console.error("[Signing Guide] Error:", err);
+      res.status(500).json({ error: "Failed to generate signing guide" });
     }
   });
 

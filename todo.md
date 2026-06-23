@@ -264,3 +264,67 @@
 - [x] Add "Reset to Original" button with AlertDialog confirmation that clears saved HTML and reloads
 - [x] Footer hint updates based on whether edited or original version is showing
 - [x] Download dropdown labels update to "Download Edited PDF/Word" when edited version is saved
+
+## Will Instruction App — Version 2 Rebuild (Phase 19)
+
+### Database & schema
+- [x] Create `matters` table: id, matter_type (single|mirror), file_reference, status, created_at, updated_at
+- [x] Create `matter_clients` table: id, matter_id, client_role (testator1|testator2), full_name, address, date_of_birth, email, phone
+- [x] Create `matter_executors` table: id, matter_id, client_role (testator1|testator2|shared), executor_type (primary|substitute), sort_order, full_name, address
+- [x] Create `matter_guardians` table: id, matter_id, guardian_type (primary|substitute), sort_order, full_name, address
+- [x] Create `matter_beneficiaries` table: id, matter_id, client_role, beneficiary_type (primary|fallback), sort_order, full_name, relationship, share_fraction, include_issue
+- [x] Create `matter_wishes` table: id, matter_id, client_role, age_condition (default 18), survivorship_days (default 28), organ_donation, organ_donation_text, funeral_wishes, extra_notes, residue_to_spouse_first
+- [x] All tables created directly via SQL (drizzle-kit generate bypassed due to snapshot state)
+
+### tRPC procedures
+- [x] matters.list — list all matters with client names and status
+- [x] matters.getById — full matter with all related data
+- [x] matters.create — create matter + initial client records
+- [x] matters.update — update matter metadata
+- [x] matters.delete — delete matter and all related records
+- [x] matters.saveClient — upsert client record for a matter
+- [x] matters.saveExecutors — upsert executor list for a matter
+- [x] matters.saveGuardians — upsert guardian list for a matter
+- [x] matters.saveBeneficiaries — upsert beneficiary list for a matter
+- [x] matters.saveWishes — upsert wishes record for a matter
+
+### Will generation (server-side)
+- [x] Write `server/willV2Generator.ts` — generates Eleanor-style Will HTML from matter data
+- [x] Single Will: 12-clause structure matching Eleanor precedent exactly
+- [x] Mirror Wills: generate two separate Wills (one per testator) with reciprocal gift structure
+- [x] Cover page with Genesis branding, testator name, file reference
+- [x] Numbered page footer (Page X of Y)
+- [x] Final attestation page with blank signing/witnessing lines
+- [x] Add GET /api/matters/:id/will endpoint (returns HTML, accepts ?testator=testator1|testator2)
+- [x] Add GET /api/matters/:id/will-pdf endpoint (returns printable HTML page)
+
+### Will Commentary generation (server-side)
+- [x] Write `server/willV2Commentary.ts` — generates Eleanor-style commentary from matter data
+- [x] Part 1: named people summary (executors, guardians, beneficiaries with plain-English explanations)
+- [x] Part 2: clause-by-clause explanation (all 13 clauses)
+- [x] Cover page: "THE [CLIENT NAME] WILL COMMENTARY" with reference and question-mark image style
+- [x] Footer note: "This is not a legal document and will not require a signature."
+- [x] Add GET /api/matters/:id/commentary endpoint
+
+### Will Signing Guide generation (server-side)
+- [x] Write `server/willV2SigningGuide.ts` — generates personalised signing guide
+- [x] Two-column layout: instructions on left, sample attestation block on right
+- [x] Testator name pre-filled in the sample attestation block
+- [x] For Mirror Wills: one guide per testator
+- [x] Footer: "Don't Delay - Sign your Will Today!"
+- [x] Add GET /api/matters/:id/signing-guide endpoint
+
+### Frontend — Will V2 UI
+- [x] Create `/admin/wills` route in App.tsx
+- [x] Build `WillDraftingV2.tsx` — two-panel layout (left: matter list + new matter dialog, right: form/preview)
+- [x] Build `MatterForm.tsx` — tabbed instruction form: Clients, Executors, Guardians, Beneficiaries, Wishes
+- [x] Build `MatterPreview.tsx` — Will/Commentary/Signing Guide preview with download toolbar and inline edit+save
+- [x] Register route and add "Will Drafting" button in AdminDashboard header
+- [x] Ensure LPA section is unaffected and still accessible
+
+### Tests
+- [x] Vitest: will V2 generator — single will clause presence (9 tests)
+- [x] Vitest: will V2 generator — mirror will generates two separate documents (6 tests)
+- [x] Vitest: commentary generator — Part 1 and Part 2 sections present (6 tests)
+- [x] Vitest: signing guide — testator name appears in attestation block (5 tests)
+- [x] Total: 45 tests passing (19 existing + 26 new V2 tests)

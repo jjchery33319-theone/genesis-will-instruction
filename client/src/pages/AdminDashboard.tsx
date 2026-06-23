@@ -171,17 +171,30 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <Link href="/" className="flex-shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
-              >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">New Instruction</span>
-                <span className="sm:hidden">New</span>
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link href="/admin/wills">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  <FileEdit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Will Drafting</span>
+                  <span className="sm:hidden">Wills</span>
+                </Button>
+              </Link>
+              <Link href="/" className="flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">New Instruction</span>
+                  <span className="sm:hidden">New</span>
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
