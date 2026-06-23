@@ -250,3 +250,17 @@
 - [ ] Add proper residuary estate clause with backup provisions
 - [ ] Ensure Mirror Will structure correctly separates Client 1 and Client 2 Wills
 - [ ] Rewrite willDocxGenerator.ts to match corrected PDF structure
+
+## Save Manual Will Edits Feature (Phase 18)
+- [x] Add edited_will_html_single, edited_will_html_client1, edited_will_html_client2 columns to will_instructions table
+- [x] Add POST /api/submissions/:id/will-html endpoint to save edited HTML keyed by willType
+- [x] Update GET /api/submissions/:id/will-html to return saved HTML when present (X-Will-Edited: true header), else regenerate
+- [x] Update PDF download endpoint to serve saved HTML as printable HTML page when saved version exists
+- [x] Update Word download endpoint to convert saved HTML to DOCX via html-to-docx when saved version exists
+- [x] Add DELETE /api/submissions/:id/will-html endpoint to clear saved version (reset to original)
+- [x] Add "Save Edits" button to WillPreview toolbar with success/error toast
+- [x] Show green "✓ Edited version saved" badge in WillPreview when a saved version exists
+- [x] Show amber "Unsaved changes" badge when edits are pending
+- [x] Add "Reset to Original" button with AlertDialog confirmation that clears saved HTML and reloads
+- [x] Footer hint updates based on whether edited or original version is showing
+- [x] Download dropdown labels update to "Download Edited PDF/Word" when edited version is saved
