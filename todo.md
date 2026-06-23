@@ -234,3 +234,19 @@
 - [ ] LPA PDF: populate section 14 fee fields (Your phone number, I want to apply to pay a reduced fee, Im making a repeat application, Case number)
 - [ ] DB schema: add registration fields to lpa_records (applicantType, recipientType, recipientName, recipientCompany, recipientAddress, deliveryPreference, feePaymentMethod, reducedFee, repeatApplication, caseNumber, contactPhone)
 - [ ] LPA admin editor: add Registration tab with all section 12-14 fields
+
+## Will Generator Rewrite — STEP Powers / England & Wales (Phase 17)
+
+- [ ] Audit willGenerator.ts against full DB schema — list every missing field
+- [ ] Fix missing reserved executors in PDF (client1ReservedExecutors, client2ReservedExecutors, reservedExecutors)
+- [ ] Fix missing reserved guardians in PDF (client1ReservedGuardians, client2ReservedGuardians)
+- [ ] Fix missing trustees in PDF
+- [ ] Fix missing specific gifts in PDF (client1SpecificGifts, client2SpecificGifts)
+- [ ] Fix missing children lists in PDF (under-18 and over-18 per client)
+- [ ] Fix missing trust provisions in PDF (PPT, AAT, discretionary, vulnerable, NRB, bereaved minor, age 18-25)
+- [ ] Add full STEP Standard Provisions 2nd Edition clause
+- [ ] Add proper attestation clause for England & Wales
+- [ ] Add proper revocation clause
+- [ ] Add proper residuary estate clause with backup provisions
+- [ ] Ensure Mirror Will structure correctly separates Client 1 and Client 2 Wills
+- [ ] Rewrite willDocxGenerator.ts to match corrected PDF structure
