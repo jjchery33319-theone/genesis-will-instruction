@@ -611,7 +611,7 @@ export default function AdminSubmissionEditor() {
       {/* Body */}
       <div className="max-w-6xl mx-auto px-4 py-6">
         <Tabs defaultValue="appointment">
-          <TabsList className="flex flex-wrap h-auto gap-1 mb-6 p-1 bg-white border border-border rounded-xl">
+          <TabsList className="flex flex-wrap h-auto gap-1 mb-6 p-1 bg-white border border-border rounded-xl" style={{display: 'inline-block'}}>
             {[
               { value: "appointment", label: "Appointment", icon: <ClipboardList className="w-3.5 h-3.5" /> },
               { value: "clients", label: "Clients", icon: <User className="w-3.5 h-3.5" /> },
