@@ -108,9 +108,11 @@ function safeGiftArr(v: unknown): GiftEntry[] {
   return [];
 }
 
-function personFullName(p: PersonEntry | null | undefined): string {
+function personFullName(p: PersonEntry | null | undefined, includeDob = true): string {
   if (!p) return "";
-  return [p.prefix, p.firstName, p.middleName, p.lastName].filter(Boolean).join(" ").trim();
+  const name = [p.prefix, p.firstName, p.middleName, p.lastName].filter(Boolean).join(" ").trim();
+  const dobPart = includeDob && p.dob ? ` (born ${p.dob})` : "";
+  return name + dobPart;
 }
 
 function personRel(p: PersonEntry | null | undefined): string {
@@ -309,6 +311,9 @@ export async function generateWillDocx(
   const funeralWishes = isClient2
     ? safe(record.client2FuneralWishes) || safe(record.funeralWishes)
     : safe(record.client1FuneralWishes) || safe(record.funeralWishes);
+  const funeralType = isClient2
+    ? safe(record.client2FuneralType) || safe((record as any).funeralType)
+    : safe(record.client1FuneralType) || safe((record as any).funeralType);
   const organDonation = isClient2
     ? safe(record.client2OrganDonation).toLowerCase() === "yes"
     : safe(record.client1OrganDonation).toLowerCase() === "yes" || safe(record.organDonation).toLowerCase() === "yes";
@@ -683,14 +688,21 @@ export async function generateWillDocx(
     ));
   }
 
-  // ── Funeral Wishes ────────────────────────────────────────────────────────
+  // ── Funeral Wishes ────────────────────────────────────────────
   paras.push(clauseHeading(clauseNum++, "Funeral Wishes"));
-  if (funeralWishes) {
-    paras.push(body(funeralWishes));
-  } else {
-    paras.push(body(
-      "I desire that my body be [cremated/buried] and my ashes disposed of by my trustees and the expense thereof shall be a first charge on my Estate."
-    ));
+  {
+    const ft = funeralType ? funeralType.toLowerCase() : "";
+    if (ft === "burial") {
+      paras.push(body("I desire that my body be buried and the expense thereof shall be a first charge on my Estate."));
+    } else if (ft === "cremation") {
+      paras.push(body("I desire that my body be cremated and my ashes disposed of as my Executors shall think fit, and the expense thereof shall be a first charge on my Estate."));
+    } else if (ft === "no preference" || ft === "no_preference") {
+      paras.push(body("I leave the choice of burial or cremation to the discretion of my Executors."));
+    } else {
+      paras.push(body("I desire that my body be [cremated/buried] and the expense thereof shall be a first charge on my Estate."));
+    }
+    if (funeralWishes) paras.push(body(funeralWishes));
+    paras.push(body("These wishes are not legally binding on my Executors but I ask that they be given due consideration."));
   }
 
   // ── STEP Powers ───────────────────────────────────────────────────────────

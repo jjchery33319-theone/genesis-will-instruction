@@ -72,9 +72,11 @@ function safeArr(v: unknown): PersonEntry[] {
   return [];
 }
 
-function fullName(p: PersonEntry | null | undefined): string {
+function fullName(p: PersonEntry | null | undefined, includeDob = true): string {
   if (!p) return "";
-  return [p.prefix, p.firstName, p.middleName, p.lastName].filter(Boolean).join(" ").trim();
+  const name = [p.prefix, p.firstName, p.middleName, p.lastName].filter(Boolean).join(" ").trim();
+  const dobPart = includeDob && p.dob ? ` (born ${p.dob})` : "";
+  return name + dobPart;
 }
 
 function personAddress(p: PersonEntry | null | undefined): string {
@@ -463,16 +465,22 @@ function buildOrganDonationClause(doc: PDFDocument, clauseNum: number) {
   );
 }
 
-function buildFuneralWishesClause(doc: PDFDocument, clauseNum: number, funeralWishes: string) {
+function buildFuneralWishesClause(doc: PDFDocument, clauseNum: number, funeralType: string, funeralWishes: string) {
   clauseHeading(doc, clauseNum, "Funeral Wishes");
+  const ft = funeralType ? funeralType.toLowerCase() : "";
+  if (ft === "burial") {
+    bodyText(doc, "I desire that my body be buried and the expense thereof shall be a first charge on my Estate.");
+  } else if (ft === "cremation") {
+    bodyText(doc, "I desire that my body be cremated and my ashes disposed of as my Executors shall think fit, and the expense thereof shall be a first charge on my Estate.");
+  } else if (ft === "no preference" || ft === "no_preference") {
+    bodyText(doc, "I leave the choice of burial or cremation to the discretion of my Executors.");
+  } else {
+    bodyText(doc, "I desire that my body be [cremated/buried] and the expense thereof shall be a first charge on my Estate.");
+  }
   if (funeralWishes && funeralWishes.trim()) {
     bodyText(doc, funeralWishes.trim());
-  } else {
-    bodyText(
-      doc,
-      "I Desire that my body be [cremated/buried] and my ashes disposed of by my trustees and the expense thereof shall be a first charge on my Estate"
-    );
   }
+  bodyText(doc, "These wishes are not legally binding on my Executors but I ask that they be given due consideration.");
 }
 
 function buildStepPowersClause(doc: PDFDocument, clauseNum: number) {
@@ -561,7 +569,7 @@ function safeClauseArr<T>(v: unknown): T[] {
 }
 
 function trusteeNames(trustees: PersonEntry[] | undefined, fallback = "my Executors"): string {
-  const names = (trustees ?? []).map(fullName).filter(Boolean);
+  const names = (trustees ?? []).map(p => fullName(p)).filter(Boolean);
   if (names.length === 0) return fallback;
   if (names.length === 1) return names[0];
   return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
@@ -579,7 +587,7 @@ function beneficiaryNamesWithShares(people: PersonEntry[] | undefined, fallback 
 
 function buildPPTClause(doc: PDFDocument, clauseNum: number, clause: PPTClause) {
   const property = clause.propertyAddress || "my principal residence";
-  const lifeTenantNames = (clause.lifeTenants ?? []).map(fullName).filter(Boolean);
+  const lifeTenantNames = (clause.lifeTenants ?? []).map(p => fullName(p)).filter(Boolean);
   const lifeTenantStr = lifeTenantNames.length > 0
     ? lifeTenantNames.join(" and ")
     : "my surviving spouse or civil partner";
@@ -638,7 +646,7 @@ function buildPPTClause(doc: PDFDocument, clauseNum: number, clause: PPTClause) 
 function buildDiscretionaryTrustClause(doc: PDFDocument, clauseNum: number, clause: DiscretionaryTrustClause) {
   const trustees = trusteeNames(clause.trustees);
   const benefClass = clause.beneficiaryClass || "my children and remoter issue and such other persons as my Trustees shall in their absolute discretion determine";
-  const additionalBens = (clause.additionalBeneficiaries ?? []).map(fullName).filter(Boolean);
+  const additionalBens = (clause.additionalBeneficiaries ?? []).map(p => fullName(p)).filter(Boolean);
 
   clauseHeading(doc, clauseNum, "Discretionary Trust");
   bodyText(doc, `I DECLARE that the following provisions shall apply to the Discretionary Trust created by this my Will:`);
@@ -1017,12 +1025,15 @@ export async function generateWillDocument(
 
     // ── Funeral / organ donation ─────────────────────────────────────────────
     let funeralWishes: string;
+    let funeralType: string;
     let organDonation: boolean;
     if (options.willType === "mirror_client2") {
       funeralWishes = safe(record.client2FuneralWishes) || safe(record.funeralWishes);
+      funeralType = safe(record.client2FuneralType) || safe((record as any).funeralType);
       organDonation = safe(record.client2OrganDonation).toLowerCase() === "yes";
     } else {
       funeralWishes = safe(record.client1FuneralWishes) || safe(record.funeralWishes);
+      funeralType = safe(record.client1FuneralType) || safe((record as any).funeralType);
       organDonation = safe(record.client1OrganDonation).toLowerCase() === "yes" || safe(record.organDonation).toLowerCase() === "yes";
     }
 
@@ -1113,7 +1124,7 @@ export async function generateWillDocument(
       buildOrganDonationClause(doc, clauseNum++);
     }
 
-    buildFuneralWishesClause(doc, clauseNum++, funeralWishes);
+    buildFuneralWishesClause(doc, clauseNum++, funeralType, funeralWishes);
     buildStepPowersClause(doc, clauseNum++);
     buildAvoidanceOfDoubtClause(doc, clauseNum++);
 
