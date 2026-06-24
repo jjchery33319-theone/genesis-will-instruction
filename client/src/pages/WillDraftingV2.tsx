@@ -10,11 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, Eye, ChevronRight, Users, UserCheck, Baby, Heart, Scroll, Download, RotateCcw, Save } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, ChevronRight, Users, UserCheck, Baby, Heart, Scroll, Download, RotateCcw, Save, FileCheck, ExternalLink } from "lucide-react";
 import { MatterForm } from "@/components/will-v2/MatterForm";
 import { MatterPreview } from "@/components/will-v2/MatterPreview";
 
 type ViewMode = "form" | "preview";
+
+type LpaOrderDialogState = {
+  open: boolean;
+  createPF: boolean;
+  createHW: boolean;
+};
 
 export default function WillDraftingV2() {
   const [selectedMatterId, setSelectedMatterId] = useState<number | null>(null);
@@ -24,6 +30,7 @@ export default function WillDraftingV2() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [newMatterType, setNewMatterType] = useState<"single" | "mirror">("single");
   const [newFileRef, setNewFileRef] = useState("");
+  const [lpaDialog, setLpaDialog] = useState<LpaOrderDialogState>({ open: false, createPF: true, createHW: true });
 
   const utils = trpc.useUtils();
   const { data: matters = [], isLoading } = trpc.matters.list.useQuery();
@@ -52,6 +59,27 @@ export default function WillDraftingV2() {
 
   const handleCreate = () => {
     createMatter.mutate({ matterType: newMatterType, fileReference: newFileRef || undefined });
+  };
+
+  const createLpaFromMatter = trpc.lpa.createFromMatter.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.created.length} LPA record(s) created — open the LPA Manager to complete them`);
+      setLpaDialog({ open: false, createPF: true, createHW: true });
+    },
+    onError: (err) => toast.error(`Failed to create LPAs: ${err.message}`),
+  });
+
+  const handleOrderLpa = () => {
+    if (!selectedMatter) return;
+    const clients = selectedMatter.matterType === "mirror"
+      ? ["testator1" as const, "testator2" as const]
+      : ["testator1" as const];
+    createLpaFromMatter.mutate({
+      matterId: selectedMatter.id,
+      createPF: lpaDialog.createPF,
+      createHW: lpaDialog.createHW,
+      clients,
+    });
   };
 
   const handleDeleteClick = (id: number, e: React.MouseEvent) => {
@@ -172,6 +200,15 @@ export default function WillDraftingV2() {
                   <Eye className="h-3.5 w-3.5" />
                   Preview
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLpaDialog(s => ({ ...s, open: true }))}
+                  className="h-7 px-2.5 text-xs gap-1 border-green-600 text-green-700 hover:bg-green-50"
+                >
+                  <FileCheck className="h-3.5 w-3.5" />
+                  LPA Ordered
+                </Button>
               </div>
             </div>
 
@@ -220,6 +257,60 @@ export default function WillDraftingV2() {
             <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={createMatter.isPending}>
               {createMatter.isPending ? "Creating…" : "Create Matter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══ LPA Order Dialog ══════════════════════════════════════════════════ */}
+      <Dialog open={lpaDialog.open} onOpenChange={(open) => setLpaDialog(s => ({ ...s, open }))}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Order LPA — Create Pre-filled Records</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              This will create pre-filled LPA records in the LPA Manager using the client data from this matter.
+              {selectedMatter?.matterType === "mirror" && " Records will be created for both clients."}
+            </p>
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">LPA Types to Create</Label>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={lpaDialog.createPF}
+                    onChange={e => setLpaDialog(s => ({ ...s, createPF: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Property &amp; Financial Affairs (LP1F)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={lpaDialog.createHW}
+                    onChange={e => setLpaDialog(s => ({ ...s, createHW: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Health &amp; Welfare (LP1H)</span>
+                </label>
+              </div>
+            </div>
+            {selectedMatter?.matterType === "mirror" && (
+              <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+                Mirror Wills: {lpaDialog.createPF && lpaDialog.createHW ? 4 : lpaDialog.createPF || lpaDialog.createHW ? 2 : 0} LPA record(s) will be created
+                (one per client per LPA type).
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLpaDialog(s => ({ ...s, open: false }))}>Cancel</Button>
+            <Button
+              onClick={handleOrderLpa}
+              disabled={createLpaFromMatter.isPending || (!lpaDialog.createPF && !lpaDialog.createHW)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {createLpaFromMatter.isPending ? "Creating…" : "Create LPA Records"}
             </Button>
           </DialogFooter>
         </DialogContent>

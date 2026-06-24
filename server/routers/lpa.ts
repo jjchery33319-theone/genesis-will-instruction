@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { lpaRecords } from "../../drizzle/schema";
+import { lpaRecords, willInstructions, matters, matterClients, matterExecutors, matterGuardians, matterBeneficiaries, matterWishes } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -265,5 +265,323 @@ export const lpaRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
       await db.delete(lpaRecords).where(eq(lpaRecords.id, input.id));
       return { success: true };
+    }),
+
+  // List LPAs linked to a V2 matter
+  listByMatter: protectedProcedure
+    .input(z.object({ matterId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      requireAdmin(ctx.user?.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const records = await db
+        .select()
+        .from(lpaRecords)
+        .where(eq(lpaRecords.matterId, input.matterId));
+      return records;
+    }),
+
+  // Create pre-filled LPA records from a V2 matter's client data
+  createFromMatter: protectedProcedure
+    .input(z.object({
+      matterId: z.number(),
+      // Which LPA types to create: pf = Property & Finance, hw = Health & Welfare
+      createPF: z.boolean().default(true),
+      createHW: z.boolean().default(true),
+      // Which clients to create for (testator1, testator2, or both for mirror)
+      clients: z.array(z.enum(["testator1", "testator2"])).min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      requireAdmin(ctx.user?.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Load matter + clients + executors
+      const [matter] = await db.select().from(matters).where(eq(matters.id, input.matterId));
+      if (!matter) throw new TRPCError({ code: "NOT_FOUND", message: "Matter not found" });
+
+      const clients = await db.select().from(matterClients).where(eq(matterClients.matterId, input.matterId));
+      const executors = await db.select().from(matterExecutors).where(eq(matterExecutors.matterId, input.matterId));
+
+      // We need a willInstructionId placeholder — use 0 for matter-sourced LPAs
+      // (the UI will navigate to the LPA manager where matter_id is the key)
+      const MATTER_PLACEHOLDER_WI_ID = 0;
+
+      const created: number[] = [];
+
+      for (const clientRole of input.clients) {
+        const clientNum = clientRole === "testator1" ? 1 : 2;
+        const client = clients.find(c => c.clientRole === clientRole);
+        if (!client) continue;
+
+        // Build attorney list from executors for this client (or shared)
+        const clientExecs = executors.filter(e =>
+          e.clientRole === clientRole || e.clientRole === "shared"
+        );
+        const attorneys = clientExecs
+          .filter(e => e.executorType === "primary")
+          .map(e => ({ firstNames: e.fullName, lastName: "", address: e.address ?? "" }));
+        const replacementAttorneys = clientExecs
+          .filter(e => e.executorType === "substitute")
+          .map(e => ({ firstNames: e.fullName, lastName: "", address: e.address ?? "" }));
+
+        // Parse name parts (fullName may be "Title FirstName LastName")
+        const nameParts = (client.fullName ?? "").trim().split(/\s+/);
+        const donorFirstNames = nameParts.slice(0, -1).join(" ") || client.fullName || "";
+        const donorLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+        const donorAddress = client.address ?? "";
+        const donorPostcode = "";
+        const donorDob = client.dateOfBirth ?? "";
+        const donorEmail = client.email ?? "";
+
+        const lpaTypes: Array<"property_finance" | "health_welfare"> = [];
+        if (input.createPF) lpaTypes.push("property_finance");
+        if (input.createHW) lpaTypes.push("health_welfare");
+
+        for (const lpaType of lpaTypes) {
+          const result = await db.insert(lpaRecords).values({
+            willInstructionId: MATTER_PLACEHOLDER_WI_ID,
+            matterId: input.matterId,
+            clientNumber: clientNum,
+            lpaType,
+            donorFirstNames,
+            donorLastName,
+            donorDob,
+            donorAddress,
+            donorPostcode,
+            donorEmail,
+            attorneys,
+            replacementAttorneys,
+            status: "draft",
+          });
+          created.push((result as any).insertId ?? 0);
+        }
+      }
+
+      return { success: true, created };
+    }),
+
+  // Import a V1 will_instruction submission into a new V2 matter
+  importFromV1: protectedProcedure
+    .input(z.object({ willInstructionId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      requireAdmin(ctx.user?.role);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+      // Load the V1 submission
+      const [sub] = await db.select().from(willInstructions).where(eq(willInstructions.id, input.willInstructionId));
+      if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Submission not found" });
+
+      // Determine matter type from products ordered
+      const products = Array.isArray(sub.productsOrdered) ? sub.productsOrdered as string[] : [];
+      const isMirror = products.some(p => typeof p === "string" && p.toLowerCase().includes("mirror")) ||
+        sub.willType?.toLowerCase().includes("mirror") ||
+        !!(sub.client2FirstName);
+      const matterType = isMirror ? "mirror" : "single";
+
+      // Create the matter
+      const matterResult = await db.insert(matters).values({
+        matterType,
+        fileReference: sub.referenceNumber ?? `V1-${sub.id}`,
+        status: "draft",
+      });
+      const matterId = (matterResult as any).insertId as number;
+
+      // Create client records
+      const c1Name = [
+        sub.client1Prefix,
+        sub.client1FirstName,
+        sub.client1MiddleName,
+        sub.client1LastName,
+      ].filter(Boolean).join(" ").trim();
+
+      const c1Address = [
+        sub.client1AddressLine1,
+        sub.client1City,
+        sub.client1Postcode,
+      ].filter(Boolean).join(", ");
+
+      await db.insert(matterClients).values({
+        matterId,
+        clientRole: "testator1",
+        fullName: c1Name || "Client 1",
+        address: c1Address || null,
+        dateOfBirth: sub.client1Dob || null,
+        email: sub.client1Email || null,
+        phone: sub.client1DaytimePhone || sub.client1Mobile || null,
+      });
+
+      if (isMirror && sub.client2FirstName) {
+        const c2Name = [
+          sub.client2Prefix,
+          sub.client2FirstName,
+          sub.client2MiddleName,
+          sub.client2LastName,
+        ].filter(Boolean).join(" ").trim();
+
+        const c2Address = [
+          sub.client2AddressLine1,
+          sub.client2City,
+          sub.client2Postcode,
+        ].filter(Boolean).join(", ");
+
+        await db.insert(matterClients).values({
+          matterId,
+          clientRole: "testator2",
+          fullName: c2Name || "Client 2",
+          address: c2Address || null,
+          dateOfBirth: sub.client2Dob || null,
+          email: sub.client2Email || null,
+          phone: sub.client2DaytimePhone || sub.client2Mobile || null,
+        });
+      }
+
+      // Import executors (client1)
+      const c1Execs = Array.isArray(sub.client1Executors) ? sub.client1Executors as any[] : [];
+      const c1ResExecs = Array.isArray(sub.client1ReservedExecutors) ? sub.client1ReservedExecutors as any[] : [];
+      for (let i = 0; i < c1Execs.length; i++) {
+        const e = c1Execs[i];
+        await db.insert(matterExecutors).values({
+          matterId,
+          clientRole: "testator1",
+          executorType: "primary",
+          sortOrder: i,
+          fullName: [e.title, e.firstName, e.lastName].filter(Boolean).join(" ") || e.name || "",
+          address: e.address || null,
+        });
+      }
+      for (let i = 0; i < c1ResExecs.length; i++) {
+        const e = c1ResExecs[i];
+        await db.insert(matterExecutors).values({
+          matterId,
+          clientRole: "testator1",
+          executorType: "substitute",
+          sortOrder: i,
+          fullName: [e.title, e.firstName, e.lastName].filter(Boolean).join(" ") || e.name || "",
+          address: e.address || null,
+        });
+      }
+
+      // Import executors (client2) if mirror
+      if (isMirror) {
+        const c2Execs = Array.isArray(sub.client2Executors) ? sub.client2Executors as any[] : [];
+        const c2ResExecs = Array.isArray(sub.client2ReservedExecutors) ? sub.client2ReservedExecutors as any[] : [];
+        for (let i = 0; i < c2Execs.length; i++) {
+          const e = c2Execs[i];
+          await db.insert(matterExecutors).values({
+            matterId,
+            clientRole: "testator2",
+            executorType: "primary",
+            sortOrder: i,
+            fullName: [e.title, e.firstName, e.lastName].filter(Boolean).join(" ") || e.name || "",
+            address: e.address || null,
+          });
+        }
+        for (let i = 0; i < c2ResExecs.length; i++) {
+          const e = c2ResExecs[i];
+          await db.insert(matterExecutors).values({
+            matterId,
+            clientRole: "testator2",
+            executorType: "substitute",
+            sortOrder: i,
+            fullName: [e.title, e.firstName, e.lastName].filter(Boolean).join(" ") || e.name || "",
+            address: e.address || null,
+          });
+        }
+      }
+
+      // Import guardians
+      const guardians = Array.isArray(sub.client1Guardians) ? sub.client1Guardians as any[] : [];
+      const resGuardians = Array.isArray(sub.client1ReservedGuardians) ? sub.client1ReservedGuardians as any[] : [];
+      for (let i = 0; i < guardians.length; i++) {
+        const g = guardians[i];
+        await db.insert(matterGuardians).values({
+          matterId,
+          guardianType: "primary",
+          sortOrder: i,
+          fullName: [g.title, g.firstName, g.lastName].filter(Boolean).join(" ") || g.name || "",
+          address: g.address || null,
+        });
+      }
+      for (let i = 0; i < resGuardians.length; i++) {
+        const g = resGuardians[i];
+        await db.insert(matterGuardians).values({
+          matterId,
+          guardianType: "substitute",
+          sortOrder: i,
+          fullName: [g.title, g.firstName, g.lastName].filter(Boolean).join(" ") || g.name || "",
+          address: g.address || null,
+        });
+      }
+
+      // Import beneficiaries (client1)
+      const c1Bens = Array.isArray(sub.client1Beneficiaries) ? sub.client1Beneficiaries as any[] : [];
+      for (let i = 0; i < c1Bens.length; i++) {
+        const b = c1Bens[i];
+        await db.insert(matterBeneficiaries).values({
+          matterId,
+          clientRole: "testator1",
+          beneficiaryType: "primary",
+          sortOrder: i,
+          fullName: [b.title, b.firstName, b.lastName].filter(Boolean).join(" ") || b.name || "",
+          relationship: b.relationship || null,
+          shareFraction: b.share || null,
+          includeIssue: 0,
+        });
+      }
+
+      // Import beneficiaries (client2) if mirror
+      if (isMirror) {
+        const c2Bens = Array.isArray(sub.client2Beneficiaries) ? sub.client2Beneficiaries as any[] : [];
+        for (let i = 0; i < c2Bens.length; i++) {
+          const b = c2Bens[i];
+          await db.insert(matterBeneficiaries).values({
+            matterId,
+            clientRole: "testator2",
+            beneficiaryType: "primary",
+            sortOrder: i,
+            fullName: [b.title, b.firstName, b.lastName].filter(Boolean).join(" ") || b.name || "",
+            relationship: b.relationship || null,
+            shareFraction: b.share || null,
+            includeIssue: 0,
+          });
+        }
+      }
+
+      // Import wishes (client1)
+      await db.insert(matterWishes).values({
+        matterId,
+        clientRole: "testator1",
+        ageCondition: parseInt(sub.client1ChildrenBenefitAge ?? "18", 10) || 18,
+        survivorshipDays: 28,
+        organDonation: sub.client1OrganDonation === "yes" ? 1 : 0,
+        organDonationText: null,
+        funeralWishes: sub.client1FuneralWishes || null,
+        extraNotes: null,
+        residueToSpouseFirst: isMirror ? 1 : 0,
+        hasMinorChildren: sub.client1HasChildren === "yes" ? 1 : 0,
+        disasterClauseNotes: sub.disasterClauseClient1 || sub.disasterClauseNotes || null,
+        generalNotes: sub.additionalNotes || sub.specialNotes || null,
+      });
+
+      if (isMirror) {
+        await db.insert(matterWishes).values({
+          matterId,
+          clientRole: "testator2",
+          ageCondition: parseInt(sub.client2ChildrenBenefitAge ?? "18", 10) || 18,
+          survivorshipDays: 28,
+          organDonation: sub.client2OrganDonation === "yes" ? 1 : 0,
+          organDonationText: null,
+          funeralWishes: sub.client2FuneralWishes || null,
+          extraNotes: null,
+          residueToSpouseFirst: 1,
+          hasMinorChildren: sub.client2HasChildren === "yes" ? 1 : 0,
+          disasterClauseNotes: sub.disasterClauseClient2 || null,
+          generalNotes: null,
+        });
+      }
+
+      return { success: true, matterId, matterType };
     }),
 });
