@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Download, RotateCcw, Save, FileText, MessageSquare, ClipboardList, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Download, RotateCcw, Save, FileText, MessageSquare, ClipboardList, Loader2, CheckCircle2, AlertCircle, Users } from "lucide-react";
 
 type FullMatter = any;
 
@@ -19,10 +19,8 @@ interface DocTab {
   label: string;
   icon: React.ReactNode;
   endpoint: (matterId: number, testator: string) => string;
-  /** Primary download — opens in new tab (print-to-PDF for PDF types, direct download for DOCX) */
   downloadPdfEndpoint: (matterId: number, testator: string) => string;
   downloadPdfLabel: string;
-  /** Secondary download — Word .docx (only for Will and Commentary) */
   downloadDocxEndpoint?: (matterId: number, testator: string) => string;
   downloadDocxLabel?: string;
 }
@@ -35,8 +33,6 @@ const DOC_TABS: DocTab[] = [
     endpoint: (id, t) => `/api/matters/${id}/will?testator=${t}`,
     downloadPdfEndpoint: (id, t) => `/api/matters/${id}/will-pdf?testator=${t}`,
     downloadPdfLabel: "Download Will (PDF)",
-    downloadDocxEndpoint: undefined, // Will DOCX not yet wired for V2 matters
-    downloadDocxLabel: undefined,
   },
   {
     id: "commentary",
@@ -65,11 +61,13 @@ function DocViewer({
   testatorRole,
   doc,
   isEditable,
+  clientName,
 }: {
   matterId: number;
   testatorRole: "testator1" | "testator2";
   doc: DocTab;
   isEditable: boolean;
+  clientName: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
@@ -77,12 +75,13 @@ function DocViewer({
   const [hasUnsaved, setHasUnsaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
 
   const url = doc.endpoint(matterId, testatorRole);
   const downloadPdfUrl = doc.downloadPdfEndpoint(matterId, testatorRole);
   const downloadDocxUrl = doc.downloadDocxEndpoint ? doc.downloadDocxEndpoint(matterId, testatorRole) : null;
 
-  // Check if a saved version exists on mount
   useEffect(() => {
     if (doc.id !== "will") return;
     fetch(url, { method: "HEAD" }).then(res => {
@@ -93,12 +92,10 @@ function DocViewer({
   const handleIframeLoad = () => {
     setLoading(false);
     if (doc.id !== "will" || !isEditable) return;
-    // Make the iframe content editable
     const iframe = iframeRef.current;
     if (!iframe?.contentDocument?.body) return;
     iframe.contentDocument.body.contentEditable = "true";
     iframe.contentDocument.body.style.outline = "none";
-    // Listen for changes
     const handler = () => setHasUnsaved(true);
     iframe.contentDocument.addEventListener("input", handler);
     return () => iframe.contentDocument?.removeEventListener("input", handler);
@@ -131,7 +128,6 @@ function DocViewer({
       await fetch(`/api/matters/${matterId}/will-html?testator=${testatorRole}`, { method: "DELETE" });
       setIsEdited(false);
       setHasUnsaved(false);
-      // Reload the iframe
       if (iframeRef.current) {
         iframeRef.current.src = url;
         setLoading(true);
@@ -144,17 +140,14 @@ function DocViewer({
     }
   };
 
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [downloadingDocx, setDownloadingDocx] = useState(false);
-
   const triggerDownload = async (
-    url: string,
+    downloadUrl: string,
     filename: string,
-    setLoading: (v: boolean) => void
+    setDl: (v: boolean) => void
   ) => {
-    setLoading(true);
+    setDl(true);
     try {
-      const res = await fetch(url);
+      const res = await fetch(downloadUrl);
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -168,61 +161,63 @@ function DocViewer({
     } catch (err: any) {
       toast.error(`Download failed: ${err.message}`);
     } finally {
-      setLoading(false);
+      setDl(false);
     }
   };
 
+  const safeName = clientName.replace(/[^a-zA-Z0-9\s-]/g, "").trim() || "Client";
+
   const handleDownloadPdf = () => {
-    const name = doc.downloadPdfLabel.replace("Download ", "").replace(" (PDF)", "");
-    triggerDownload(downloadPdfUrl, `${name}.pdf`, setDownloadingPdf);
+    const docLabel = doc.id === "will" ? "Will" : doc.id === "commentary" ? "Commentary" : "SigningGuide";
+    triggerDownload(downloadPdfUrl, `${safeName}-${docLabel}.pdf`, setDownloadingPdf);
   };
 
   const handleDownloadDocx = () => {
     if (!downloadDocxUrl) return;
-    const name = doc.downloadDocxLabel?.replace("Download ", "").replace(" (Word)", "") ?? "Document";
-    triggerDownload(downloadDocxUrl, `${name}.docx`, setDownloadingDocx);
+    const docLabel = doc.id === "commentary" ? "Commentary" : "Document";
+    triggerDownload(downloadDocxUrl, `${safeName}-${docLabel}.docx`, setDownloadingDocx);
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
+      {/* Per-document toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30 flex-shrink-0">
-        <div className="flex items-center gap-1.5 flex-1">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
           {isEdited && !hasUnsaved && (
-            <Badge variant="default" className="h-5 text-[10px] gap-1 bg-green-600">
-              <CheckCircle2 className="h-3 w-3" /> Edited version saved
+            <Badge variant="default" className="h-5 text-[10px] gap-1 bg-green-600 shrink-0">
+              <CheckCircle2 className="h-3 w-3" /> Edited
             </Badge>
           )}
           {hasUnsaved && (
-            <Badge variant="outline" className="h-5 text-[10px] gap-1 border-amber-500 text-amber-600">
-              <AlertCircle className="h-3 w-3" /> Unsaved changes
+            <Badge variant="outline" className="h-5 text-[10px] gap-1 border-amber-500 text-amber-600 shrink-0">
+              <AlertCircle className="h-3 w-3" /> Unsaved
             </Badge>
           )}
           {!isEdited && !hasUnsaved && doc.id === "will" && (
-            <span className="text-[10px] text-muted-foreground">Click any text to edit directly</span>
+            <span className="text-[10px] text-muted-foreground truncate">Click any text to edit</span>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {doc.id === "will" && hasUnsaved && (
             <Button size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-              {saving ? "Saving…" : "Save Edits"}
+              {saving ? "Saving…" : "Save"}
             </Button>
           )}
           {doc.id === "will" && isEdited && !hasUnsaved && (
             <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setShowResetDialog(true)}>
               <RotateCcw className="h-3 w-3" />
-              Reset to Original
+              Reset
             </Button>
           )}
           <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadPdf} disabled={downloadingPdf}>
             {downloadingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-            {isEdited && doc.id === "will" ? "Download Edited (PDF)" : doc.downloadPdfLabel}
+            {isEdited && doc.id === "will" ? "Edited PDF" : "PDF"}
           </Button>
           {downloadDocxUrl && (
             <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadDocx} disabled={downloadingDocx}>
               {downloadingDocx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-              {doc.downloadDocxLabel}
+              Word
             </Button>
           )}
         </div>
@@ -240,11 +235,10 @@ function DocViewer({
           src={url}
           className="w-full h-full border-0"
           onLoad={handleIframeLoad}
-          title={`${doc.label} preview`}
+          title={`${doc.label} — ${clientName}`}
         />
       </div>
 
-      {/* Reset confirmation */}
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -265,21 +259,24 @@ function DocViewer({
   );
 }
 
-// ── Main preview ──────────────────────────────────────────────────────────────
+// ── Per-testator document set panel ──────────────────────────────────────────
 
-export function MatterPreview({ matter }: Props) {
-  const isMirror = matter.matterType === "mirror";
-  const [testatorRole, setTestatorRole] = useState<"testator1" | "testator2">("testator1");
+function TestatorDocSet({
+  matter,
+  testatorRole,
+  clientName,
+}: {
+  matter: FullMatter;
+  testatorRole: "testator1" | "testator2";
+  clientName: string;
+}) {
   const [activeDoc, setActiveDoc] = useState<DocType>("will");
   const [downloadingAll, setDownloadingAll] = useState(false);
 
-  const t1Name = matter.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "Testator 1";
-  const t2Name = matter.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "Testator 2";
-
   const activeDocDef = DOC_TABS.find(d => d.id === activeDoc)!;
 
-  const downloadBlob = async (url: string, filename: string) => {
-    const res = await fetch(url);
+  const downloadBlob = async (dlUrl: string, filename: string) => {
+    const res = await fetch(dlUrl);
     if (!res.ok) throw new Error(`${filename}: server returned ${res.status}`);
     const blob = await res.blob();
     const objectUrl = URL.createObjectURL(blob);
@@ -294,14 +291,23 @@ export function MatterPreview({ matter }: Props) {
 
   const handleDownloadAll = async () => {
     setDownloadingAll(true);
+    const safeName = clientName.replace(/[^a-zA-Z0-9\s-]/g, "").trim() || "Client";
     try {
-      for (const doc of DOC_TABS) {
-        const url = doc.downloadPdfEndpoint(matter.id, testatorRole);
-        const name = doc.downloadPdfLabel.replace("Download ", "").replace(" (PDF)", "");
-        await downloadBlob(url, `${name}.pdf`);
-        // Small delay between downloads to avoid browser throttling
-        await new Promise(r => setTimeout(r, 500));
-      }
+      await downloadBlob(
+        `/api/matters/${matter.id}/will-pdf?testator=${testatorRole}`,
+        `${safeName}-Will.pdf`
+      );
+      await new Promise(r => setTimeout(r, 400));
+      await downloadBlob(
+        `/api/matters/${matter.id}/commentary-pdf?testator=${testatorRole}`,
+        `${safeName}-Commentary.pdf`
+      );
+      await new Promise(r => setTimeout(r, 400));
+      await downloadBlob(
+        `/api/matters/${matter.id}/signing-guide-pdf?testator=${testatorRole}`,
+        `${safeName}-SigningGuide.pdf`
+      );
+      toast.success(`All documents downloaded for ${clientName}`);
     } catch (err: any) {
       toast.error(`Download failed: ${err.message}`);
     } finally {
@@ -311,24 +317,8 @@ export function MatterPreview({ matter }: Props) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Document type selector */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-card flex-shrink-0">
-        {isMirror && (
-          <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
-            <button
-              onClick={() => setTestatorRole("testator1")}
-              className={`px-2.5 py-1 text-xs rounded transition-colors ${testatorRole === "testator1" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-            >
-              {t1Name}
-            </button>
-            <button
-              onClick={() => setTestatorRole("testator2")}
-              className={`px-2.5 py-1 text-xs rounded transition-colors ${testatorRole === "testator2" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-            >
-              {t2Name}
-            </button>
-          </div>
-        )}
+      {/* Doc type selector + Download All for this testator */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card flex-shrink-0">
         <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
           {DOC_TABS.map(doc => (
             <button
@@ -350,7 +340,7 @@ export function MatterPreview({ matter }: Props) {
             disabled={downloadingAll}
           >
             {downloadingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            {downloadingAll ? "Downloading…" : "Download All"}
+            {downloadingAll ? "Downloading…" : `Download All — ${clientName}`}
           </Button>
         </div>
       </div>
@@ -363,7 +353,77 @@ export function MatterPreview({ matter }: Props) {
           testatorRole={testatorRole}
           doc={activeDocDef}
           isEditable={activeDoc === "will"}
+          clientName={clientName}
         />
+      </div>
+    </div>
+  );
+}
+
+// ── Main preview ──────────────────────────────────────────────────────────────
+
+export function MatterPreview({ matter }: Props) {
+  const isMirror = matter.matterType === "mirror";
+
+  const t1Name = matter.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "Testator 1";
+  const t2Name = matter.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "Testator 2";
+
+  // For single Wills: simple single-panel view
+  if (!isMirror) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <TestatorDocSet matter={matter} testatorRole="testator1" clientName={t1Name} />
+      </div>
+    );
+  }
+
+  // For Mirror Wills: two tabs, one per testator, each with their own complete doc set
+  const [activeTestator, setActiveTestator] = useState<"testator1" | "testator2">("testator1");
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Mirror Will testator selector header */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card/80 flex-shrink-0">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Users className="h-3.5 w-3.5" />
+          <span className="font-medium">Mirror Will — select testator:</span>
+        </div>
+        <div className="flex items-center gap-1 border border-border rounded-md p-0.5">
+          <button
+            onClick={() => setActiveTestator("testator1")}
+            className={`px-3 py-1 text-xs rounded transition-colors font-medium ${activeTestator === "testator1" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+          >
+            {t1Name}
+          </button>
+          <button
+            onClick={() => setActiveTestator("testator2")}
+            className={`px-3 py-1 text-xs rounded transition-colors font-medium ${activeTestator === "testator2" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+          >
+            {t2Name}
+          </button>
+        </div>
+        <div className="ml-auto text-[10px] text-muted-foreground">
+          Each testator has their own Will, Commentary &amp; Signing Guide
+        </div>
+      </div>
+
+      {/* Active testator's complete document set */}
+      <div className="flex-1 overflow-hidden">
+        {activeTestator === "testator1" ? (
+          <TestatorDocSet
+            key={`t1-${matter.id}`}
+            matter={matter}
+            testatorRole="testator1"
+            clientName={t1Name}
+          />
+        ) : (
+          <TestatorDocSet
+            key={`t2-${matter.id}`}
+            matter={matter}
+            testatorRole="testator2"
+            clientName={t2Name}
+          />
+        )}
       </div>
     </div>
   );
