@@ -126,7 +126,88 @@ export function generateSigningGuideHtml(matter: FullMatter, testatorRole: Testa
     color: #c0392b;
     letter-spacing: 0.03em;
   }
-  @media print { .page { margin: 0; } }
+  @media print {
+    /* ── Page setup ── */
+    @page {
+      size: A4;
+      margin: 14mm 16mm 14mm 16mm;
+    }
+
+    /* ── Reset screen chrome ── */
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    html, body {
+      width: 100%;
+      background: #fff !important;
+    }
+
+    /* ── Page container: fits on one A4 sheet ── */
+    .page {
+      width: 100% !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      /* Signing guide is a single page — no forced breaks */
+      break-after: avoid;
+      page-break-after: avoid;
+      /* Use flex column so two-col fills the page height */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Two-column layout fills remaining height ── */
+    .two-col {
+      flex: 1;
+    }
+
+    /* ── Keep each column's content together ── */
+    .col-left, .col-right {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Keep headings with their following content ── */
+    h2 {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+
+    /* ── Keep example box together ── */
+    .example-box {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      background: #fafafa !important;
+    }
+
+    /* ── Keep witness blocks together ── */
+    .witness-block {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Keep signature areas together ── */
+    .sig-area {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Preserve the red footer colour ── */
+    .footer {
+      border-top: 2px solid #c0392b !important;
+      color: #c0392b !important;
+      break-before: avoid;
+      page-break-before: avoid;
+    }
+
+    /* ── Orphans / widows ── */
+    p, li {
+      orphans: 3;
+      widows: 3;
+    }
+  }
 </style>
 </head>
 <body>
