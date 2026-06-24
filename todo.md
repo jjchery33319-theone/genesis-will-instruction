@@ -404,3 +404,22 @@
 - [x] Verified testator2 cover page shows testator2's name (generator scoped by testatorRole)
 - [x] Verified testator2 Will body correctly names testator2 as testator and testator1 as primary beneficiary
 - [x] TypeScript: 0 errors | Tests: 45/45 passing
+
+## LPA ↔ Will V2 Integration & V1 Import (Phase 23)
+
+### LPA ↔ Will V2 linkage
+- [ ] Add `matter_id` nullable FK column to `lpa_records` table
+- [ ] Add `lpaRouter.createFromMatter` procedure — creates up to 4 LPA records (P&F and H&W per client) pre-populated from matter client/executor data
+- [ ] Add `lpaRouter.listByMatter` procedure — returns all LPA records linked to a matter
+- [ ] Add "LPA Ordered" button to Will V2 MatterForm (top toolbar or Clients tab) — triggers createFromMatter and navigates to LPA manager
+- [ ] Show LPA status badge on matter list (e.g. "2 LPAs" or "LPAs ordered") when lpa_records exist for the matter
+- [ ] In LPA Manager, show a "Back to Matter" link when the LPA was created from a matter
+
+### V1 Submission → V2 Import
+- [ ] Add `importToV2` tRPC procedure — reads a will_instruction record and creates a new matter + clients + executors + guardians + beneficiaries + wishes from the V1 data
+- [ ] Add "Import to Will V2" button on AdminSubmissionDetail page
+- [ ] On click: show a confirmation dialog ("This will create a new V2 matter from this submission's client data. Continue?")
+- [ ] After import: navigate to the new matter in the Will Drafting V2 page
+- [ ] Map V1 fields to V2 schema: client1Name→testator1.fullName, client1Address→testator1.address, client1DateOfBirth→testator1.dateOfBirth, client1Email→testator1.email, client1Phone→testator1.phone, executors→matter_executors, guardians→matter_guardians, beneficiaries→matter_beneficiaries, funeralWishes→matter_wishes, etc.
+- [ ] Set matter_type based on V1 productsOrdered (mirror if "Mirror Wills" in products, else single)
+- [ ] Set fileReference from V1 referenceNumber

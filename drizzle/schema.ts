@@ -265,6 +265,7 @@ export type InsertWillInstruction = typeof willInstructions.$inferInsert;
 export const lpaRecords = mysqlTable("lpa_records", {
   id: int("id").autoincrement().primaryKey(),
   willInstructionId: int("willInstructionId").notNull(),
+  matterId: int("matter_id"),  // nullable — set when LPA is created from a V2 matter
   clientNumber: int("clientNumber").notNull().default(1), // 1 or 2
   lpaType: mysqlEnum("lpaType", ["property_finance", "health_welfare"]).notNull(),
 
