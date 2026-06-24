@@ -33,6 +33,9 @@ import {
   type InsertMatterPropertyRecord,
   type InsertMatterBusinessRecord,
   type NewMatterTrustClause,
+  matterExclusions,
+  type MatterExclusion,
+  type NewMatterExclusion,
 } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -55,6 +58,7 @@ export type FullMatter = Matter & {
   properties: MatterPropertyRecord[];
   businesses: MatterBusinessRecord[];
   trustClauses: MatterTrustClause[];
+  exclusions: MatterExclusion[];
 };
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -74,7 +78,7 @@ export async function getMatterById(id: number): Promise<FullMatter | null> {
 
 async function enrichMatter(matter: Matter): Promise<FullMatter> {
   const db = await d();
-  const [clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses] = await Promise.all([
+  const [clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses, exclusions] = await Promise.all([
     db.select().from(matterClients).where(eq(matterClients.matterId, matter.id)),
     db.select().from(matterExecutors).where(eq(matterExecutors.matterId, matter.id)).orderBy(matterExecutors.sortOrder),
     db.select().from(matterGuardians).where(eq(matterGuardians.matterId, matter.id)).orderBy(matterGuardians.sortOrder),
@@ -85,8 +89,9 @@ async function enrichMatter(matter: Matter): Promise<FullMatter> {
     db.select().from(matterProperty).where(eq(matterProperty.matterId, matter.id)).orderBy(matterProperty.sortOrder),
     db.select().from(matterBusiness).where(eq(matterBusiness.matterId, matter.id)).orderBy(matterBusiness.sortOrder),
     db.select().from(matterTrustClauses).where(eq(matterTrustClauses.matterId, matter.id)),
+    db.select().from(matterExclusions).where(eq(matterExclusions.matterId, matter.id)).orderBy(matterExclusions.createdAt),
   ]);
-  return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses };
+  return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses, exclusions };
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -104,6 +109,7 @@ export async function updateMatter(id: number, data: Partial<InsertMatter>): Pro
 
 export async function deleteMatter(id: number): Promise<void> {
   const db = await d();
+  await db.delete(matterExclusions).where(eq(matterExclusions.matterId, id));
   await db.delete(matterTrustClauses).where(eq(matterTrustClauses.matterId, id));
   await db.delete(matterBusiness).where(eq(matterBusiness.matterId, id));
   await db.delete(matterProperty).where(eq(matterProperty.matterId, id));
@@ -279,6 +285,38 @@ export async function saveEditedWillHtml(
   } else {
     await db.update(matters).set({ editedWillHtmlTestator2: html }).where(eq(matters.id, matterId));
   }
+}
+
+// ── Exclusion helpers ────────────────────────────────────────────────────────
+
+export async function listExclusions(matterId: number): Promise<MatterExclusion[]> {
+  const db = await d();
+  return db.select().from(matterExclusions)
+    .where(eq(matterExclusions.matterId, matterId))
+    .orderBy(matterExclusions.createdAt);
+}
+
+export async function upsertExclusion(
+  matterId: number,
+  data: Omit<NewMatterExclusion, "matterId">
+): Promise<number> {
+  const db = await d();
+  const now = Date.now();
+  if (data.id) {
+    await db.update(matterExclusions)
+      .set({ ...data, updatedAt: now })
+      .where(and(eq(matterExclusions.id, data.id), eq(matterExclusions.matterId, matterId)));
+    return data.id;
+  }
+  const result = await db.insert(matterExclusions).values({ ...data, matterId, createdAt: now, updatedAt: now });
+  return (result as any)[0].insertId as number;
+}
+
+export async function deleteExclusion(id: number, matterId: number): Promise<void> {
+  const db = await d();
+  await db.delete(matterExclusions).where(
+    and(eq(matterExclusions.id, id), eq(matterExclusions.matterId, matterId))
+  );
 }
 
 export async function clearEditedWillHtml(

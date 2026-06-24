@@ -435,3 +435,11 @@
 - [x] create mutation inserts matterId when provided
 - [x] Add "View LPAs" button in WillDraftingV2 toolbar that navigates to /admin/wills/:id/lpa
 - [x] TypeScript: 0 errors | Tests: 45/45 passing
+
+## Exclusions Feature — V2 Will (Phase 25)
+- [ ] Add matter_exclusions table to drizzle schema (id, matterId, testatorRole, fullName, relationship, reasonPreset, reasonCustom, createdAt)
+- [ ] Run migration SQL via webdev_execute_sql
+- [ ] Add DB helpers: listExclusions, upsertExclusion, deleteExclusion in server/mattersDb.ts
+- [ ] Add tRPC procedures: exclusions.list, exclusions.upsert, exclusions.delete in matters router
+- [ ] Build Exclusions form step in WillDraftingV2.tsx (per-testator, multiple entries, name/relationship/reason dropdown + free-text)
+- [ ] Add Exclusion clause to willV2Generator.ts (one clause per excluded person with prescribed wording)

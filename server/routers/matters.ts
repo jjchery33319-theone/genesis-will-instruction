@@ -18,6 +18,9 @@ import {
   saveEditedWillHtml,
   clearEditedWillHtml,
   replaceTrustClauses,
+  listExclusions,
+  upsertExclusion,
+  deleteExclusion,
 } from "../mattersDb";
 
 const personSchema = z.object({
@@ -270,6 +273,39 @@ export const mattersRouter = router({
     }))
     .mutation(async ({ input }) => {
       await replaceTrustClauses(input.matterId, input.clientRole, input.clauses);
+      return { success: true };
+    }),
+
+  // ── Exclusions ──────────────────────────────────────────────────────────────────
+  listExclusions: protectedProcedure
+    .input(z.object({ matterId: z.number().int() }))
+    .query(async ({ input }) => {
+      return listExclusions(input.matterId);
+    }),
+
+  upsertExclusion: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      id: z.number().int().optional(),
+      clientRole: z.enum(["testator1", "testator2"]).default("testator1"),
+      fullName: z.string().default(""),
+      relationship: z.string().default(""),
+      reasonPreset: z.string().optional(),
+      reasonCustom: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { matterId, ...data } = input;
+      const id = await upsertExclusion(matterId, data);
+      return { id };
+    }),
+
+  deleteExclusion: protectedProcedure
+    .input(z.object({
+      id: z.number().int(),
+      matterId: z.number().int(),
+    }))
+    .mutation(async ({ input }) => {
+      await deleteExclusion(input.id, input.matterId);
       return { success: true };
     }),
 });

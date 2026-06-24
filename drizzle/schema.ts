@@ -514,3 +514,17 @@ export const matterTrustClauses = mysqlTable("matter_trust_clauses", {
 
 export type MatterTrustClause = typeof matterTrustClauses.$inferSelect;
 export type NewMatterTrustClause = typeof matterTrustClauses.$inferInsert;
+
+export const matterExclusions = mysqlTable("matter_exclusions", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: varchar("client_role", { length: 20 }).notNull().default("testator1"),
+  fullName: varchar("full_name", { length: 255 }).notNull().default(""),
+  relationship: varchar("relationship", { length: 128 }).notNull().default(""),
+  reasonPreset: varchar("reason_preset", { length: 128 }),
+  reasonCustom: text("reason_custom"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(0),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(0),
+});
+export type MatterExclusion = typeof matterExclusions.$inferSelect;
+export type NewMatterExclusion = typeof matterExclusions.$inferInsert;
