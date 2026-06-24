@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { WillFormData } from "../../../hooks/useWillForm";
 import { PRODUCTS } from "../../../../../shared/willConstants";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle2, Edit2, Send, ClipboardList,
   User, Users, Scale, Heart, Home, Gift, Flower2,
-  Calendar, ShoppingBag
+  Calendar, ShoppingBag, ChevronDown, ChevronUp,
+  Briefcase, Shield, FileText, AlertTriangle,
 } from "lucide-react";
 
 interface Props {
@@ -17,76 +19,44 @@ interface Props {
   isSubmitting: boolean;
 }
 
-// ─── (auto-recommendation engine removed — replaced by manual entry) ────────────────
-function _unused_computeRecommendations(data: WillFormData) {
-  const products = data.productsOrdered ?? [];
-  const hasLPA = products.some(p => p.includes("lpa") || p === "both_lpas");
-  const hasPPT = products.includes("ppt");
-  const hasAAT = products.includes("aat");
-  const hasStorage = products.includes("storage");
-  const hasVulnerableTrust = products.includes("vulnerable_trust");
-  const isMirrorWill = products.includes("mirror_wills") || data.willType === "Mirror Wills";
-  const isMarried = ["Married", "Civil Partnership", "Partner / Common Law Spouse"].includes(data.client1MaritalStatus ?? "");
-  const ownsProperty = data.propertyOwned === "yes";
-  const hasVulnerableBeneficiary = data.hasVulnerableBeneficiary === "yes";
-  const hasCareConerns = data.careConcerns === "yes";
-
-  const recs: Array<{ id: string; title: string; reason: string; priority: "high" | "medium" | "low" }> = [];
-
-  if (!hasPPT && isMarried && ownsProperty && isMirrorWill) {
-    recs.push({ id: "ppt", title: "Protective Property Trust (PPT)", priority: "high", reason: "Married/partnered clients with property benefit from a PPT to protect the first-to-die's share from care fees and remarriage." });
-  }
-  if (!hasAAT && ownsProperty) {
-    recs.push({ id: "aat", title: "Asset Allocation Trust (AAT)", priority: "high", reason: "An AAT provides robust protection against care home fees, divorce of beneficiaries, and creditor claims." });
-  }
-  if (!hasLPA) {
-    recs.push({ id: "lpa", title: "Lasting Powers of Attorney (LPAs)", priority: "high", reason: "Without LPAs, family members must apply to the Court of Protection if the client loses capacity — a costly and lengthy process." });
-  }
-  if (!hasStorage) {
-    recs.push({ id: "storage", title: "Secure Will Storage", priority: "medium", reason: "Storing the original Will with Genesis ensures it is safe, accessible, and cannot be lost or destroyed." });
-  }
-  if (hasVulnerableBeneficiary && !hasVulnerableTrust) {
-    recs.push({ id: "vulnerable_trust", title: "Vulnerable Person's Trust", priority: "high", reason: "A vulnerable beneficiary has been identified. A Vulnerable Person's Trust protects their inheritance and preserves means-tested benefit eligibility." });
-  }
-  if (hasCareConerns && !hasAAT) {
-    recs.push({ id: "care_protection", title: "Care Protection Trust", priority: "high", reason: "Care cost concerns noted. A Care Protection Trust can shield assets from local authority means-testing." });
-  }
-
-  return recs;
-}
-
-// ─── Section Preview ──────────────────────────────────────────────────────────
+// ─── Collapsible Section ──────────────────────────────────────────────────────
 function ReviewSection({
-  title, icon, step, onEdit, children,
+  title, icon, step, onEdit, children, defaultOpen = true,
 }: {
   title: string;
   icon: React.ReactNode;
   step: number;
   onEdit: (s: number) => void;
   children: React.ReactNode;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="bg-white rounded-xl border border-border overflow-hidden">
       <div
-        className="flex items-center justify-between px-5 py-3 border-b border-border"
+        className="flex items-center justify-between px-5 py-3 border-b border-border cursor-pointer select-none"
         style={{ background: "oklch(0.97 0.015 155)" }}
+        onClick={() => setOpen(o => !o)}
       >
         <div className="flex items-center gap-2">
           <span style={{ color: "oklch(0.28 0.07 155)" }}>{icon}</span>
           <h3 className="font-serif text-sm font-semibold genesis-green-text">{title}</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEdit(step)}
-          className="gap-1.5 h-7 text-xs"
-          style={{ color: "oklch(0.65 0.14 80)" }}
-        >
-          <Edit2 className="w-3 h-3" />
-          Edit
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={e => { e.stopPropagation(); onEdit(step); }}
+            className="gap-1.5 h-7 text-xs"
+            style={{ color: "oklch(0.65 0.14 80)" }}
+          >
+            <Edit2 className="w-3 h-3" />
+            Edit
+          </Button>
+          {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </div>
       </div>
-      <div className="px-5 py-4">{children}</div>
+      {open && <div className="px-5 py-4">{children}</div>}
     </div>
   );
 }
@@ -95,8 +65,39 @@ function Field({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex gap-2 text-sm">
-      <span className="font-medium text-muted-foreground min-w-[140px] flex-shrink-0">{label}:</span>
-      <span className="text-foreground">{value}</span>
+      <span className="font-medium text-muted-foreground min-w-[160px] flex-shrink-0">{label}:</span>
+      <span className="text-foreground break-words">{value}</span>
+    </div>
+  );
+}
+
+function SubHeading({ label }: { label: string }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-wide mt-3 mb-1.5 first:mt-0" style={{ color: "oklch(0.65 0.14 80)" }}>
+      {label}
+    </p>
+  );
+}
+
+function PersonList({ persons, label }: { persons?: Array<{ prefix?: string; firstName: string; lastName: string; relationship?: string; address?: string; phone?: string; email?: string; dob?: string; share?: string; notes?: string }>; label: string }) {
+  if (!persons?.length) return null;
+  return (
+    <div className="space-y-2">
+      <span className="text-sm font-medium text-muted-foreground">{label}:</span>
+      {persons.map((p, i) => (
+        <div key={i} className="ml-3 pl-3 border-l-2 border-border space-y-0.5">
+          <p className="text-sm font-medium text-foreground">
+            {[p.prefix, p.firstName, p.lastName].filter(Boolean).join(" ")}
+            {p.relationship ? <span className="text-muted-foreground font-normal"> — {p.relationship}</span> : null}
+          </p>
+          {p.address && <p className="text-xs text-muted-foreground">{p.address}</p>}
+          {p.phone && <p className="text-xs text-muted-foreground">📞 {p.phone}</p>}
+          {p.email && <p className="text-xs text-muted-foreground">✉ {p.email}</p>}
+          {p.dob && <p className="text-xs text-muted-foreground">DOB: {p.dob}</p>}
+          {p.share && <p className="text-xs text-muted-foreground">Share: {p.share}</p>}
+          {p.notes && <p className="text-xs text-muted-foreground italic">{p.notes}</p>}
+        </div>
+      ))}
     </div>
   );
 }
@@ -106,15 +107,11 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
   const client2Name = data.client2FirstName
     ? [data.client2Prefix, data.client2FirstName, data.client2MiddleName, data.client2LastName].filter(Boolean).join(" ")
     : null;
+  const isMirror = !!client2Name;
 
   const productLabels = (data.productsOrdered ?? [])
     .map(id => PRODUCTS.find(p => p.id === id)?.label)
     .filter(Boolean);
-
-  const formatPersons = (persons?: Array<{ firstName: string; lastName: string; relationship?: string }>) =>
-    persons?.length
-      ? persons.map(p => `${p.firstName} ${p.lastName}${p.relationship ? ` (${p.relationship})` : ""}`).join(", ")
-      : "None";
 
   return (
     <div className="space-y-5">
@@ -127,7 +124,7 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
           <div>
             <h2 className="font-serif text-xl font-semibold">Review & Submit</h2>
             <p className="text-sm mt-1" style={{ color: "oklch(0.78 0.12 85)" }}>
-              Please review all details carefully before submitting
+              Please review all details carefully before submitting. Click any section header to expand/collapse.
             </p>
           </div>
           <CheckCircle2 className="w-8 h-8" style={{ color: "oklch(0.78 0.12 85)" }} />
@@ -163,136 +160,221 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
         </div>
       </div>
 
-      {/* Section Previews */}
-      <ReviewSection title="Appointment & Products" icon={<Calendar className="w-4 h-4" />} step={1} onEdit={onEdit}>
+      {/* ── STEP 1: Appointment ── */}
+      <ReviewSection title="Step 1 — Appointment & Products" icon={<Calendar className="w-4 h-4" />} step={1} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Appointment Date" value={data.appointmentDate} />
-          <Field label="Consultant" value={data.consultantName} />
-          <Field label="Case Coordinator" value={data.caseCoordinatorName} />
+          <Field label="Appointment Time" value={data.appointmentTime} />
           <Field label="Price Quoted" value={data.priceQuoted ? `£${data.priceQuoted}` : undefined} />
+          <Field label="Estimated Draft Date" value={data.estimatedDraftDate} />
+          <Field label="Will Type" value={data.willType} />
+          <Field label="LPA Type" value={data.lpaType} />
+          <SubHeading label="Consultant" />
+          <Field label="Consultant Name" value={data.consultantName} />
+          <Field label="Consultant Email" value={data.consultantEmail} />
+          <Field label="Consultant Phone" value={data.consultantPhone} />
+          <SubHeading label="Case Coordinator" />
+          <Field label="Coordinator Name" value={data.caseCoordinatorName} />
+          <Field label="Coordinator Email" value={data.caseCoordinatorEmail} />
+          <Field label="Coordinator Phone" value={data.caseCoordinatorPhone} />
           {productLabels.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {productLabels.map(label => (
-                <Badge
-                  key={label}
-                  className="text-xs"
-                  style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
-                >
-                  {label}
-                </Badge>
-              ))}
+            <div className="mt-2">
+              <SubHeading label="Products Ordered" />
+              <div className="flex flex-wrap gap-1.5">
+                {productLabels.map(label => (
+                  <Badge key={label} className="text-xs" style={{ background: "oklch(0.28 0.07 155)", color: "white" }}>
+                    {label}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Clients" icon={<Users className="w-4 h-4" />} step={2} onEdit={onEdit}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* ── STEP 2: Clients ── */}
+      <ReviewSection title="Step 2 — Client Details" icon={<Users className="w-4 h-4" />} step={2} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+            <SubHeading label="Client 1" />
             <Field label="Full Name" value={client1Name || undefined} />
             <Field label="Date of Birth" value={data.client1Dob} />
-            <Field label="Address" value={[data.client1AddressLine1, data.client1City, data.client1Postcode].filter(Boolean).join(", ") || undefined} />
+            <Field label="Address Line 1" value={data.client1AddressLine1} />
+            <Field label="City" value={data.client1City} />
+            <Field label="Postcode" value={data.client1Postcode} />
             <Field label="Marital Status" value={data.client1MaritalStatus} />
-            <Field label="Email" value={data.client1Email} />
+            <Field label="Job Title" value={data.client1JobTitle} />
+            <Field label="Nationality" value={data.client1Nationality} />
+            <Field label="Daytime Phone" value={data.client1DaytimePhone} />
             <Field label="Mobile" value={data.client1Mobile} />
+            <Field label="Email" value={data.client1Email} />
           </div>
-          {client2Name && (
+          {isMirror && (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
-              <Field label="Full Name" value={client2Name} />
+              <SubHeading label="Client 2" />
+              <Field label="Full Name" value={client2Name ?? undefined} />
               <Field label="Date of Birth" value={data.client2Dob} />
-              <Field label="Address" value={data.client2SameAddressAsClient1 ? "Same as Client 1" : [data.client2AddressLine1, data.client2City, data.client2Postcode].filter(Boolean).join(", ") || undefined} />
-              <Field label="Marital Status" value={data.client2MaritalStatus} />
-              <Field label="Email" value={data.client2Email} />
-              <Field label="Mobile" value={data.client2Mobile} />
-            </div>
-          )}
-        </div>
-      </ReviewSection>
-
-      {/* Family Background */}
-      <ReviewSection title="Family Background" icon={<Users className="w-4 h-4" />} step={3} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="C1 Marriage Plans" value={data.client1MarriagePlans === "yes" ? `Yes — ${data.client1MarriagePlanDetails ?? ""}` : data.client1MarriagePlans === "no" ? "No" : undefined} />
-          <Field label="C1 Has Children" value={data.client1HasChildren === "yes" ? `Yes (${data.client1TotalChildren ?? ""} total)` : data.client1HasChildren === "no" ? "No" : undefined} />
-          {data.client1HasChildren === "yes" && (
-            <>
-              {(data.client1ChildrenSpecialNeeds === "yes") && <Field label="C1 Special Needs" value={`Yes — ${data.client1ChildrenSpecialNeedsDetails ?? ""}`} />}
-              {(data.client1ChildrenUnder18?.length ?? 0) > 0 && <Field label="C1 Under 18" value={data.client1ChildrenUnder18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
-              {(data.client1ChildrenOver18?.length ?? 0) > 0 && <Field label="C1 Over 18" value={data.client1ChildrenOver18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
-            </>
-          )}
-          <Field label="C1 Family Circumstances" value={data.client1FamilyCircumstances} />
-          {data.client2FirstName && (
-            <>
-              <Field label="C2 Marriage Plans" value={data.client2MarriagePlans === "yes" ? `Yes — ${data.client2MarriagePlanDetails ?? ""}` : data.client2MarriagePlans === "no" ? "No" : undefined} />
-              <Field label="C2 Has Children" value={data.client2HasChildren === "yes" ? `Yes (${data.client2TotalChildren ?? ""} total)` : data.client2HasChildren === "no" ? "No" : undefined} />
-              {data.client2HasChildren === "yes" && (
+              {data.client2SameAddressAsClient1 ? (
+                <Field label="Address" value="Same as Client 1" />
+              ) : (
                 <>
-                  {(data.client2ChildrenSpecialNeeds === "yes") && <Field label="C2 Special Needs" value={`Yes — ${data.client2ChildrenSpecialNeedsDetails ?? ""}`} />}
-                  {(data.client2ChildrenUnder18?.length ?? 0) > 0 && <Field label="C2 Under 18" value={data.client2ChildrenUnder18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
-                  {(data.client2ChildrenOver18?.length ?? 0) > 0 && <Field label="C2 Over 18" value={data.client2ChildrenOver18?.map(c => [c.firstName, c.lastName].filter(Boolean).join(" ")).join(", ")} />}
+                  <Field label="Address Line 1" value={data.client2AddressLine1} />
+                  <Field label="City" value={data.client2City} />
+                  <Field label="Postcode" value={data.client2Postcode} />
                 </>
               )}
-            </>
-          )}
-        </div>
-      </ReviewSection>
-
-      {/* Additional Background */}
-      <ReviewSection title="Additional Background" icon={<User className="w-4 h-4" />} step={4} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="C1 Residency" value={data.client1Residency} />
-          <Field label="C1 Domiciled UK" value={data.client1DomiciledUK} />
-          <Field label="C1 Mental Capacity" value={data.client1MentalCapacity} />
-          <Field label="C1 Children Past Rels" value={data.client1ChildrenPastRelationships === "yes" ? `Yes — ${data.client1ChildrenPastDetails ?? ""}` : data.client1ChildrenPastRelationships === "no" ? "No" : undefined} />
-        </div>
-      </ReviewSection>
-
-      {/* Due Diligence */}
-      <ReviewSection title="Due Diligence" icon={<ShoppingBag className="w-4 h-4" />} step={5} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Arranged Appointment" value={data.ddArrangedAppointment} />
-          <Field label="Knowledge of Estate" value={data.ddKnowledgeOfEstate} />
-          <Field label="Knew Beneficiaries" value={data.ddKnewBeneficiaries} />
-          <Field label="Signs of Influence" value={data.ddSignsOfInfluence === "yes" ? `⚠ YES — ${data.ddSignsOfInfluenceNotes ?? ""}` : data.ddSignsOfInfluence === "no" ? "No" : undefined} />
-          <Field label="Knew Appointees" value={data.ddKnewAppointees} />
-        </div>
-      </ReviewSection>
-
-      <ReviewSection title="Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={6} onEdit={onEdit}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
-            <Field label="Primary Executors" value={formatPersons(data.client1Executors?.length ? data.client1Executors : data.executors)} />
-            {(data.client1ReservedExecutors?.length ?? 0) > 0 && <Field label="Reserved Executors" value={formatPersons(data.client1ReservedExecutors)} />}
-            <Field label="Primary Guardians" value={formatPersons(data.client1Guardians?.length ? data.client1Guardians : data.guardians)} />
-            {(data.client1ReservedGuardians?.length ?? 0) > 0 && <Field label="Reserved Guardians" value={formatPersons(data.client1ReservedGuardians)} />}
-          </div>
-          {client2Name && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
-              <Field label="Primary Executors" value={formatPersons(data.client2Executors)} />
-              {(data.client2ReservedExecutors?.length ?? 0) > 0 && <Field label="Reserved Executors" value={formatPersons(data.client2ReservedExecutors)} />}
-              <Field label="Primary Guardians" value={formatPersons(data.client2Guardians)} />
-              {(data.client2ReservedGuardians?.length ?? 0) > 0 && <Field label="Reserved Guardians" value={formatPersons(data.client2ReservedGuardians)} />}
+              <Field label="Marital Status" value={data.client2MaritalStatus} />
+              <Field label="Job Title" value={data.client2JobTitle} />
+              <Field label="Nationality" value={data.client2Nationality} />
+              <Field label="Daytime Phone" value={data.client2DaytimePhone} />
+              <Field label="Mobile" value={data.client2Mobile} />
+              <Field label="Email" value={data.client2Email} />
             </div>
           )}
         </div>
-        <div className="mt-3 pt-3 border-t border-border">
-          <Field label="Trustees (Shared)" value={formatPersons(data.trustees)} />
+      </ReviewSection>
+
+      {/* ── STEP 3: Family Background ── */}
+      <ReviewSection title="Step 3 — Family Background" icon={<Users className="w-4 h-4" />} step={3} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-1.5">
+            <SubHeading label="Client 1" />
+            <Field label="Marriage Plans" value={data.client1MarriagePlans === "yes" ? `Yes — ${data.client1MarriagePlanDetails ?? ""}` : data.client1MarriagePlans === "no" ? "No" : undefined} />
+            <Field label="Has Children" value={data.client1HasChildren === "yes" ? `Yes (${data.client1TotalChildren ?? ""} total)` : data.client1HasChildren === "no" ? "No" : undefined} />
+            {data.client1HasChildren === "yes" && (
+              <>
+                <Field label="Special Needs" value={data.client1ChildrenSpecialNeeds === "yes" ? `Yes — ${data.client1ChildrenSpecialNeedsDetails ?? ""}` : data.client1ChildrenSpecialNeeds === "no" ? "No" : undefined} />
+                {(data.client1ChildrenUnder18?.length ?? 0) > 0 && (
+                  <div className="mt-1">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Children Under 18:</p>
+                    {data.client1ChildrenUnder18?.map((c, i) => (
+                      <p key={i} className="text-sm ml-3">• {[c.firstName, c.lastName].filter(Boolean).join(" ")}{c.dob ? ` (DOB: ${c.dob})` : ""}{c.hasSpecialNeeds ? " ⚠ Special needs" : ""}</p>
+                    ))}
+                  </div>
+                )}
+                {(data.client1ChildrenOver18?.length ?? 0) > 0 && (
+                  <div className="mt-1">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Children Over 18:</p>
+                    {data.client1ChildrenOver18?.map((c, i) => (
+                      <p key={i} className="text-sm ml-3">• {[c.firstName, c.lastName].filter(Boolean).join(" ")}{c.dob ? ` (DOB: ${c.dob})` : ""}</p>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            <Field label="Family Circumstances" value={data.client1FamilyCircumstances} />
+          </div>
+          {isMirror && (
+            <div className="space-y-1.5">
+              <SubHeading label="Client 2" />
+              <Field label="Marriage Plans" value={data.client2MarriagePlans === "yes" ? `Yes — ${data.client2MarriagePlanDetails ?? ""}` : data.client2MarriagePlans === "no" ? "No" : undefined} />
+              <Field label="Has Children" value={data.client2HasChildren === "yes" ? `Yes (${data.client2TotalChildren ?? ""} total)` : data.client2HasChildren === "no" ? "No" : undefined} />
+              {data.client2HasChildren === "yes" && (
+                <>
+                  <Field label="Special Needs" value={data.client2ChildrenSpecialNeeds === "yes" ? `Yes — ${data.client2ChildrenSpecialNeedsDetails ?? ""}` : data.client2ChildrenSpecialNeeds === "no" ? "No" : undefined} />
+                  {(data.client2ChildrenUnder18?.length ?? 0) > 0 && (
+                    <div className="mt-1">
+                      <p className="text-xs text-muted-foreground font-medium mb-1">Children Under 18:</p>
+                      {data.client2ChildrenUnder18?.map((c, i) => (
+                        <p key={i} className="text-sm ml-3">• {[c.firstName, c.lastName].filter(Boolean).join(" ")}{c.dob ? ` (DOB: ${c.dob})` : ""}{c.hasSpecialNeeds ? " ⚠ Special needs" : ""}</p>
+                      ))}
+                    </div>
+                  )}
+                  {(data.client2ChildrenOver18?.length ?? 0) > 0 && (
+                    <div className="mt-1">
+                      <p className="text-xs text-muted-foreground font-medium mb-1">Children Over 18:</p>
+                      {data.client2ChildrenOver18?.map((c, i) => (
+                        <p key={i} className="text-sm ml-3">• {[c.firstName, c.lastName].filter(Boolean).join(" ")}{c.dob ? ` (DOB: ${c.dob})` : ""}</p>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+              <Field label="Family Circumstances" value={data.client2FamilyCircumstances} />
+            </div>
+          )}
         </div>
       </ReviewSection>
 
-      <ReviewSection title="Property & Assets" icon={<Home className="w-4 h-4" />} step={7} onEdit={onEdit}>
+      {/* ── STEP 4: Additional Background ── */}
+      <ReviewSection title="Step 4 — Additional Background" icon={<User className="w-4 h-4" />} step={4} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-1.5">
+            <SubHeading label="Client 1" />
+            <Field label="Residency" value={data.client1Residency} />
+            <Field label="Domiciled in UK" value={data.client1DomiciledUK} />
+            <Field label="Mental Capacity" value={data.client1MentalCapacity} />
+            <Field label="Capacity Notes" value={data.client1MentalCapacityNotes} />
+            <Field label="Children from Past Rels" value={data.client1ChildrenPastRelationships === "yes" ? `Yes — ${data.client1ChildrenPastDetails ?? ""}` : data.client1ChildrenPastRelationships === "no" ? "No" : undefined} />
+          </div>
+          {isMirror && (
+            <div className="space-y-1.5">
+              <SubHeading label="Client 2" />
+              <Field label="Residency" value={data.client2Residency} />
+              <Field label="Domiciled in UK" value={data.client2DomiciledUK} />
+              <Field label="Mental Capacity" value={data.client2MentalCapacity} />
+              <Field label="Capacity Notes" value={data.client2MentalCapacityNotes} />
+              <Field label="Children from Past Rels" value={data.client2ChildrenPastRelationships === "yes" ? `Yes — ${data.client2ChildrenPastDetails ?? ""}` : data.client2ChildrenPastRelationships === "no" ? "No" : undefined} />
+            </div>
+          )}
+        </div>
+      </ReviewSection>
+
+      {/* ── STEP 5: Due Diligence ── */}
+      <ReviewSection title="Step 5 — Due Diligence" icon={<Shield className="w-4 h-4" />} step={5} onEdit={onEdit}>
         <div className="space-y-1.5">
-          <Field label="Property Owned" value={data.propertyOwned === "yes" ? "Yes" : "No"} />
+          <Field label="Arranged Appointment" value={data.ddArrangedAppointment} />
+          {data.ddArrangedAppointmentNotes && <Field label="Arranged Appt Notes" value={data.ddArrangedAppointmentNotes} />}
+          <Field label="Knowledge of Estate" value={data.ddKnowledgeOfEstate} />
+          {data.ddKnowledgeOfEstateNotes && <Field label="Knowledge Notes" value={data.ddKnowledgeOfEstateNotes} />}
+          <Field label="Knew Beneficiaries" value={data.ddKnewBeneficiaries} />
+          {data.ddKnewBeneficiariesNotes && <Field label="Beneficiaries Notes" value={data.ddKnewBeneficiariesNotes} />}
+          <Field
+            label="Signs of Influence"
+            value={data.ddSignsOfInfluence === "yes" ? `⚠ YES — ${data.ddSignsOfInfluenceNotes ?? ""}` : data.ddSignsOfInfluence === "no" ? "No" : undefined}
+          />
+          <Field label="Knew Appointees" value={data.ddKnewAppointees} />
+          {data.ddKnewAppointeesNotes && <Field label="Appointees Notes" value={data.ddKnewAppointeesNotes} />}
+        </div>
+      </ReviewSection>
+
+      {/* ── STEP 6: Executors / Trustees / Guardians ── */}
+      <ReviewSection title="Step 6 — Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={6} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <SubHeading label="Client 1" />
+            <PersonList persons={data.client1Executors?.length ? data.client1Executors : data.executors} label="Primary Executors" />
+            <PersonList persons={data.client1ReservedExecutors?.length ? data.client1ReservedExecutors : data.reservedExecutors} label="Reserved Executors" />
+            <PersonList persons={data.client1Guardians?.length ? data.client1Guardians : data.guardians} label="Primary Guardians" />
+            <PersonList persons={data.client1ReservedGuardians?.length ? data.client1ReservedGuardians : data.reservedGuardians} label="Reserved Guardians" />
+          </div>
+          {isMirror && (
+            <div className="space-y-2">
+              <SubHeading label="Client 2" />
+              <PersonList persons={data.client2Executors} label="Primary Executors" />
+              <PersonList persons={data.client2ReservedExecutors} label="Reserved Executors" />
+              <PersonList persons={data.client2Guardians} label="Primary Guardians" />
+              <PersonList persons={data.client2ReservedGuardians} label="Reserved Guardians" />
+            </div>
+          )}
+        </div>
+        <div className="mt-4 pt-4 border-t border-border">
+          <SubHeading label="Trustees (Shared)" />
+          <PersonList persons={data.trustees} label="Trustees" />
+        </div>
+      </ReviewSection>
+
+      {/* ── STEP 7: Property & Assets ── */}
+      <ReviewSection title="Step 7 — Property & Assets" icon={<Home className="w-4 h-4" />} step={7} onEdit={onEdit}>
+        <div className="space-y-1.5">
+          <SubHeading label="Main Residence" />
+          <Field label="Property Owned" value={data.propertyOwned === "yes" ? "Yes" : data.propertyOwned === "no" ? "No" : undefined} />
           {data.propertyOwned === "yes" && (
             <>
               <Field label="Property Address" value={data.propertyAddress} />
               <Field label="Ownership Type" value={data.propertyOwnership} />
               <Field label="Estimated Value" value={data.propertyValue ? `£${data.propertyValue}` : undefined} />
+              <Field label="Mortgage Outstanding" value={data.mortgageOutstanding === "yes" ? "Yes" : data.mortgageOutstanding === "no" ? "No" : undefined} />
               {data.mortgageOutstanding === "yes" && (
                 <>
                   <Field label="Mortgage Lender" value={data.mortgageLender} />
@@ -302,109 +384,190 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
               )}
             </>
           )}
+          <Field label="Other Properties" value={data.hasOtherProperties === "yes" ? `Yes — ${data.otherProperties ?? ""}` : data.hasOtherProperties === "no" ? "No" : undefined} />
           <Field label="Assets Outside UK" value={data.assetsOutsideUK === "yes" ? `Yes — ${data.assetsOutsideUKDetails ?? ""}` : data.assetsOutsideUK === "no" ? "No" : undefined} />
-          <Field label="Estimated Estate" value={data.estimatedEstateValue ? `£${data.estimatedEstateValue}` : undefined} />
-          <Field label="Care Concerns" value={data.careConcerns === "yes" ? "Yes" : "No"} />
+          <SubHeading label="Client 1 Financial Assets" />
+          <Field label="Bank Accounts" value={data.bankAccounts} />
+          <Field label="Investments" value={data.investments} />
+          <Field label="Pension Details" value={data.pensionDetails} />
+          <Field label="Estimated Estate Value" value={data.estimatedEstateValue ? `£${data.estimatedEstateValue}` : undefined} />
+          {isMirror && (
+            <>
+              <SubHeading label="Client 2 Financial Assets" />
+              <Field label="Bank Accounts" value={data.client2BankAccounts} />
+              <Field label="Investments" value={data.client2Investments} />
+              <Field label="Pension Details" value={data.client2PensionDetails} />
+              <Field label="Estimated Estate Value" value={data.client2EstimatedEstateValue ? `£${data.client2EstimatedEstateValue}` : undefined} />
+            </>
+          )}
+          <SubHeading label="Care Concerns" />
+          <Field label="Care Concerns" value={data.careConcerns === "yes" ? "Yes" : data.careConcerns === "no" ? "No" : undefined} />
+          {data.careConcerns === "yes" && <Field label="Care Concern Details" value={data.careConcernDetails} />}
         </div>
       </ReviewSection>
 
-      {/* Life Insurance */}
-      <ReviewSection title="Life Insurance" icon={<ShoppingBag className="w-4 h-4" />} step={8} onEdit={onEdit}>
+      {/* ── STEP 8: Life Insurance ── */}
+      <ReviewSection title="Step 8 — Life Insurance & Protection" icon={<ShoppingBag className="w-4 h-4" />} step={8} onEdit={onEdit}>
+        <div className="space-y-2">
+          <Field label="Has Life Insurance" value={data.hasLifeInsurance === "yes" ? "Yes" : data.hasLifeInsurance === "no" ? "No" : undefined} />
+          {data.hasLifeInsurance === "yes" && (data.lifeInsurancePolicies?.length ?? 0) > 0 && (
+            <div className="mt-2 space-y-3">
+              {data.lifeInsurancePolicies?.map((p, i) => (
+                <div key={i} className="ml-3 pl-3 border-l-2 border-border space-y-0.5">
+                  <p className="text-sm font-medium">Policy {i + 1}: {p.provider}</p>
+                  {p.policyNumber && <p className="text-xs text-muted-foreground">Policy #: {p.policyNumber}</p>}
+                  {p.sumAssured && <p className="text-xs text-muted-foreground">Sum Assured: £{p.sumAssured}</p>}
+                  {p.termRemaining && <p className="text-xs text-muted-foreground">Term: {p.termRemaining}</p>}
+                  {p.beneficiary && <p className="text-xs text-muted-foreground">Beneficiary: {p.beneficiary}</p>}
+                  {p.inTrust !== undefined && <p className="text-xs text-muted-foreground">In Trust: {p.inTrust ? "Yes" : "No"}</p>}
+                  {p.notes && <p className="text-xs text-muted-foreground italic">{p.notes}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          <Field label="Protection Notes" value={data.lifeInsuranceNotes} />
+        </div>
+      </ReviewSection>
+
+      {/* ── STEP 9: Business Interests ── */}
+      <ReviewSection title="Step 9 — Business Interests" icon={<Briefcase className="w-4 h-4" />} step={9} onEdit={onEdit}>
+        <div className="space-y-2">
+          <Field label="Has Business Interests" value={data.hasBusinessInterests === "yes" ? "Yes" : data.hasBusinessInterests === "no" ? "No" : undefined} />
+          {data.hasBusinessInterests === "yes" && (data.businessInterestsDetails?.length ?? 0) > 0 && (
+            <div className="mt-2 space-y-3">
+              {data.businessInterestsDetails?.map((b, i) => (
+                <div key={i} className="ml-3 pl-3 border-l-2 border-border space-y-0.5">
+                  <p className="text-sm font-medium">{b.businessName}</p>
+                  {b.natureOfBusiness && <p className="text-xs text-muted-foreground">Nature: {b.natureOfBusiness}</p>}
+                  {b.ownershipPercentage && <p className="text-xs text-muted-foreground">Ownership: {b.ownershipPercentage}%</p>}
+                  {b.notes && <p className="text-xs text-muted-foreground italic">{b.notes}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          {data.hasBusinessInterests === "yes" && data.businessInterests && (
+            <Field label="Business Details" value={data.businessInterests} />
+          )}
+        </div>
+      </ReviewSection>
+
+      {/* ── STEP 10: Pets ── */}
+      <ReviewSection title="Step 10 — Pets" icon={<Heart className="w-4 h-4" />} step={10} onEdit={onEdit}>
         <div className="space-y-1.5">
-          <Field label="Has Life Insurance" value={data.hasLifeInsurance === "yes" ? `Yes — ${data.lifeInsurancePolicies?.length ?? 0} policy/policies` : data.hasLifeInsurance === "no" ? "No" : undefined} />
-          <Field label="Notes" value={data.lifeInsuranceNotes} />
+          <Field label="Has Pets" value={data.hasPets === "yes" ? "Yes" : data.hasPets === "no" ? "No" : undefined} />
+          {data.hasPets === "yes" && (
+            <>
+              <Field label="Pet Details" value={data.petsDetails} />
+              <Field label="Proposed Carer" value={data.petsCarer} />
+            </>
+          )}
         </div>
       </ReviewSection>
 
-      {/* Business Interests */}
-      <ReviewSection title="Business Interests" icon={<Scale className="w-4 h-4" />} step={9} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Has Business Interests" value={data.hasBusinessInterests === "yes" ? `Yes — ${data.businessInterestsDetails?.length ?? 0} business(es)` : data.hasBusinessInterests === "no" ? "No" : undefined} />
-        </div>
-      </ReviewSection>
-
-      {/* Pets */}
-      <ReviewSection title="Pets" icon={<Heart className="w-4 h-4" />} step={10} onEdit={onEdit}>
-        <div className="space-y-1.5">
-          <Field label="Has Pets" value={data.hasPets === "yes" ? `Yes — ${data.petsDetails ?? ""}` : data.hasPets === "no" ? "No" : undefined} />
-          <Field label="Proposed Carer" value={data.petsCarer} />
-        </div>
-      </ReviewSection>
-
-      {/* Funeral Wishes — per client */}
-      <ReviewSection title="Funeral Wishes" icon={<Flower2 className="w-4 h-4" />} step={11} onEdit={onEdit}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* ── STEP 11: Funeral Wishes ── */}
+      <ReviewSection title="Step 11 — Funeral Wishes" icon={<Flower2 className="w-4 h-4" />} step={11} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+            <SubHeading label="Client 1" />
             <Field label="Funeral Type" value={data.client1FuneralType ?? data.funeralType} />
-            <Field label="Wishes" value={data.client1FuneralWishes ?? data.funeralWishes} />
+            <Field label="Wishes / Instructions" value={data.client1FuneralWishes ?? data.funeralWishes} />
             <Field label="Organ Donation" value={(data.client1OrganDonation ?? data.organDonation) === "yes" ? "Yes" : (data.client1OrganDonation ?? data.organDonation) === "no" ? "No" : undefined} />
           </div>
-          {client2Name && (
+          {isMirror && (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+              <SubHeading label="Client 2" />
               <Field label="Funeral Type" value={data.client2FuneralType} />
-              <Field label="Wishes" value={data.client2FuneralWishes} />
+              <Field label="Wishes / Instructions" value={data.client2FuneralWishes} />
               <Field label="Organ Donation" value={data.client2OrganDonation === "yes" ? "Yes" : data.client2OrganDonation === "no" ? "No" : undefined} />
             </div>
           )}
         </div>
       </ReviewSection>
 
-      {/* Gifts — per client */}
-      <ReviewSection title="Legacies & Gifts" icon={<Gift className="w-4 h-4" />} step={12} onEdit={onEdit}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+      {/* ── STEP 12: Legacies & Gifts ── */}
+      <ReviewSection title="Step 12 — Legacies & Specific Gifts" icon={<Gift className="w-4 h-4" />} step={12} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <SubHeading label="Client 1" />
             {(data.client1SpecificGifts?.length ?? 0) > 0
-              ? data.client1SpecificGifts?.map((g, i) => <Field key={i} label={g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`} value={`${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}`} />)
+              ? data.client1SpecificGifts?.map((g, i) => (
+                  <div key={i} className="ml-3 pl-3 border-l-2 border-border space-y-0.5">
+                    <p className="text-sm font-medium">{g.isCharity ? "🏛 Charity" : "🎁 Gift"} {i + 1}: {g.description}</p>
+                    <p className="text-xs text-muted-foreground">Recipient: {g.recipient}</p>
+                    {g.value && <p className="text-xs text-muted-foreground">Value: {g.value}</p>}
+                    {g.notes && <p className="text-xs text-muted-foreground italic">{g.notes}</p>}
+                  </div>
+                ))
               : <span className="text-sm text-muted-foreground italic">No specific gifts</span>}
           </div>
-          {client2Name && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+          {isMirror && (
+            <div className="space-y-2">
+              <SubHeading label="Client 2" />
               {(data.client2SpecificGifts?.length ?? 0) > 0
-                ? data.client2SpecificGifts?.map((g, i) => <Field key={i} label={g.isCharity ? `Charity ${i+1}` : `Gift ${i+1}`} value={`${g.description} → ${g.recipient}${g.value ? ` (${g.value})` : ""}`} />)
+                ? data.client2SpecificGifts?.map((g, i) => (
+                    <div key={i} className="ml-3 pl-3 border-l-2 border-border space-y-0.5">
+                      <p className="text-sm font-medium">{g.isCharity ? "🏛 Charity" : "🎁 Gift"} {i + 1}: {g.description}</p>
+                      <p className="text-xs text-muted-foreground">Recipient: {g.recipient}</p>
+                      {g.value && <p className="text-xs text-muted-foreground">Value: {g.value}</p>}
+                      {g.notes && <p className="text-xs text-muted-foreground italic">{g.notes}</p>}
+                    </div>
+                  ))
                 : <span className="text-sm text-muted-foreground italic">No specific gifts</span>}
             </div>
           )}
         </div>
       </ReviewSection>
 
-      {/* Beneficiaries — per client */}
-      <ReviewSection title="Beneficiaries & Residuary Estate" icon={<Heart className="w-4 h-4" />} step={13} onEdit={onEdit}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 1</p>
+      {/* ── STEP 13: Beneficiaries ── */}
+      <ReviewSection title="Step 13 — Beneficiaries & Residuary Estate" icon={<Heart className="w-4 h-4" />} step={13} onEdit={onEdit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <SubHeading label="Client 1" />
             <Field label="Residuary Estate" value={data.client1ResidualEstate ?? data.residuaryEstate} />
-            <Field label="Beneficiaries" value={formatPersons(data.client1Beneficiaries?.length ? data.client1Beneficiaries : data.beneficiaries)} />
+            <Field label="Residuary Backup" value={data.client1ResidualBackup ?? data.residuaryBackup} />
+            <PersonList persons={data.client1Beneficiaries?.length ? data.client1Beneficiaries : data.beneficiaries} label="Named Beneficiaries" />
             <Field label="Children Benefit Age" value={data.client1ChildrenBenefitAge ? `Age ${data.client1ChildrenBenefitAge}` : undefined} />
-            {data.client1HasVulnerableBeneficiary === "yes" && <Field label="Vulnerable Beneficiary" value={`Yes — ${data.client1VulnerableBeneficiaryDetails ?? ""}`} />}
+            <Field label="Vulnerable Beneficiary" value={data.client1HasVulnerableBeneficiary === "yes" ? `Yes — ${data.client1VulnerableBeneficiaryDetails ?? ""}` : data.client1HasVulnerableBeneficiary === "no" ? "No" : undefined} />
           </div>
-          {client2Name && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "oklch(0.65 0.14 80)" }}>Client 2</p>
+          {isMirror && (
+            <div className="space-y-2">
+              <SubHeading label="Client 2" />
               <Field label="Residuary Estate" value={data.client2ResidualEstate} />
-              <Field label="Beneficiaries" value={formatPersons(data.client2Beneficiaries)} />
+              <Field label="Residuary Backup" value={data.client2ResidualBackup} />
+              <PersonList persons={data.client2Beneficiaries} label="Named Beneficiaries" />
               <Field label="Children Benefit Age" value={data.client2ChildrenBenefitAge ? `Age ${data.client2ChildrenBenefitAge}` : undefined} />
-              {data.client2HasVulnerableBeneficiary === "yes" && <Field label="Vulnerable Beneficiary" value={`Yes — ${data.client2VulnerableBeneficiaryDetails ?? ""}`} />}
+              <Field label="Vulnerable Beneficiary" value={data.client2HasVulnerableBeneficiary === "yes" ? `Yes — ${data.client2VulnerableBeneficiaryDetails ?? ""}` : data.client2HasVulnerableBeneficiary === "no" ? "No" : undefined} />
             </div>
           )}
         </div>
       </ReviewSection>
 
-      {/* Disaster Clause & Notes */}
-      <ReviewSection title="Disaster Clause & Notes" icon={<Calendar className="w-4 h-4" />} step={14} onEdit={onEdit}>
+      {/* ── STEP 14: Disaster Clause & Notes ── */}
+      <ReviewSection title="Step 14 — Disaster Clause & Notes" icon={<AlertTriangle className="w-4 h-4" />} step={14} onEdit={onEdit}>
         <div className="space-y-1.5">
           <Field label="Disaster Clause (C1)" value={data.disasterClauseClient1} />
-          {data.client2FirstName && <Field label="Disaster Clause (C2)" value={data.disasterClauseClient2} />}
+          {isMirror && <Field label="Disaster Clause (C2)" value={data.disasterClauseClient2} />}
           <Field label="Disaster Clause Notes" value={data.disasterClauseNotes} />
           <Field label="Additional Notes" value={data.additionalNotes} />
           <Field label="Consultant Notes" value={data.specialNotes} />
         </div>
       </ReviewSection>
 
-      {/* Submit */}
+      {/* ── Print Summary Button ── */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-xs"
+          onClick={() => window.print()}
+          style={{ borderColor: "oklch(0.28 0.07 155 / 0.4)", color: "oklch(0.28 0.07 155)" }}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          Print / Save Summary as PDF
+        </Button>
+      </div>
+
+      {/* ── Submit ── */}
       <div
         className="rounded-xl p-5 border-2"
         style={{ background: "oklch(0.97 0.015 155)", borderColor: "oklch(0.28 0.07 155 / 0.3)" }}
@@ -414,8 +577,7 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
           <div>
             <h3 className="font-serif text-sm font-semibold genesis-green-text">Ready to Submit</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Submitting will save this instruction, generate AI-powered estate planning recommendations,
-              and automatically notify the admin team at Genesis Wills and Estate Planning.
+              Submitting will save this instruction and automatically notify the admin team at Genesis Wills and Estate Planning.
             </p>
           </div>
         </div>
@@ -429,7 +591,7 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
           {isSubmitting ? (
             <>
               <span className="animate-spin">⏳</span>
-              Submitting & Generating Recommendations…
+              Submitting…
             </>
           ) : (
             <>
