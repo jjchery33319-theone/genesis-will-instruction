@@ -6,6 +6,30 @@
 
 import type { FullMatter } from "./mattersDb";
 import type { MatterClient, MatterExecutor, MatterGuardian, MatterBeneficiary } from "../drizzle/schema";
+import { readFileSync, existsSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** Embed the Genesis logo as a base64 data URI so Puppeteer can render it without network calls */
+function getLogoDataUri(): string {
+  const candidates = [
+    join(__dirname, "genesis-logo.png"),
+    join(__dirname, "../server/genesis-logo.png"),
+    join(process.cwd(), "server/genesis-logo.png"),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      const data = readFileSync(p).toString("base64");
+      return `data:image/png;base64,${data}`;
+    }
+  }
+  // Fallback: use the deployed storage URL
+  return "/manus-storage/GenesisEstatePlanningLogoUSETHISONE_ec7861e9.png";
+}
+
+const LOGO_DATA_URI = getLogoDataUri();
 
 export type TestatorRole = "testator1" | "testator2";
 
@@ -269,49 +293,60 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     min-height: 297mm;
+    padding: 20mm 22mm;
+    border: 2px solid #1a1a1a;
+    position: relative;
   }
-  .cover-logo {
-    font-size: 22pt;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    color: #1a3a5c;
-    margin-bottom: 8mm;
+  .cover-box {
+    border: 1px solid #1a1a1a;
+    padding: 12mm 16mm;
+    margin-top: 30mm;
+    margin-bottom: 0;
+    width: 100%;
+    max-width: 140mm;
   }
   .cover-title {
-    font-size: 28pt;
+    font-size: 16pt;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #1a3a5c;
-    margin-bottom: 6mm;
+    color: #1a1a1a;
+    margin-bottom: 5mm;
     line-height: 1.3;
   }
   .cover-subtitle {
-    font-size: 14pt;
-    color: #555;
-    margin-bottom: 16mm;
+    font-size: 13pt;
+    color: #1a1a1a;
+    margin-bottom: 5mm;
   }
   .cover-name {
-    font-size: 18pt;
-    font-weight: 600;
+    font-size: 16pt;
+    font-weight: 700;
     color: #1a1a1a;
-    border-top: 1px solid #ccc;
-    border-bottom: 1px solid #ccc;
-    padding: 4mm 10mm;
-    margin-bottom: 6mm;
+    margin-bottom: 5mm;
   }
   .cover-ref {
     font-size: 10pt;
-    color: #888;
+    color: #555;
+    font-style: italic;
   }
-  .cover-footer {
+  .cover-company {
     margin-top: auto;
     padding-top: 20mm;
-    font-size: 9pt;
-    color: #aaa;
+    font-size: 9.5pt;
+    color: #333;
+    line-height: 1.8;
+    text-align: center;
+  }
+  .cover-logo-img {
+    margin-top: 5mm;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 160px;
   }
   h2 {
     font-size: 13pt;
@@ -391,14 +426,25 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 
 <!-- ══ COVER PAGE ══════════════════════════════════════════════════════════ -->
 <div class="page cover">
-  <div class="cover-logo">GENESIS WILLS AND ESTATE PLANNING</div>
-  <div class="cover-title">The Last Will<br>&amp; Testament</div>
-  <div class="cover-subtitle">of</div>
-  <div class="cover-name">${name}</div>
-  <div class="cover-ref">${fileRef ? `File Reference: ${fileRef}` : ""}</div>
-  <div class="cover-footer">
-    This document is strictly private and confidential.<br>
-    Genesis Wills and Estate Planning Ltd &bull; England &amp; Wales
+  <div class="cover-box">
+    <div class="cover-title">The Last Will &amp; Testament</div>
+    <div class="cover-subtitle">of</div>
+    <div class="cover-name">${name}</div>
+    ${fileRef ? `<div class="cover-ref">(REFERENCE / ${fileRef})</div>` : ""}
+  </div>
+
+  <div class="cover-company">
+    Genesis Wills and Estate Planning Ltd<br>
+    The Business Village Innovation Way Barnsley<br>
+    South Yorkshire S75 1JL<br>
+    office@genesisestateplanning.info<br>
+    0330 1180937<br>
+    https://www.genesisestateplanning.net/
+    <img
+      src="${LOGO_DATA_URI}"
+      alt="Genesis Estate Planning"
+      class="cover-logo-img"
+    />
   </div>
 </div>
 
