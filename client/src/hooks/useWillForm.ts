@@ -292,9 +292,56 @@ const initialData: WillFormData = {
   client2ChildrenOver18: [],
 };
 
+// ─── Local-storage key ───────────────────────────────────────────────────────
+const LS_KEY = "genesis_will_form_autosave";
+
+function loadFromLocalStorage(): WillFormData {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return initialData;
+    const parsed = JSON.parse(raw) as Partial<WillFormData>;
+    return {
+      ...initialData,
+      ...parsed,
+      productsOrdered: (parsed.productsOrdered as string[] | null) ?? [],
+      executors: (parsed.executors as PersonEntry[] | null) ?? [],
+      reservedExecutors: (parsed.reservedExecutors as PersonEntry[] | null) ?? [],
+      trustees: (parsed.trustees as PersonEntry[] | null) ?? [],
+      guardians: (parsed.guardians as PersonEntry[] | null) ?? [],
+      reservedGuardians: (parsed.reservedGuardians as PersonEntry[] | null) ?? [],
+      beneficiaries: (parsed.beneficiaries as PersonEntry[] | null) ?? [],
+      specificGifts: (parsed.specificGifts as SpecificGift[] | null) ?? [],
+      client1Executors: (parsed.client1Executors as PersonEntry[] | null) ?? [],
+      client1ReservedExecutors: (parsed.client1ReservedExecutors as PersonEntry[] | null) ?? [],
+      client2Executors: (parsed.client2Executors as PersonEntry[] | null) ?? [],
+      client2ReservedExecutors: (parsed.client2ReservedExecutors as PersonEntry[] | null) ?? [],
+      client1Guardians: (parsed.client1Guardians as PersonEntry[] | null) ?? [],
+      client1ReservedGuardians: (parsed.client1ReservedGuardians as PersonEntry[] | null) ?? [],
+      client2Guardians: (parsed.client2Guardians as PersonEntry[] | null) ?? [],
+      client2ReservedGuardians: (parsed.client2ReservedGuardians as PersonEntry[] | null) ?? [],
+      client1Beneficiaries: (parsed.client1Beneficiaries as PersonEntry[] | null) ?? [],
+      client2Beneficiaries: (parsed.client2Beneficiaries as PersonEntry[] | null) ?? [],
+      client1SpecificGifts: (parsed.client1SpecificGifts as SpecificGift[] | null) ?? [],
+      client2SpecificGifts: (parsed.client2SpecificGifts as SpecificGift[] | null) ?? [],
+      client1ChildrenUnder18: (parsed.client1ChildrenUnder18 as ChildEntry[] | null) ?? [],
+      client1ChildrenOver18: (parsed.client1ChildrenOver18 as ChildEntry[] | null) ?? [],
+      client2ChildrenUnder18: (parsed.client2ChildrenUnder18 as ChildEntry[] | null) ?? [],
+      client2ChildrenOver18: (parsed.client2ChildrenOver18 as ChildEntry[] | null) ?? [],
+      lifeInsurancePolicies: (parsed.lifeInsurancePolicies as LifeInsurancePolicy[] | null) ?? [],
+      businessInterestsDetails: (parsed.businessInterestsDetails as BusinessInterestEntry[] | null) ?? [],
+    };
+  } catch {
+    return initialData;
+  }
+}
+
+function clearLocalStorage() {
+  try { localStorage.removeItem(LS_KEY); } catch { /* noop */ }
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useWillForm() {
-  const [formData, setFormData] = useState<WillFormData>(initialData);
+  const [formData, setFormData] = useState<WillFormData>(() => loadFromLocalStorage());
   const [currentStep, setCurrentStep] = useState(1);
   const [, navigate] = useLocation();
 
@@ -375,6 +422,7 @@ export function useWillForm() {
 
   const submitMutation = trpc.will.submit.useMutation({
     onSuccess: (data) => {
+      clearLocalStorage();
       toast.success("Will instruction submitted successfully!");
       navigate(`/success/${data.referenceNumber}`);
     },
@@ -382,6 +430,15 @@ export function useWillForm() {
       toast.error(`Submission failed: ${err.message}`);
     },
   });
+
+  // ── Auto-save to localStorage on every change ───────────────────────────
+  useEffect(() => {
+    // Skip saving if we're resuming from a server draft (URL has draftId)
+    if (urlDraftId && !serverDraftId) return;
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(formData));
+    } catch { /* storage full or private mode */ }
+  }, [formData, urlDraftId, serverDraftId]);
 
   const updateFormData = useCallback((updates: Partial<WillFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
