@@ -65,6 +65,7 @@ function PersonRow({ label, name, address, onChangeName, onChangeAddress, onRemo
 export function MatterForm({ matter, onSaved }: Props) {
   const isMirror = matter.matterType === "mirror";
   const utils = trpc.useUtils();
+  const [activeTab, setActiveTab] = useState("clients");
 
   // ── Client state ──────────────────────────────────────────────────────────
   const [t1, setT1] = useState({
@@ -283,7 +284,7 @@ export function MatterForm({ matter, onSaved }: Props) {
   const deleteExclusion = trpc.matters.deleteExclusion.useMutation();
   const saveLow = trpc.matters.upsertLetterOfWishes.useMutation();
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = async (silent = false) => {
     try {
       const ops: Promise<any>[] = [];
 
@@ -437,9 +438,9 @@ export function MatterForm({ matter, onSaved }: Props) {
       utils.matters.list.invalidate();
       utils.matters.getById.invalidate({ id: matter.id });
       onSaved();
-      toast.success("Matter saved successfully");
+      if (!silent) toast.success("Matter saved successfully");
     } catch (err) {
-      toast.error("Failed to save matter");
+      if (!silent) toast.error("Failed to save matter");
     }
   };
 
@@ -452,7 +453,11 @@ export function MatterForm({ matter, onSaved }: Props) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4">
-        <Tabs defaultValue="clients">
+        <Tabs value={activeTab} onValueChange={async (tab) => {
+            // Auto-save current tab data before switching
+            try { await handleSaveAll(true); } catch { /* silent */ }
+            setActiveTab(tab);
+          }}>
           <TabsList className="mb-4 flex-wrap h-auto gap-1">
             <TabsTrigger value="clients" className="text-xs gap-1.5">
               <User className="h-3.5 w-3.5" /> Clients
@@ -689,8 +694,8 @@ export function MatterForm({ matter, onSaved }: Props) {
 
       {/* Footer save bar */}
       <div className="border-t border-border px-4 py-3 bg-card flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">Changes are not auto-saved — click Save when ready.</p>
-        <Button onClick={handleSaveAll} disabled={isSaving} size="sm">
+        <p className="text-xs text-muted-foreground">Auto-saved when switching tabs. Click Save to save immediately.</p>
+        <Button onClick={() => handleSaveAll()} disabled={isSaving} size="sm">
           {isSaving ? "Saving…" : "Save All Changes"}
         </Button>
       </div>
