@@ -270,79 +270,123 @@ function PeopleList({
 // ── Main LPA editor form ──────────────────────────────────────────────────────
 function LpaEditorForm({
   submissionId,
+  matterId,
   willRecord,
+  matterRecord,
   existingLpa,
   lpaType,
   clientNumber,
   onSaved,
 }: {
   submissionId: number;
+  matterId?: number;
   willRecord: any;
+  matterRecord?: any;
   existingLpa: any | null;
   lpaType: "property_finance" | "health_welfare";
   clientNumber: 1 | 2;
   onSaved: () => void;
 }) {
+  const isMatterMode = !!matterId;
   const safeArr = (v: unknown): any[] => {
     if (!v) return [];
     if (Array.isArray(v)) return v;
     try { return JSON.parse(v as string) ?? []; } catch { return []; }
   };
 
-  // Build suggested people from the Will instruction
+  // Build suggested people from the Will instruction (or matter)
   const suggestedPeople = (() => {
     const people: { name: string; person: LpaPerson }[] = [];
-    const prefix = clientNumber === 1 ? "client1" : "client2";
-    const otherPrefix = clientNumber === 1 ? "client2" : "client1";
 
-    // Partner (for mirror Wills)
-    if (willRecord?.client2FirstName) {
-      const partnerName = [willRecord[`${otherPrefix}FirstName`], willRecord[`${otherPrefix}LastName`]].filter(Boolean).join(" ");
-      if (partnerName) {
+    if (isMatterMode && matterRecord) {
+      // Matter mode: suggest partner and executors from matter data
+      const clientRole = clientNumber === 1 ? "testator1" : "testator2";
+      const otherRole = clientNumber === 1 ? "testator2" : "testator1";
+      const otherClient = (matterRecord.clients ?? []).find((c: any) => c.clientRole === otherRole);
+      if (otherClient?.fullName) {
         people.push({
-          name: partnerName,
-          person: {
-            title: willRecord[`${otherPrefix}Prefix`] ?? "",
-            firstNames: willRecord[`${otherPrefix}FirstName`] ?? "",
-            lastName: willRecord[`${otherPrefix}LastName`] ?? "",
-            dob: willRecord[`${otherPrefix}Dob`] ?? "",
-            address: willRecord[`${otherPrefix}AddressLine1`] ?? "",
-            postcode: willRecord[`${otherPrefix}Postcode`] ?? "",
-            email: willRecord[`${otherPrefix}Email`] ?? "",
-          },
+          name: otherClient.fullName,
+          person: { firstNames: otherClient.fullName, lastName: "", address: otherClient.address ?? "", email: otherClient.email ?? "", dob: otherClient.dateOfBirth ?? "" },
         });
       }
-    }
-
-    // Executors
-    const executors = safeArr(willRecord?.[`${prefix}Executors`]);
-    executors.forEach((e: any) => {
-      const name = [e.firstName, e.lastName].filter(Boolean).join(" ");
-      if (name) people.push({ name, person: { title: e.title ?? "", firstNames: e.firstName ?? "", lastName: e.lastName ?? "", dob: e.dob ?? "", address: e.address ?? "", postcode: e.postcode ?? "", email: e.email ?? "" } });
-    });
-
-    // Beneficiaries
-    const beneficiaries = safeArr(willRecord?.[`${prefix}Beneficiaries`]);
-    beneficiaries.forEach((b: any) => {
-      const name = [b.firstName, b.lastName].filter(Boolean).join(" ");
-      if (name && !people.find(p => p.name === name)) {
-        people.push({ name, person: { title: b.title ?? "", firstNames: b.firstName ?? "", lastName: b.lastName ?? "", dob: b.dob ?? "", address: b.address ?? "", postcode: b.postcode ?? "", email: b.email ?? "" } });
+      const executors = (matterRecord.executors ?? []).filter((e: any) => e.clientRole === clientRole || e.clientRole === "shared");
+      executors.forEach((e: any) => {
+        if (e.fullName && !people.find(p => p.name === e.fullName)) {
+          people.push({ name: e.fullName, person: { firstNames: e.fullName, lastName: "", address: e.address ?? "" } });
+        }
+      });
+      const beneficiaries = (matterRecord.beneficiaries ?? []).filter((b: any) => b.clientRole === clientRole || b.clientRole === "shared");
+      beneficiaries.forEach((b: any) => {
+        if (b.fullName && !people.find(p => p.name === b.fullName)) {
+          people.push({ name: b.fullName, person: { firstNames: b.fullName, lastName: "", address: b.address ?? "" } });
+        }
+      });
+    } else {
+      // Submission mode: suggest from V1 willRecord
+      const prefix = clientNumber === 1 ? "client1" : "client2";
+      const otherPrefix = clientNumber === 1 ? "client2" : "client1";
+      if (willRecord?.client2FirstName) {
+        const partnerName = [willRecord[`${otherPrefix}FirstName`], willRecord[`${otherPrefix}LastName`]].filter(Boolean).join(" ");
+        if (partnerName) {
+          people.push({
+            name: partnerName,
+            person: {
+              title: willRecord[`${otherPrefix}Prefix`] ?? "",
+              firstNames: willRecord[`${otherPrefix}FirstName`] ?? "",
+              lastName: willRecord[`${otherPrefix}LastName`] ?? "",
+              dob: willRecord[`${otherPrefix}Dob`] ?? "",
+              address: willRecord[`${otherPrefix}AddressLine1`] ?? "",
+              postcode: willRecord[`${otherPrefix}Postcode`] ?? "",
+              email: willRecord[`${otherPrefix}Email`] ?? "",
+            },
+          });
+        }
       }
-    });
+      const executors = safeArr(willRecord?.[`${prefix}Executors`]);
+      executors.forEach((e: any) => {
+        const name = [e.firstName, e.lastName].filter(Boolean).join(" ");
+        if (name) people.push({ name, person: { title: e.title ?? "", firstNames: e.firstName ?? "", lastName: e.lastName ?? "", dob: e.dob ?? "", address: e.address ?? "", postcode: e.postcode ?? "", email: e.email ?? "" } });
+      });
+      const beneficiaries = safeArr(willRecord?.[`${prefix}Beneficiaries`]);
+      beneficiaries.forEach((b: any) => {
+        const name = [b.firstName, b.lastName].filter(Boolean).join(" ");
+        if (name && !people.find(p => p.name === name)) {
+          people.push({ name, person: { title: b.title ?? "", firstNames: b.firstName ?? "", lastName: b.lastName ?? "", dob: b.dob ?? "", address: b.address ?? "", postcode: b.postcode ?? "", email: b.email ?? "" } });
+        }
+      });
+    }
 
     return people;
   })();
 
-  // Donor pre-fill from will record
-  const donorDefaults = {
-    donorTitle: willRecord?.[`client${clientNumber}Prefix`] ?? "",
-    donorFirstNames: willRecord?.[`client${clientNumber}FirstName`] ?? "",
-    donorLastName: willRecord?.[`client${clientNumber}LastName`] ?? "",
-    donorDob: willRecord?.[`client${clientNumber}Dob`] ?? "",
-    donorAddress: willRecord?.[`client${clientNumber}AddressLine1`] ?? "",
-    donorPostcode: willRecord?.[`client${clientNumber}Postcode`] ?? "",
-    donorEmail: willRecord?.[`client${clientNumber}Email`] ?? "",
-  };
+  // Donor pre-fill from will record or matter
+  const donorDefaults = (() => {
+    if (isMatterMode && matterRecord) {
+      const clientRole = clientNumber === 1 ? "testator1" : "testator2";
+      const client = (matterRecord.clients ?? []).find((c: any) => c.clientRole === clientRole);
+      const nameParts = (client?.fullName ?? "").trim().split(/\s+/);
+      const donorFirstNames = nameParts.slice(0, -1).join(" ") || client?.fullName || "";
+      const donorLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+      return {
+        donorTitle: "",
+        donorFirstNames,
+        donorLastName,
+        donorDob: client?.dateOfBirth ?? "",
+        donorAddress: client?.address ?? "",
+        donorPostcode: "",
+        donorEmail: client?.email ?? "",
+      };
+    }
+    return {
+      donorTitle: willRecord?.[`client${clientNumber}Prefix`] ?? "",
+      donorFirstNames: willRecord?.[`client${clientNumber}FirstName`] ?? "",
+      donorLastName: willRecord?.[`client${clientNumber}LastName`] ?? "",
+      donorDob: willRecord?.[`client${clientNumber}Dob`] ?? "",
+      donorAddress: willRecord?.[`client${clientNumber}AddressLine1`] ?? "",
+      donorPostcode: willRecord?.[`client${clientNumber}Postcode`] ?? "",
+      donorEmail: willRecord?.[`client${clientNumber}Email`] ?? "",
+    };
+  })();
 
   const [form, setForm] = useState<LpaFormData>(() => {
     if (existingLpa) {
@@ -441,17 +485,34 @@ function LpaEditorForm({
 
   const utils = trpc.useUtils();
   const createMutation = trpc.lpa.create.useMutation({
-    onSuccess: () => { toast.success("LPA created successfully"); utils.lpa.listBySubmission.invalidate({ willInstructionId: submissionId }); onSaved(); },
+    onSuccess: () => {
+      toast.success("LPA created successfully");
+      if (isMatterMode && matterId) {
+        utils.lpa.listByMatter.invalidate({ matterId });
+      } else {
+        utils.lpa.listBySubmission.invalidate({ willInstructionId: submissionId });
+      }
+      onSaved();
+    },
     onError: (e) => toast.error(e.message),
   });
   const updateMutation = trpc.lpa.update.useMutation({
-    onSuccess: () => { toast.success("LPA saved successfully"); utils.lpa.listBySubmission.invalidate({ willInstructionId: submissionId }); onSaved(); },
+    onSuccess: () => {
+      toast.success("LPA saved successfully");
+      if (isMatterMode && matterId) {
+        utils.lpa.listByMatter.invalidate({ matterId });
+      } else {
+        utils.lpa.listBySubmission.invalidate({ willInstructionId: submissionId });
+      }
+      onSaved();
+    },
     onError: (e) => toast.error(e.message),
   });
 
   const handleSave = () => {
     const payload = {
-      willInstructionId: submissionId,
+      willInstructionId: isMatterMode ? 0 : submissionId,
+      matterId: isMatterMode ? matterId : undefined,
       clientNumber: form.clientNumber,
       lpaType: form.lpaType,
       donorTitle: form.donorTitle,
@@ -929,24 +990,45 @@ function LpaEditorForm({
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function LpaManager() {
   const { id } = useParams<{ id: string }>();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { user } = useAuth();
-  const submissionId = parseInt(id ?? "0", 10);
+  const entityId = parseInt(id ?? "0", 10);
+
+  // Detect whether we're in matter mode (/admin/wills/:id/lpa) or submission mode (/admin/submissions/:id/lpa)
+  const isMatterMode = location.includes("/wills/");
+  const submissionId = isMatterMode ? 0 : entityId;
+  const matterId = isMatterMode ? entityId : undefined;
 
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [editingLpa, setEditingLpa] = useState<{ lpaType: "property_finance" | "health_welfare"; clientNumber: 1 | 2; existingId?: number } | null>(null);
   const [pdfPreview, setPdfPreview] = useState<{ lpaId: number; lpaData: Record<string, any> } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Submission mode queries
   const { data: willRecord, isLoading: willLoading } = trpc.will.getById.useQuery(
     { id: submissionId },
-    { enabled: submissionId > 0 }
+    { enabled: !isMatterMode && submissionId > 0 }
+  );
+  const { data: submissionLpaList, isLoading: submissionLpaLoading, refetch: refetchSubmissionLpas } = trpc.lpa.listBySubmission.useQuery(
+    { willInstructionId: submissionId },
+    { enabled: !isMatterMode && submissionId > 0 }
   );
 
-  const { data: lpaList, isLoading: lpaLoading, refetch: refetchLpas } = trpc.lpa.listBySubmission.useQuery(
-    { willInstructionId: submissionId },
-    { enabled: submissionId > 0 }
+  // Matter mode queries
+  const { data: matterRecord, isLoading: matterLoading } = trpc.matters.getById.useQuery(
+    { id: matterId ?? 0 },
+    { enabled: isMatterMode && (matterId ?? 0) > 0 }
   );
+  const { data: matterLpaList, isLoading: matterLpaLoading, refetch: refetchMatterLpas } = trpc.lpa.listByMatter.useQuery(
+    { matterId: matterId ?? 0 },
+    { enabled: isMatterMode && (matterId ?? 0) > 0 }
+  );
+
+  // Unified accessors
+  const lpaList = isMatterMode ? matterLpaList : submissionLpaList;
+  const lpaLoading = isMatterMode ? matterLpaLoading : submissionLpaLoading;
+  const refetchLpas = isMatterMode ? refetchMatterLpas : refetchSubmissionLpas;
+  const isDataLoading = isMatterMode ? (matterLoading || matterLpaLoading) : (willLoading || submissionLpaLoading);
 
   const deleteMutation = trpc.lpa.delete.useMutation({
     onSuccess: () => { toast.success("LPA deleted"); refetchLpas(); },
@@ -973,6 +1055,22 @@ export default function LpaManager() {
       try { return JSON.parse(v as string) ?? []; } catch { return []; }
     };
     const targetDonorDefaults = (() => {
+      if (isMatterMode && matterRecord) {
+        const role = targetClientNumber === 1 ? "testator1" : "testator2";
+        const client = (matterRecord.clients ?? []).find((c: any) => c.clientRole === role);
+        const nameParts = (client?.fullName ?? "").trim().split(/\s+/);
+        const donorFirstNames = nameParts.slice(0, -1).join(" ") || client?.fullName || "";
+        const donorLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+        return {
+          donorTitle: "",
+          donorFirstNames,
+          donorLastName,
+          donorDob: client?.dateOfBirth ?? "",
+          donorAddress: client?.address ?? "",
+          donorPostcode: "",
+          donorEmail: client?.email ?? "",
+        };
+      }
       const r = willRecord as any;
       return {
         donorTitle: r?.[`client${targetClientNumber}Prefix`] ?? "",
@@ -988,7 +1086,8 @@ export default function LpaManager() {
     // When mirroring to another client, use that client's donor details
     const isMirrorClient = targetClientNumber !== source.clientNumber;
     const payload = {
-      willInstructionId: submissionId,
+      willInstructionId: isMatterMode ? 0 : submissionId,
+      matterId: isMatterMode ? matterId : undefined,
       lpaType: targetLpaType,
       clientNumber: targetClientNumber,
       // Donor: use target client's details when mirroring to other client
@@ -1034,16 +1133,23 @@ export default function LpaManager() {
     return <div className="p-8 text-center text-muted-foreground">Admin access required</div>;
   }
 
-  if (willLoading || lpaLoading) {
+  if (isDataLoading) {
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
   }
 
   const clientName = (n: 1 | 2) => {
+    if (isMatterMode && matterRecord) {
+      const role = n === 1 ? "testator1" : "testator2";
+      const client = (matterRecord.clients ?? []).find((c: any) => c.clientRole === role);
+      return client?.fullName || `Client ${n}`;
+    }
     const r = willRecord as any;
     return [r?.[`client${n}FirstName`], r?.[`client${n}LastName`]].filter(Boolean).join(" ") || `Client ${n}`;
   };
 
-  const hasClient2 = !!(willRecord as any)?.client2FirstName;
+  const hasClient2 = isMatterMode
+    ? !!(matterRecord?.clients ?? []).find((c: any) => c.clientRole === "testator2")
+    : !!(willRecord as any)?.client2FirstName;
 
   const getLpaForClient = (lpaType: "property_finance" | "health_welfare", clientNumber: 1 | 2) =>
     lpaList?.find((l: any) => l.lpaType === lpaType && l.clientNumber === clientNumber);
@@ -1061,7 +1167,9 @@ export default function LpaManager() {
           </Button>
           <LpaEditorForm
             submissionId={submissionId}
+            matterId={matterId}
             willRecord={willRecord}
+            matterRecord={matterRecord}
             existingLpa={existing ?? null}
             lpaType={editingLpa.lpaType}
             clientNumber={editingLpa.clientNumber}
@@ -1077,15 +1185,18 @@ export default function LpaManager() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/admin/submissions/${submissionId}`)}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Submission
+          <Button variant="ghost" size="sm" onClick={() => isMatterMode ? navigate("/admin/wills") : navigate(`/admin/submissions/${submissionId}`)}>
+            <ArrowLeft className="w-4 h-4 mr-1" /> {isMatterMode ? "Back to Will Drafting" : "Back to Submission"}
           </Button>
         </div>
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Lasting Powers of Attorney</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Submission #{submissionId} — {clientName(1)}{hasClient2 ? ` & ${clientName(2)}` : ""}
+            {isMatterMode
+              ? `Matter: ${matterRecord?.fileReference ?? `#${matterId}`} — ${clientName(1)}${hasClient2 ? ` & ${clientName(2)}` : ""}`
+              : `Submission #${submissionId} — ${clientName(1)}${hasClient2 ? ` & ${clientName(2)}` : ""}`
+            }
           </p>
         </div>
 
@@ -1245,7 +1356,7 @@ export default function LpaManager() {
         {lpaList && lpaList.length > 0 && (
           <Card className="mt-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">All LPA Records for This Submission</CardTitle>
+              <CardTitle className="text-sm">{isMatterMode ? "All LPA Records for This Matter" : "All LPA Records for This Submission"}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">

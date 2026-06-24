@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, Eye, ChevronRight, Users, UserCheck, Baby, Heart, Scroll, Download, RotateCcw, Save, FileCheck, ExternalLink } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, ChevronRight, Users, UserCheck, Baby, Heart, Scroll, Download, RotateCcw, Save, FileCheck, ExternalLink, ClipboardList } from "lucide-react";
 import { MatterForm } from "@/components/will-v2/MatterForm";
 import { MatterPreview } from "@/components/will-v2/MatterPreview";
+import { useLocation } from "wouter";
 
 type ViewMode = "form" | "preview";
 
@@ -24,6 +25,7 @@ type LpaOrderDialogState = {
 };
 
 export default function WillDraftingV2() {
+  const [, navigate] = useLocation();
   const [selectedMatterId, setSelectedMatterId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("form");
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -210,6 +212,15 @@ export default function WillDraftingV2() {
                 >
                   <FileCheck className="h-3.5 w-3.5" />
                   LPA Ordered
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/admin/wills/${selectedMatter.id}/lpa`)}
+                  className="h-7 px-2.5 text-xs gap-1 border-blue-600 text-blue-700 hover:bg-blue-50"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  View LPAs
                 </Button>
               </div>
             </div>
