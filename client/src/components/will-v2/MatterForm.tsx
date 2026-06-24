@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Plus, Trash2, User, Baby, Heart, Scroll, UserCog,
-  Gift, PawPrint, Home, Briefcase, Shield, Copy, UserX
+  Gift, PawPrint, Home, Briefcase, Shield, Copy, UserX, FileHeart
 } from "lucide-react";
 
 type FullMatter = any;
@@ -243,6 +243,17 @@ export function MatterForm({ matter, onSaved }: Props) {
   const [exclusions1, setExclusions1] = useState<ExclusionRow[]>(toExclusionRows(isMirror ? "testator1" : "testator1"));
   const [exclusions2, setExclusions2] = useState<ExclusionRow[]>(toExclusionRows("testator2"));
 
+  // ── Letter of Wishes state ──────────────────────────────────────────
+  const [low1, setLow1] = useState<string>("");
+  const [low2, setLow2] = useState<string>("");
+  const lowQuery1 = trpc.matters.getLetterOfWishes.useQuery({ matterId: matter.id, clientRole: "testator1" });
+  const lowQuery2 = trpc.matters.getLetterOfWishes.useQuery(
+    { matterId: matter.id, clientRole: "testator2" },
+    { enabled: isMirror }
+  );
+  useEffect(() => { if (lowQuery1.data !== undefined) setLow1(lowQuery1.data?.content ?? ""); }, [lowQuery1.data]);
+  useEffect(() => { if (lowQuery2.data !== undefined) setLow2(lowQuery2.data?.content ?? ""); }, [lowQuery2.data]);
+
   // ── Business state ────────────────────────────────────────────────────────
   const [businesses, setBusinesses] = useState<Array<{
     businessName: string; businessType: string; sharePercentage: string; businessNotes: string;
@@ -270,6 +281,7 @@ export function MatterForm({ matter, onSaved }: Props) {
   const saveTrustClauses = trpc.matters.saveTrustClauses.useMutation();
   const upsertExclusion = trpc.matters.upsertExclusion.useMutation();
   const deleteExclusion = trpc.matters.deleteExclusion.useMutation();
+  const saveLow = trpc.matters.upsertLetterOfWishes.useMutation();
 
   const handleSaveAll = async () => {
     try {
@@ -417,6 +429,10 @@ export function MatterForm({ matter, onSaved }: Props) {
         }
       }
 
+      // Letter of Wishes
+      ops.push(saveLow.mutateAsync({ matterId: matter.id, clientRole: "testator1", content: low1 }));
+      if (isMirror) ops.push(saveLow.mutateAsync({ matterId: matter.id, clientRole: "testator2", content: low2 }));
+
       await Promise.all(ops);
       utils.matters.list.invalidate();
       utils.matters.getById.invalidate({ id: matter.id });
@@ -430,7 +446,7 @@ export function MatterForm({ matter, onSaved }: Props) {
   const isSaving = saveClient.isPending || saveExecutors.isPending || saveGuardians.isPending ||
     saveBeneficiaries.isPending || saveWishes.isPending || saveGifts.isPending ||
     savePets.isPending || saveProperty.isPending || saveBusiness.isPending || saveTrustClauses.isPending ||
-    upsertExclusion.isPending || deleteExclusion.isPending;
+    upsertExclusion.isPending || deleteExclusion.isPending || saveLow.isPending;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -470,6 +486,9 @@ export function MatterForm({ matter, onSaved }: Props) {
             </TabsTrigger>
             <TabsTrigger value="exclusions" className="text-xs gap-1.5">
               <UserX className="h-3.5 w-3.5" /> Exclusions
+            </TabsTrigger>
+            <TabsTrigger value="letter-of-wishes" className="text-xs gap-1.5">
+              <FileHeart className="h-3.5 w-3.5" /> Letter of Wishes
             </TabsTrigger>
           </TabsList>
 
@@ -622,6 +641,25 @@ export function MatterForm({ matter, onSaved }: Props) {
                   label={`Exclusions for ${t2.fullName || "Testator 2"}`}
                   rows={exclusions2}
                   onChange={setExclusions2}
+                />
+              </>
+            )}
+          </TabsContent>
+
+          {/* ── LETTER OF WISHES ───────────────────────────────────────────── */}
+          <TabsContent value="letter-of-wishes" className="space-y-4">
+            <LetterOfWishesSection
+              label={isMirror ? `Letter of Wishes — ${t1.fullName || "Testator 1"}` : "Letter of Wishes"}
+              content={low1}
+              onChange={setLow1}
+            />
+            {isMirror && (
+              <>
+                <Separator />
+                <LetterOfWishesSection
+                  label={`Letter of Wishes — ${t2.fullName || "Testator 2"}`}
+                  content={low2}
+                  onChange={setLow2}
                 />
               </>
             )}
@@ -1532,6 +1570,55 @@ function ExclusionsSection({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── LetterOfWishesSection ─────────────────────────────────────────────────────
+
+interface LetterOfWishesSectionProps {
+  label: string;
+  content: string;
+  onChange: (v: string) => void;
+}
+
+function LetterOfWishesSection({ label, content, onChange }: LetterOfWishesSectionProps) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium text-sm">{label}</h3>
+      </div>
+      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          This Letter of Wishes is not legally binding but provides important guidance to your Trustees and Executors.
+          It will be printed on Genesis headed paper and stored alongside the Will.
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed italic">
+          The document will open with the following introduction:
+          <br />
+          <span className="not-italic text-foreground/80">
+            &ldquo;This Letter of Wishes is written to accompany my Will dated [Date of Will], and it is intended to provide
+            guidance to my Trustees and Executors regarding the administration of my estate. While this document is not
+            legally binding, I trust that it will be treated with serious consideration and will serve to clarify my
+            intentions for the distribution and management of my assets. The requests and suggestions outlined below are
+            made with the aim of ensuring that my wishes are respected and that my family and beneficiaries are provided
+            for in accordance with my personal values and long-term objectives.&rdquo;
+          </span>
+        </p>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Wishes Content</Label>
+        <Textarea
+          value={content}
+          onChange={e => onChange(e.target.value)}
+          placeholder="Enter the client's wishes here. You may include guidance on caring for children, messages to beneficiaries, preferences for specific assets, charitable intentions, or any other personal instructions…"
+          rows={14}
+          className="text-sm resize-y"
+        />
+        <p className="text-xs text-muted-foreground">
+          {content.length > 0 ? `${content.length} characters` : "No content yet — click Save All Changes to save once written."}
+        </p>
+      </div>
     </div>
   );
 }

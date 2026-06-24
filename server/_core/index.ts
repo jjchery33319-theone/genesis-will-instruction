@@ -20,6 +20,7 @@ import { serveStatic, setupVite } from "./vite";
 import { generateWillHtml as generateWillV2Html } from "../willV2Generator";
 import { generateCommentaryHtml } from "../willV2Commentary";
 import { generateSigningGuideHtml } from "../willV2SigningGuide";
+import { generateLetterOfWishesHtml } from "../willV2LetterOfWishes";
 import { getMatterById } from "../mattersDb";
 import { htmlToPdf } from "../htmlToPdf";
 import { createRequire } from "module";
@@ -548,6 +549,30 @@ async function startServer() {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[Signing Guide PDF] Error:", msg, err);
       res.status(500).json({ error: "Failed to generate signing guide PDF", detail: msg });
+    }
+  });
+
+  // Letter of Wishes — HTML (print-to-PDF)
+  app.get("/api/matters/:id/letter-of-wishes", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      let html = generateLetterOfWishesHtml(matter, testatorRole);
+      const client = matter.clients.find((c: any) => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "LetterOfWishes").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      if (req.query.print === "1") {
+        html = html.replace("</body>", `<script>window.onload=function(){window.print();}<\/script></body>`);
+      }
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `inline; filename="${safeName}-LetterOfWishes.html"`);
+      res.send(html);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Letter of Wishes] Error:", msg, err);
+      res.status(500).json({ error: "Failed to generate Letter of Wishes", detail: msg });
     }
   });
 
