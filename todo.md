@@ -394,3 +394,13 @@
 - [ ] Add "Trust Clauses" tab to MatterForm with toggle cards for all 8 trust types
 - [ ] Each trust card: enabled toggle, description, and relevant configuration fields
 - [ ] Add "Mirror from Client 1 →" button in Clients tab (mirror Wills only) that copies executors, guardians, beneficiaries, wishes, gifts, pets, property, business, trust clauses from testator1 to testator2 with reciprocal name swaps
+
+## Mirror Will — Separate Document Sets Per Testator (Phase 22)
+- [x] Audit willV2Generator: confirmed testator1/testator2 cover page uses correct client name, address, DOB (scoped by testatorRole)
+- [x] Audit willV2Commentary: confirmed each testator's commentary uses their own name on cover and throughout
+- [x] Audit willV2SigningGuide: confirmed each testator's signing guide uses their own name in the attestation block
+- [x] Update MatterPreview for Mirror Wills: testator selector at top, each testator gets their own TestatorDocSet panel with Will/Commentary/SigningGuide tabs and a "Download All — [Name]" button
+- [x] Add clear per-testator labels to the download toolbar for Mirror Wills
+- [x] Verified testator2 cover page shows testator2's name (generator scoped by testatorRole)
+- [x] Verified testator2 Will body correctly names testator2 as testator and testator1 as primary beneficiary
+- [x] TypeScript: 0 errors | Tests: 45/45 passing
