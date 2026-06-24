@@ -113,6 +113,18 @@ const businessPropertyReliefClauseSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Helper: replace undefined with null for all optional text/varchar fields
+// so Drizzle never emits SQL DEFAULT (which TiDB rejects for nullable columns).
+// We use 'any' cast to avoid fighting Drizzle's complex insert type generics.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function nullify<T extends Record<string, any>>(obj: T): T {
+  const result: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    result[k] = v === undefined ? null : v;
+  }
+  return result as T;
+}
+
 const willInstructionInputSchema = z.object({
   // Appointment
   appointmentDate: z.string().optional(),
@@ -365,10 +377,11 @@ export const willInstructionsRouter = router({
         narrative = "No needs assessment or recommendations were recorded for this instruction.";
       }
 
-      const insertData = {
+      const insertData = nullify({
         referenceNumber,
         ...input,
         productsOrdered: input.productsOrdered ?? [],
+
         executors: input.executors ?? [],
         reservedExecutors: input.reservedExecutors ?? [],
         trustees: input.trustees ?? [],
@@ -404,7 +417,7 @@ export const willInstructionsRouter = router({
         aiClientEmailDraft: clientEmailDraft,
         status: "submitted" as const,
         emailSent: 0,
-      };
+      });
 
       await db.insert(willInstructions).values(insertData);
 
@@ -508,7 +521,7 @@ export const willInstructionsRouter = router({
 
       const { draftId, currentStep, ...formData } = input;
 
-      const draftData = {
+      const draftData = nullify({
         ...formData,
         productsOrdered: formData.productsOrdered ?? [],
         executors: formData.executors ?? [],
@@ -537,7 +550,7 @@ export const willInstructionsRouter = router({
         status: "draft" as const,
         currentStep: currentStep ?? 1,
         emailSent: 0,
-      };
+      });
 
       if (draftId) {
         // Update existing draft
@@ -631,7 +644,7 @@ export const willInstructionsRouter = router({
 
       const { id, ...formData } = input;
 
-      const updateData = {
+      const updateData = nullify({
         ...formData,
         productsOrdered: formData.productsOrdered ?? undefined,
         executors: formData.executors ?? undefined,
@@ -667,7 +680,7 @@ export const willInstructionsRouter = router({
         age18To25Trusts: formData.age18To25Trusts ?? undefined,
         businessPropertyReliefs: formData.businessPropertyReliefs ?? undefined,
         updatedAt: new Date(),
-      };
+      });
 
       await db
         .update(willInstructions)
