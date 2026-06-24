@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Plus, Trash2, User, Baby, Heart, Scroll, UserCog,
-  Gift, PawPrint, Home, Briefcase, Shield, Copy
+  Gift, PawPrint, Home, Briefcase, Shield, Copy, UserX
 } from "lucide-react";
 
 type FullMatter = any;
@@ -229,6 +229,20 @@ export function MatterForm({ matter, onSaved }: Props) {
   const [trusts1, setTrusts1] = useState<TrustClause[]>(toTrustRows(isMirror ? "testator1" : "shared"));
   const [trusts2, setTrusts2] = useState<TrustClause[]>(toTrustRows("testator2"));
 
+  // ── Exclusions state ──────────────────────────────────────────────────────
+  type ExclusionRow = { id?: number; clientRole: string; fullName: string; relationship: string; reasonPreset: string; reasonCustom: string };
+  const toExclusionRows = (role: string): ExclusionRow[] =>
+    (matter.exclusions || []).filter((e: any) => e.clientRole === role).map((e: any) => ({
+      id: e.id,
+      clientRole: e.clientRole || role,
+      fullName: e.fullName || "",
+      relationship: e.relationship || "",
+      reasonPreset: e.reasonPreset || "",
+      reasonCustom: e.reasonCustom || "",
+    }));
+  const [exclusions1, setExclusions1] = useState<ExclusionRow[]>(toExclusionRows(isMirror ? "testator1" : "testator1"));
+  const [exclusions2, setExclusions2] = useState<ExclusionRow[]>(toExclusionRows("testator2"));
+
   // ── Business state ────────────────────────────────────────────────────────
   const [businesses, setBusinesses] = useState<Array<{
     businessName: string; businessType: string; sharePercentage: string; businessNotes: string;
@@ -254,6 +268,8 @@ export function MatterForm({ matter, onSaved }: Props) {
   const saveProperty = trpc.matters.saveProperty.useMutation();
   const saveBusiness = trpc.matters.saveBusiness.useMutation();
   const saveTrustClauses = trpc.matters.saveTrustClauses.useMutation();
+  const upsertExclusion = trpc.matters.upsertExclusion.useMutation();
+  const deleteExclusion = trpc.matters.deleteExclusion.useMutation();
 
   const handleSaveAll = async () => {
     try {
@@ -349,6 +365,30 @@ export function MatterForm({ matter, onSaved }: Props) {
       // Business
       ops.push(saveBusiness.mutateAsync({ matterId: matter.id, businesses }));
 
+      // Exclusions — delete removed rows, upsert current rows
+      const savedExclusions1 = (matter.exclusions || []).filter((e: any) => e.clientRole === (isMirror ? "testator1" : "testator1"));
+      const savedExclusions2 = (matter.exclusions || []).filter((e: any) => e.clientRole === "testator2");
+      // Delete rows that were removed
+      const currentIds1 = new Set(exclusions1.filter(e => e.id).map(e => e.id));
+      const currentIds2 = new Set(exclusions2.filter(e => e.id).map(e => e.id));
+      for (const saved of savedExclusions1) {
+        if (!currentIds1.has(saved.id)) ops.push(deleteExclusion.mutateAsync({ id: saved.id, matterId: matter.id }));
+      }
+      if (isMirror) {
+        for (const saved of savedExclusions2) {
+          if (!currentIds2.has(saved.id)) ops.push(deleteExclusion.mutateAsync({ id: saved.id, matterId: matter.id }));
+        }
+      }
+      // Upsert current rows
+      for (const row of exclusions1) {
+        if (row.fullName.trim()) ops.push(upsertExclusion.mutateAsync({ matterId: matter.id, ...row, clientRole: isMirror ? "testator1" : "testator1" }));
+      }
+      if (isMirror) {
+        for (const row of exclusions2) {
+          if (row.fullName.trim()) ops.push(upsertExclusion.mutateAsync({ matterId: matter.id, ...row, clientRole: "testator2" }));
+        }
+      }
+
       // Trust Clauses
       const enabledTrusts1 = trusts1.filter(tc => tc.enabled);
       if (enabledTrusts1.length > 0 || trusts1.some(tc => !tc.enabled)) {
@@ -389,7 +429,8 @@ export function MatterForm({ matter, onSaved }: Props) {
 
   const isSaving = saveClient.isPending || saveExecutors.isPending || saveGuardians.isPending ||
     saveBeneficiaries.isPending || saveWishes.isPending || saveGifts.isPending ||
-    savePets.isPending || saveProperty.isPending || saveBusiness.isPending || saveTrustClauses.isPending;
+    savePets.isPending || saveProperty.isPending || saveBusiness.isPending || saveTrustClauses.isPending ||
+    upsertExclusion.isPending || deleteExclusion.isPending;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -426,6 +467,9 @@ export function MatterForm({ matter, onSaved }: Props) {
             </TabsTrigger>
             <TabsTrigger value="trusts" className="text-xs gap-1.5">
               <Shield className="h-3.5 w-3.5" /> Trusts
+            </TabsTrigger>
+            <TabsTrigger value="exclusions" className="text-xs gap-1.5">
+              <UserX className="h-3.5 w-3.5" /> Exclusions
             </TabsTrigger>
           </TabsList>
 
@@ -565,6 +609,24 @@ export function MatterForm({ matter, onSaved }: Props) {
           </TabsContent>
 
           {/* ── TRUSTS ────────────────────────────────────────────────────── */}
+          <TabsContent value="exclusions" className="space-y-4">
+            <ExclusionsSection
+              label={isMirror ? `Exclusions for ${t1.fullName || "Testator 1"}` : "Exclusions"}
+              rows={exclusions1}
+              onChange={setExclusions1}
+            />
+            {isMirror && (
+              <>
+                <Separator />
+                <ExclusionsSection
+                  label={`Exclusions for ${t2.fullName || "Testator 2"}`}
+                  rows={exclusions2}
+                  onChange={setExclusions2}
+                />
+              </>
+            )}
+          </TabsContent>
+
           <TabsContent value="trusts" className="space-y-4">
             <TrustClausesSection
               label={isMirror ? `Trust Clauses for ${t1.fullName || "Testator 1"}` : "Trust Clauses"}
@@ -1362,6 +1424,114 @@ function TrustClausesSection({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── ExclusionsSection ─────────────────────────────────────────────────────────
+
+const REASON_PRESETS = [
+  { value: "estrangement", label: "Estrangement — no contact for an extended period" },
+  { value: "no_relationship", label: "No relationship — never had a meaningful relationship" },
+  { value: "adequately_provided", label: "Adequately provided for elsewhere — gifts or trusts already made" },
+  { value: "conduct", label: "Conduct — behaviour or actions incompatible with inheritance" },
+  { value: "financial_independence", label: "Financial independence — they are self-sufficient" },
+  { value: "other", label: "Other — see custom reason below" },
+];
+
+function ExclusionsSection({
+  label,
+  rows,
+  onChange,
+}: {
+  label: string;
+  rows: Array<{ id?: number; clientRole: string; fullName: string; relationship: string; reasonPreset: string; reasonCustom: string }>;
+  onChange: (r: any[]) => void;
+}) {
+  const addRow = () =>
+    onChange([...rows, { clientRole: "testator1", fullName: "", relationship: "", reasonPreset: "", reasonCustom: "" }]);
+  const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: string, value: string) =>
+    onChange(rows.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium text-sm">{label}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Each excluded person will receive a formal exclusion clause in the Will.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={addRow}>
+          <Plus className="h-3 w-3" /> Add Exclusion
+        </Button>
+      </div>
+      {rows.length === 0 && (
+        <p className="text-xs text-muted-foreground italic">No exclusions added.</p>
+      )}
+      {rows.map((r, i) => (
+        <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Excluded Person {i + 1}
+            </span>
+            <button
+              onClick={() => removeRow(i)}
+              className="text-muted-foreground hover:text-destructive transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Full Name</Label>
+              <Input
+                value={r.fullName}
+                onChange={e => updateRow(i, "fullName", e.target.value)}
+                placeholder="Full legal name"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Relationship to Testator</Label>
+              <Input
+                value={r.relationship}
+                onChange={e => updateRow(i, "relationship", e.target.value)}
+                placeholder="e.g. child, sibling, former spouse"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs">Reason</Label>
+              <Select value={r.reasonPreset || ""} onValueChange={v => updateRow(i, "reasonPreset", v)}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select a reason…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REASON_PRESETS.map(p => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(r.reasonPreset === "other" || r.reasonCustom) && (
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Custom Reason (optional)</Label>
+                <Textarea
+                  value={r.reasonCustom}
+                  onChange={e => updateRow(i, "reasonCustom", e.target.value)}
+                  placeholder="Provide additional context if needed (not included in the Will text itself)"
+                  rows={2}
+                  className="text-sm resize-none"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -110,6 +110,10 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     (tc.clientRole === trustRole || tc.clientRole === "shared") && tc.enabled
   );
 
+  // Exclusions for this testator
+  const exclusionRole = testatorRole;
+  const exclusions = (matter.exclusions || []).filter((e: any) => e.clientRole === exclusionRole && e.fullName?.trim());
+
   // Pets (shared)
   const pets = matter.pets || [];
 
@@ -173,6 +177,14 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     clauses.push(`<div class="clause">
   <h2>${clauseNum++}. Provision for Pets</h2>
   ${buildPetsClause(pets)}
+</div>`);
+  }
+
+  // Exclusion clause (if any) — inserted before residue
+  if (exclusions.length > 0) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Exclusion of Persons from Benefit</h2>
+  ${buildExclusionsClause(exclusions)}
 </div>`);
   }
 
@@ -921,4 +933,13 @@ function buildBusinessClause(businesses: FullMatter["businesses"]): string {
   });
 
   return items.join("\n  ") + `\n  <p>For the avoidance of doubt, my Executors shall be entitled to claim Business Property Relief where applicable in accordance with the Inheritance Tax Act 1984.</p>`;
+}
+
+function buildExclusionsClause(exclusions: Array<{ fullName: string; relationship?: string | null; reasonPreset?: string | null; reasonCustom?: string | null }>): string {
+  const items = exclusions.map(e => {
+    const name = `<strong>${e.fullName}</strong>`;
+    const rel = e.relationship ? `, my ${e.relationship},` : "";
+    return `<p>I have intentionally made no provision in this my Will for ${name}${rel} and I do not wish for them to inherit any part of my estate, whether under this Will or on an intestacy. I have reached this decision after careful consideration, and it is my express wish that they receive no benefit from my estate.</p>`;
+  });
+  return items.join("\n  ");
 }
