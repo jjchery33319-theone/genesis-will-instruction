@@ -36,6 +36,8 @@ import {
   matterExclusions,
   type MatterExclusion,
   type NewMatterExclusion,
+  matterLettersOfWishes,
+  type MatterLetterOfWishes,
 } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -317,6 +319,38 @@ export async function deleteExclusion(id: number, matterId: number): Promise<voi
   await db.delete(matterExclusions).where(
     and(eq(matterExclusions.id, id), eq(matterExclusions.matterId, matterId))
   );
+}
+
+// ── Letter of Wishes helpers ─────────────────────────────────────────────────
+
+export async function getLetterOfWishes(
+  matterId: number,
+  clientRole: "testator1" | "testator2"
+): Promise<MatterLetterOfWishes | null> {
+  const db = await d();
+  const rows = await db.select().from(matterLettersOfWishes).where(
+    and(eq(matterLettersOfWishes.matterId, matterId), eq(matterLettersOfWishes.clientRole, clientRole))
+  );
+  return rows[0] ?? null;
+}
+
+export async function upsertLetterOfWishes(
+  matterId: number,
+  clientRole: "testator1" | "testator2",
+  content: string
+): Promise<void> {
+  const db = await d();
+  const now = Date.now();
+  const existing = await db.select().from(matterLettersOfWishes).where(
+    and(eq(matterLettersOfWishes.matterId, matterId), eq(matterLettersOfWishes.clientRole, clientRole))
+  );
+  if (existing[0]) {
+    await db.update(matterLettersOfWishes)
+      .set({ content, updatedAt: now })
+      .where(eq(matterLettersOfWishes.id, existing[0].id));
+  } else {
+    await db.insert(matterLettersOfWishes).values({ matterId, clientRole, content, createdAt: now, updatedAt: now });
+  }
 }
 
 export async function clearEditedWillHtml(

@@ -12,7 +12,7 @@ interface Props {
   matter: FullMatter;
 }
 
-type DocType = "will" | "commentary" | "signing-guide";
+type DocType = "will" | "commentary" | "signing-guide" | "letter-of-wishes";
 
 interface DocTab {
   id: DocType;
@@ -51,6 +51,14 @@ const DOC_TABS: DocTab[] = [
     endpoint: (id, t) => `/api/matters/${id}/signing-guide?testator=${t}`,
     downloadPdfEndpoint: (id, t) => `/api/matters/${id}/signing-guide-pdf?testator=${t}`,
     downloadPdfLabel: "Download Signing Guide (PDF)",
+  },
+  {
+    id: "letter-of-wishes",
+    label: "Letter of Wishes",
+    icon: <MessageSquare className="h-3.5 w-3.5" />,
+    endpoint: (id, t) => `/api/matters/${id}/letter-of-wishes?testator=${t}`,
+    downloadPdfEndpoint: (id, t) => `/api/matters/${id}/letter-of-wishes?testator=${t}&print=1`,
+    downloadPdfLabel: "Print Letter of Wishes (PDF)",
   },
 ];
 
@@ -295,7 +303,7 @@ function TestatorDocSet({
     window.open(`/api/matters/${matter.id}/will?testator=${t}&print=1`, "_blank");
     setTimeout(() => window.open(`/api/matters/${matter.id}/commentary?testator=${t}&print=1`, "_blank"), 600);
     setTimeout(() => window.open(`/api/matters/${matter.id}/signing-guide?testator=${t}&print=1`, "_blank"), 1200);
-    toast.info(`Opening all 3 documents for ${clientName} — save each as PDF using the print dialog`);
+    toast.info(`Opening 3 documents for ${clientName} — save each as PDF using the print dialog. Letter of Wishes can be printed separately.`);
   };
 
   return (

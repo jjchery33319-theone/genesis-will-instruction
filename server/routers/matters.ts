@@ -21,6 +21,8 @@ import {
   listExclusions,
   upsertExclusion,
   deleteExclusion,
+  getLetterOfWishes,
+  upsertLetterOfWishes,
 } from "../mattersDb";
 
 const personSchema = z.object({
@@ -306,6 +308,27 @@ export const mattersRouter = router({
     }))
     .mutation(async ({ input }) => {
       await deleteExclusion(input.id, input.matterId);
+      return { success: true };
+    }),
+
+  // ── Letter of Wishes ─────────────────────────────────────────────────────────────────
+  getLetterOfWishes: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      clientRole: z.enum(["testator1", "testator2"]),
+    }))
+    .query(async ({ input }) => {
+      return getLetterOfWishes(input.matterId, input.clientRole);
+    }),
+
+  upsertLetterOfWishes: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      clientRole: z.enum(["testator1", "testator2"]),
+      content: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      await upsertLetterOfWishes(input.matterId, input.clientRole, input.content);
       return { success: true };
     }),
 });

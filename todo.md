@@ -443,3 +443,12 @@
 - [ ] Add tRPC procedures: exclusions.list, exclusions.upsert, exclusions.delete in matters router
 - [ ] Build Exclusions form step in WillDraftingV2.tsx (per-testator, multiple entries, name/relationship/reason dropdown + free-text)
 - [ ] Add Exclusion clause to willV2Generator.ts (one clause per excluded person with prescribed wording)
+
+## Letter of Wishes — V2 Will Drafting
+- [ ] Add matter_letters_of_wishes table to DB schema
+- [ ] Add DB helpers: getLetterOfWishes, upsertLetterOfWishes
+- [ ] Add tRPC procedures: matters.getLetterOfWishes, matters.upsertLetterOfWishes
+- [ ] Add Letter of Wishes tab in MatterForm.tsx (per testator, optional)
+- [ ] Add HTML generator for Letter of Wishes document
+- [ ] Add /api/matters/:id/letter-of-wishes/:clientRole endpoint
+- [ ] Add View/Print button in MatterPreview for Letter of Wishes

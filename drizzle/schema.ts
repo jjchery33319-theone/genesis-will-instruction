@@ -528,3 +528,15 @@ export const matterExclusions = mysqlTable("matter_exclusions", {
 });
 export type MatterExclusion = typeof matterExclusions.$inferSelect;
 export type NewMatterExclusion = typeof matterExclusions.$inferInsert;
+
+// ── Matter Letters of Wishes ──────────────────────────────────────────────────
+export const matterLettersOfWishes = mysqlTable("matter_letters_of_wishes", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  clientRole: varchar("client_role", { length: 20 }).notNull().default("testator1"),
+  content: text("content"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(0),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(0),
+});
+export type MatterLetterOfWishes = typeof matterLettersOfWishes.$inferSelect;
+export type NewMatterLetterOfWishes = typeof matterLettersOfWishes.$inferInsert;
