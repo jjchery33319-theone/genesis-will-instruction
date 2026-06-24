@@ -423,3 +423,15 @@
 - [ ] Map V1 fields to V2 schema: client1Name→testator1.fullName, client1Address→testator1.address, client1DateOfBirth→testator1.dateOfBirth, client1Email→testator1.email, client1Phone→testator1.phone, executors→matter_executors, guardians→matter_guardians, beneficiaries→matter_beneficiaries, funeralWishes→matter_wishes, etc.
 - [ ] Set matter_type based on V1 productsOrdered (mirror if "Mirror Wills" in products, else single)
 - [ ] Set fileReference from V1 referenceNumber
+
+## LPA Manager Dual Mode (Phase 24)
+- [x] Detect matter mode vs submission mode from URL path (/wills/ vs /submissions/)
+- [x] In matter mode: query trpc.matters.getById + trpc.lpa.listByMatter
+- [x] In matter mode: derive clientName and hasClient2 from matter.clients (clientRole testator1/testator2)
+- [x] In matter mode: LpaEditorForm uses matterId in save payload, invalidates listByMatter
+- [x] In matter mode: duplicateLpa uses matter client data for donor defaults
+- [x] In matter mode: back button navigates to /admin/wills, subtitle shows matter file reference
+- [x] Extend lpaInputSchema: willInstructionId default 0, add optional matterId
+- [x] create mutation inserts matterId when provided
+- [x] Add "View LPAs" button in WillDraftingV2 toolbar that navigates to /admin/wills/:id/lpa
+- [x] TypeScript: 0 errors | Tests: 45/45 passing

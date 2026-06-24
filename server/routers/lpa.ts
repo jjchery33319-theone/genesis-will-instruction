@@ -27,7 +27,8 @@ const notifyPersonSchema = z.object({
 
 // ── Input schema ─────────────────────────────────────────────────────────────
 const lpaInputSchema = z.object({
-  willInstructionId: z.number(),
+  willInstructionId: z.number().default(0),
+  matterId: z.number().optional(),
   clientNumber: z.number().min(1).max(2).default(1),
   lpaType: z.enum(["property_finance", "health_welfare"]),
 
@@ -146,6 +147,7 @@ export const lpaRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
       await db.insert(lpaRecords).values({
         willInstructionId: input.willInstructionId,
+        matterId: input.matterId ?? null,
         clientNumber: input.clientNumber,
         lpaType: input.lpaType,
         donorTitle: input.donorTitle,

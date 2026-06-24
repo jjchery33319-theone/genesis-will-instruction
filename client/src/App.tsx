@@ -37,6 +37,9 @@ function Router() {
       <Route path={"/admin/wills"}>
         <AdminGuard><WillDraftingV2 /></AdminGuard>
       </Route>
+      <Route path={"/admin/wills/:id/lpa"}>
+        <AdminGuard><LpaManager /></AdminGuard>
+      </Route>
       <Route path={"/success/:ref"} component={SubmissionSuccess} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
