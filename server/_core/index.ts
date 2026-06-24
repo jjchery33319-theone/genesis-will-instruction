@@ -369,8 +369,11 @@ async function startServer() {
       if (!matter) { res.status(404).json({ error: "Not found" }); return; }
       // Return saved edited HTML if present, otherwise generate fresh
       const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
-      const html = savedHtml || generateWillV2Html(matter, testatorRole);
+      let html = savedHtml || generateWillV2Html(matter, testatorRole);
       const isEdited = !!savedHtml;
+      if (req.query.print === "1") {
+        html = html.replace("</body>", `<script>window.onload=function(){window.print();}</script></body>`);
+      }
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("X-Will-Edited", isEdited ? "true" : "false");
       res.send(html);
@@ -439,9 +442,12 @@ async function startServer() {
       if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
       const matter = await getMatterById(id);
       if (!matter) { res.status(404).json({ error: "Not found" }); return; }
-      const html = generateCommentaryHtml(matter, testatorRole);
+      let html = generateCommentaryHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      if (req.query.print === "1") {
+        html = html.replace("</body>", `<script>window.onload=function(){window.print();}</script></body>`);
+      }
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillCommentary.html"`);
       res.send(html);
@@ -508,9 +514,12 @@ async function startServer() {
       if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
       const matter = await getMatterById(id);
       if (!matter) { res.status(404).json({ error: "Not found" }); return; }
-      const html = generateSigningGuideHtml(matter, testatorRole);
+      let html = generateSigningGuideHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "SigningGuide").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      if (req.query.print === "1") {
+        html = html.replace("</body>", `<script>window.onload=function(){window.print();}</script></body>`);
+      }
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Content-Disposition", `inline; filename="${safeName}-WillSigningGuide.html"`);
       res.send(html);

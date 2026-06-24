@@ -75,11 +75,11 @@ function DocViewer({
   const [hasUnsaved, setHasUnsaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
 
   const url = doc.endpoint(matterId, testatorRole);
-  const downloadPdfUrl = doc.downloadPdfEndpoint(matterId, testatorRole);
+  // PDF URL is the same HTML endpoint with ?print=1 — opens in new tab and auto-triggers print dialog
+  const printUrl = `${doc.endpoint(matterId, testatorRole)}${doc.endpoint(matterId, testatorRole).includes('?') ? '&' : '?'}print=1`;
   const downloadDocxUrl = doc.downloadDocxEndpoint ? doc.downloadDocxEndpoint(matterId, testatorRole) : null;
 
   useEffect(() => {
@@ -167,9 +167,10 @@ function DocViewer({
 
   const safeName = clientName.replace(/[^a-zA-Z0-9\s-]/g, "").trim() || "Client";
 
-  const handleDownloadPdf = () => {
-    const docLabel = doc.id === "will" ? "Will" : doc.id === "commentary" ? "Commentary" : "SigningGuide";
-    triggerDownload(downloadPdfUrl, `${safeName}-${docLabel}.pdf`, setDownloadingPdf);
+  const handlePrintPdf = () => {
+    // Open the HTML document in a new tab — it auto-triggers window.print() on load
+    // User selects "Save as PDF" in the browser print dialog
+    window.open(printUrl, "_blank");
   };
 
   const handleDownloadDocx = () => {
@@ -210,8 +211,8 @@ function DocViewer({
               Reset
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleDownloadPdf} disabled={downloadingPdf}>
-            {downloadingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+          <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handlePrintPdf}>
+            <Download className="h-3 w-3" />
             {isEdited && doc.id === "will" ? "Edited PDF" : "PDF"}
           </Button>
           {downloadDocxUrl && (
@@ -271,8 +272,6 @@ function TestatorDocSet({
   clientName: string;
 }) {
   const [activeDoc, setActiveDoc] = useState<DocType>("will");
-  const [downloadingAll, setDownloadingAll] = useState(false);
-
   const activeDocDef = DOC_TABS.find(d => d.id === activeDoc)!;
 
   const downloadBlob = async (dlUrl: string, filename: string) => {
@@ -289,30 +288,14 @@ function TestatorDocSet({
     setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
   };
 
-  const handleDownloadAll = async () => {
-    setDownloadingAll(true);
-    const safeName = clientName.replace(/[^a-zA-Z0-9\s-]/g, "").trim() || "Client";
-    try {
-      await downloadBlob(
-        `/api/matters/${matter.id}/will-pdf?testator=${testatorRole}`,
-        `${safeName}-Will.pdf`
-      );
-      await new Promise(r => setTimeout(r, 400));
-      await downloadBlob(
-        `/api/matters/${matter.id}/commentary-pdf?testator=${testatorRole}`,
-        `${safeName}-Commentary.pdf`
-      );
-      await new Promise(r => setTimeout(r, 400));
-      await downloadBlob(
-        `/api/matters/${matter.id}/signing-guide-pdf?testator=${testatorRole}`,
-        `${safeName}-SigningGuide.pdf`
-      );
-      toast.success(`All documents downloaded for ${clientName}`);
-    } catch (err: any) {
-      toast.error(`Download failed: ${err.message}`);
-    } finally {
-      setDownloadingAll(false);
-    }
+  const handleDownloadAll = () => {
+    // Open each document in a new tab with ?print=1 — each auto-triggers the print dialog
+    // User saves each as PDF via the browser's native print-to-PDF
+    const t = testatorRole;
+    window.open(`/api/matters/${matter.id}/will?testator=${t}&print=1`, "_blank");
+    setTimeout(() => window.open(`/api/matters/${matter.id}/commentary?testator=${t}&print=1`, "_blank"), 600);
+    setTimeout(() => window.open(`/api/matters/${matter.id}/signing-guide?testator=${t}&print=1`, "_blank"), 1200);
+    toast.info(`Opening all 3 documents for ${clientName} — save each as PDF using the print dialog`);
   };
 
   return (
@@ -337,10 +320,9 @@ function TestatorDocSet({
             size="sm"
             className="h-7 px-2.5 text-xs gap-1"
             onClick={handleDownloadAll}
-            disabled={downloadingAll}
           >
-            {downloadingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            {downloadingAll ? "Downloading…" : `Download All — ${clientName}`}
+            <Download className="h-3.5 w-3.5" />
+            {`Print All (PDF) — ${clientName}`}
           </Button>
         </div>
       </div>
