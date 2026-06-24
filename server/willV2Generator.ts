@@ -418,7 +418,93 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     padding-top: 3mm;
   }
   @media print {
-    .page { margin: 0; }
+    /* ── Page setup ── */
+    @page {
+      size: A4;
+      margin: 18mm 20mm 18mm 20mm;
+    }
+    @page :first {
+      margin: 0;
+    }
+
+    /* ── Reset screen chrome ── */
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    html, body {
+      width: 100%;
+      background: #fff !important;
+    }
+
+    /* ── Page containers ── */
+    .page {
+      width: 100% !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      /* Each .page div = one printed page */
+      break-after: page;
+      page-break-after: always;
+    }
+    /* Don't force a blank page after the very last div */
+    .page:last-child {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+
+    /* ── Cover page: fill the first printed page ── */
+    .cover {
+      min-height: 0 !important;
+      height: 100vh;
+      padding: 18mm 20mm !important;
+    }
+
+    /* ── Keep headings with their following content ── */
+    h2, h3 {
+      break-after: avoid;
+      page-break-after: avoid;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Keep clauses together where possible ── */
+    .clause {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Attestation block must never split across pages ── */
+    .attestation {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      break-before: auto;
+      page-break-before: auto;
+    }
+
+    /* ── Witness blocks must stay together ── */
+    .witness-block {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Signature lines ── */
+    .sig-block {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Orphans / widows ── */
+    p {
+      orphans: 3;
+      widows: 3;
+    }
+
+    /* ── Footer: keep with preceding content ── */
+    .page-footer {
+      break-before: avoid;
+      page-break-before: avoid;
+    }
   }
 </style>
 </head>

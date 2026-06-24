@@ -260,7 +260,87 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
   .clause-commentary { margin-bottom: 6mm; }
   .clause-title { font-weight: 600; font-size: 12pt; color: #1a3a5c; margin-bottom: 2mm; }
   .page-footer { text-align: center; font-size: 9pt; color: #888; margin-top: 10mm; border-top: 1px solid #eee; padding-top: 3mm; }
-  @media print { .page { margin: 0; } }
+  @media print {
+    /* ── Page setup ── */
+    @page {
+      size: A4;
+      margin: 18mm 20mm 18mm 20mm;
+    }
+    @page :first {
+      margin: 0;
+    }
+
+    /* ── Reset screen chrome ── */
+    * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    html, body {
+      width: 100%;
+      background: #fff !important;
+    }
+
+    /* ── Page containers ── */
+    .page {
+      width: 100% !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      break-after: page;
+      page-break-after: always;
+    }
+    .page:last-child {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+
+    /* ── Cover page ── */
+    .cover {
+      min-height: 0 !important;
+      height: 100vh;
+    }
+
+    /* ── Keep headings with their following content ── */
+    h2, h3 {
+      break-after: avoid;
+      page-break-after: avoid;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Keep commentary sections together ── */
+    .section {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Keep clause commentary blocks together ── */
+    .clause-commentary {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    /* ── Person cards must not split ── */
+    .person-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      /* Preserve the coloured left border in print */
+      background: #f8f9fb !important;
+      border-left: 3px solid #1a3a5c !important;
+    }
+
+    /* ── Orphans / widows ── */
+    p {
+      orphans: 3;
+      widows: 3;
+    }
+
+    /* ── Footer: keep with preceding content ── */
+    .page-footer {
+      break-before: avoid;
+      page-break-before: avoid;
+    }
+  }
 </style>
 </head>
 <body>
