@@ -290,6 +290,8 @@ export const lpaRouter = router({
       createHW: z.boolean().default(true),
       // Which clients to create for (testator1, testator2, or both for mirror)
       clients: z.array(z.enum(["testator1", "testator2"])).min(1),
+      // When true, copy the matter's executors into the LPA attorney fields
+      useExecutorsAsAttorneys: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
       requireAdmin(ctx.user?.role);
@@ -318,12 +320,16 @@ export const lpaRouter = router({
         const clientExecs = executors.filter(e =>
           e.clientRole === clientRole || e.clientRole === "shared"
         );
-        const attorneys = clientExecs
-          .filter(e => e.executorType === "primary")
-          .map(e => ({ firstNames: e.fullName, lastName: "", address: e.address ?? "" }));
-        const replacementAttorneys = clientExecs
-          .filter(e => e.executorType === "substitute")
-          .map(e => ({ firstNames: e.fullName, lastName: "", address: e.address ?? "" }));
+        const attorneys = input.useExecutorsAsAttorneys
+          ? clientExecs
+              .filter(e => e.executorType === "primary")
+              .map(e => ({ firstNames: e.fullName, lastName: "", address: e.address ?? "" }))
+          : [];
+        const replacementAttorneys = input.useExecutorsAsAttorneys
+          ? clientExecs
+              .filter(e => e.executorType === "substitute")
+              .map(e => ({ firstNames: e.fullName, lastName: "", address: e.address ?? "" }))
+          : [];
 
         // Parse name parts (fullName may be "Title FirstName LastName")
         const nameParts = (client.fullName ?? "").trim().split(/\s+/);

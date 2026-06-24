@@ -20,6 +20,7 @@ type LpaOrderDialogState = {
   open: boolean;
   createPF: boolean;
   createHW: boolean;
+  useExecutorsAsAttorneys: boolean;
 };
 
 export default function WillDraftingV2() {
@@ -30,7 +31,7 @@ export default function WillDraftingV2() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [newMatterType, setNewMatterType] = useState<"single" | "mirror">("single");
   const [newFileRef, setNewFileRef] = useState("");
-  const [lpaDialog, setLpaDialog] = useState<LpaOrderDialogState>({ open: false, createPF: true, createHW: true });
+  const [lpaDialog, setLpaDialog] = useState<LpaOrderDialogState>({ open: false, createPF: true, createHW: true, useExecutorsAsAttorneys: true });
 
   const utils = trpc.useUtils();
   const { data: matters = [], isLoading } = trpc.matters.list.useQuery();
@@ -64,7 +65,7 @@ export default function WillDraftingV2() {
   const createLpaFromMatter = trpc.lpa.createFromMatter.useMutation({
     onSuccess: (data) => {
       toast.success(`${data.created.length} LPA record(s) created — open the LPA Manager to complete them`);
-      setLpaDialog({ open: false, createPF: true, createHW: true });
+      setLpaDialog({ open: false, createPF: true, createHW: true, useExecutorsAsAttorneys: true });
     },
     onError: (err) => toast.error(`Failed to create LPAs: ${err.message}`),
   });
@@ -78,6 +79,7 @@ export default function WillDraftingV2() {
       matterId: selectedMatter.id,
       createPF: lpaDialog.createPF,
       createHW: lpaDialog.createHW,
+      useExecutorsAsAttorneys: lpaDialog.useExecutorsAsAttorneys,
       clients,
     });
   };
@@ -295,6 +297,24 @@ export default function WillDraftingV2() {
                   <span className="text-sm">Health &amp; Welfare (LP1H)</span>
                 </label>
               </div>
+            </div>
+            <div className="border-t border-border pt-3">
+              <Label className="text-sm font-medium mb-2 block">Attorney Options</Label>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={lpaDialog.useExecutorsAsAttorneys}
+                  onChange={e => setLpaDialog(s => ({ ...s, useExecutorsAsAttorneys: e.target.checked }))}
+                  className="rounded mt-0.5"
+                />
+                <div>
+                  <span className="text-sm font-medium">Use Will Executors as Attorneys</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Primary executors will be added as attorneys; substitute executors as replacement attorneys.
+                    Uncheck to leave the attorney fields blank for manual entry.
+                  </p>
+                </div>
+              </label>
             </div>
             {selectedMatter?.matterType === "mirror" && (
               <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
