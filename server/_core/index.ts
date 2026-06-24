@@ -396,8 +396,9 @@ async function startServer() {
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.pdf"`);
       res.send(pdfBuffer);
     } catch (err) {
-      console.error("[Will V2 PDF] Error:", err);
-      res.status(500).json({ error: "Failed to generate Will PDF" });
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Will V2 PDF] Error:", msg, err);
+      res.status(500).json({ error: "Failed to generate Will PDF", detail: msg });
     }
   });
 
@@ -466,8 +467,9 @@ async function startServer() {
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillCommentary.pdf"`);
       res.send(pdfBuffer);
     } catch (err) {
-      console.error("[Commentary PDF] Error:", err);
-      res.status(500).json({ error: "Failed to generate commentary PDF" });
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Commentary PDF] Error:", msg, err);
+      res.status(500).json({ error: "Failed to generate commentary PDF", detail: msg });
     }
   });
 
@@ -534,8 +536,9 @@ async function startServer() {
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillSigningGuide.pdf"`);
       res.send(pdfBuffer);
     } catch (err) {
-      console.error("[Signing Guide PDF] Error:", err);
-      res.status(500).json({ error: "Failed to generate signing guide PDF" });
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Signing Guide PDF] Error:", msg, err);
+      res.status(500).json({ error: "Failed to generate signing guide PDF", detail: msg });
     }
   });
 
