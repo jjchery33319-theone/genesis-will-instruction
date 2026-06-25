@@ -364,48 +364,44 @@ async function startServer() {
 
   /**
    * Injects a diagonal DRAFT watermark into any HTML document string.
-   * Uses a fixed-position SVG overlay so it appears on every page when printed
-   * without obscuring the legal text (pointer-events: none, low opacity).
+   * Uses CSS ::before on every .page block so the watermark repeats on
+   * every printed page without obscuring the legal text.
    */
   function injectDraftWatermark(html: string, draft: boolean): string {
     if (!draft) return html;
-    const overlay = `
-<style id="draft-watermark-style">
-  #draft-wm {
+    const style = `<style id="draft-watermark-style">
+  /* Watermark repeats on every .page block (one per printed page) */
+  .page { position: relative !important; overflow: hidden; }
+  .page::before {
+    content: 'DRAFT';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 110pt;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: rgba(170,170,170,0.22);
     pointer-events: none;
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
     z-index: 9999;
-    overflow: hidden;
+    white-space: nowrap;
+    user-select: none;
   }
-  #draft-wm svg { width: 100%; height: 100%; position: absolute; inset: 0; }
   @media print {
-    #draft-wm { position: fixed; inset: 0; width: 100%; height: 100%; }
-  }
-</style>
-<div id="draft-wm" aria-hidden="true">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1131" preserveAspectRatio="xMidYMid meet">
-    <text
-      x="50%" y="50%"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      transform="rotate(-45 400 565)"
-      font-family="Arial,Helvetica,sans-serif"
-      font-size="120"
-      font-weight="900"
-      letter-spacing="12"
-      fill="rgba(180,180,180,0.20)"
-      stroke="rgba(150,150,150,0.25)"
-      stroke-width="1"
-    >DRAFT</text>
-  </svg>
-</div>`;
-    if (html.includes('<body')) {
-      return html.replace(/(<body[^>]*>)/, `$1\n${overlay}`);
+    .page::before {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    return overlay + html;
+  }
+</style>`;
+    if (html.includes('</head>')) {
+      return html.replace('</head>', `${style}\n</head>`);
+    }
+    if (html.includes('<body')) {
+      return html.replace(/(<body[^>]*>)/, `${style}\n$1`);
+    }
+    return style + html;
   }
 
   app.get("/api/matters/:id/will", async (req, res) => {

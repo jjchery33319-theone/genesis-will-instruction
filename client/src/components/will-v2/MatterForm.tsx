@@ -819,9 +819,7 @@ function ExecutorSection({ label, rows, onChange, matterId }: { label: string; r
             onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
-              updateRow(i, "_poolId", p ? p.id : undefined);
-              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); updateRow(i, "dateOfBirth", p.dateOfBirth ?? ""); }
-              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); updateRow(i, "dateOfBirth", ""); }
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
           />
         ))}
@@ -839,9 +837,7 @@ function ExecutorSection({ label, rows, onChange, matterId }: { label: string; r
             onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
-              updateRow(i, "_poolId", p ? p.id : undefined);
-              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); updateRow(i, "dateOfBirth", p.dateOfBirth ?? ""); }
-              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); updateRow(i, "dateOfBirth", ""); }
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
           />
         ))}
@@ -873,9 +869,7 @@ function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: 
             onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
-              updateRow(i, "_poolId", p ? p.id : undefined);
-              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); updateRow(i, "dateOfBirth", p.dateOfBirth ?? ""); }
-              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); updateRow(i, "dateOfBirth", ""); }
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
           />
         ))}
@@ -893,9 +887,7 @@ function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: 
             onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
-              updateRow(i, "_poolId", p ? p.id : undefined);
-              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); updateRow(i, "dateOfBirth", p.dateOfBirth ?? ""); }
-              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); updateRow(i, "dateOfBirth", ""); }
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
           />
         ))}
@@ -1052,9 +1044,7 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                 matterId={matterId}
                 selectedId={r._poolId}
                 onSelect={p => {
-                  updateRow(i, "_poolId", p ? p.id : undefined);
-                  if (p) { updateRow(i, "recipientName", p.fullName); updateRow(i, "recipientAddress", p.address ?? ""); }
-                  else { updateRow(i, "recipientName", ""); updateRow(i, "recipientAddress", ""); }
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "" }));
                 }}
                 label="Select existing recipient or add new"
               />
@@ -1126,9 +1116,7 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
                 matterId={matterId}
                 selectedId={r._carerPoolId}
                 onSelect={p => {
-                  updateRow(i, "_carerPoolId", p ? p.id : undefined);
-                  if (p) { updateRow(i, "carerName", p.fullName); updateRow(i, "carerAddress", p.address ?? ""); }
-                  else { updateRow(i, "carerName", ""); updateRow(i, "carerAddress", ""); }
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: p?.id, carerName: p ? (p.fullName ?? "") : "", carerAddress: p ? (p.address ?? "") : "" }));
                 }}
                 label="Select existing carer or add new"
               />
@@ -1219,9 +1207,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   matterId={matterId}
                   selectedId={r._poolId}
                   onSelect={p => {
-                    updateRow(i, "_poolId", p ? p.id : undefined);
-                    if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "relationship", p.relationship ?? ""); updateRow(i, "dateOfBirth", p.dateOfBirth ?? ""); updateRow(i, "address", p.address ?? ""); }
-                    else { updateRow(i, "fullName", ""); updateRow(i, "relationship", ""); updateRow(i, "dateOfBirth", ""); updateRow(i, "address", ""); }
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", address: p ? (p.address ?? "") : "" }));
                   }}
                   label="Select existing beneficiary or add new"
                 />
@@ -1279,9 +1265,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   matterId={matterId}
                   selectedId={r._poolId}
                   onSelect={p => {
-                    updateRow(i, "_poolId", p ? p.id : undefined);
-                    if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "relationship", p.relationship ?? ""); updateRow(i, "dateOfBirth", p.dateOfBirth ?? ""); updateRow(i, "address", p.address ?? ""); }
-                    else { updateRow(i, "fullName", ""); updateRow(i, "relationship", ""); updateRow(i, "dateOfBirth", ""); updateRow(i, "address", ""); }
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", address: p ? (p.address ?? "") : "" }));
                   }}
                   label="Select existing beneficiary or add new"
                 />
@@ -1694,9 +1678,7 @@ function ExclusionsSection({
                 matterId={matterId}
                 selectedId={r._poolId}
                 onSelect={p => {
-                  updateRow(i, "_poolId", p ? p.id : undefined);
-                  if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "relationship", p.relationship ?? ""); }
-                  else { updateRow(i, "fullName", ""); updateRow(i, "relationship", ""); }
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
                 }}
                 label="Select existing person or add new"
               />
