@@ -452,3 +452,19 @@
 - [ ] Add HTML generator for Letter of Wishes document
 - [ ] Add /api/matters/:id/letter-of-wishes/:clientRole endpoint
 - [ ] Add View/Print button in MatterPreview for Letter of Wishes
+
+## People Pool — Global Data Reuse (V2)
+- [x] Add `matter_people_pool` DB table (id, matter_id, full_name, date_of_birth, address, relationship, source_role, timestamps)
+- [x] Add `listPeoplePool`, `upsertPersonPool`, `deletePersonPool` helpers in server/mattersDb.ts
+- [x] Add `listPeoplePool`, `upsertPersonPool`, `deletePersonPool` tRPC procedures in server/routers/matters.ts
+- [x] Build PersonPickerField reusable component (dropdown: "Select existing person or add new")
+- [x] Integrate PersonPickerField into PersonRow (Executors, Guardians)
+- [x] Integrate PersonPickerField into GiftsSection (recipient picker)
+- [x] Integrate PersonPickerField into PetsSection (carer picker)
+- [x] Integrate PersonPickerField into BeneficiarySection (primary + fallback)
+- [x] Integrate PersonPickerField into ExclusionsSection
+- [x] Pass matterId prop to all sections in MatterForm render
+- [x] Sync People Pool on every save: upsert all named people (testators, executors, guardians, beneficiaries, gift recipients, pet carers, exclusions)
+- [x] Invalidate pool query after sync so dropdowns refresh immediately
+- [x] TypeScript: all types updated to include _poolId / _carerPoolId optional fields
+- [x] All 45 tests passing

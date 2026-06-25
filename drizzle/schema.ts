@@ -540,3 +540,18 @@ export const matterLettersOfWishes = mysqlTable("matter_letters_of_wishes", {
 });
 export type MatterLetterOfWishes = typeof matterLettersOfWishes.$inferSelect;
 export type NewMatterLetterOfWishes = typeof matterLettersOfWishes.$inferInsert;
+
+// ── Matter People Pool ────────────────────────────────────────────────────────
+export const matterPeoplePool = mysqlTable("matter_people_pool", {
+  id: int("id").primaryKey().autoincrement(),
+  matterId: int("matter_id").notNull(),
+  fullName: varchar("full_name", { length: 255 }).notNull().default(""),
+  dateOfBirth: varchar("date_of_birth", { length: 20 }).default(""),
+  address: text("address"),
+  relationship: varchar("relationship", { length: 128 }).default(""),
+  sourceRole: varchar("source_role", { length: 64 }).default(""),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(0),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(0),
+});
+export type MatterPersonPool = typeof matterPeoplePool.$inferSelect;
+export type NewMatterPersonPool = typeof matterPeoplePool.$inferInsert;

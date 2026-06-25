@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { PersonPickerField, type PoolPerson } from "./PersonPickerField";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,12 @@ interface PersonRowProps {
   onRemove: () => void;
   showRemove?: boolean;
   extraFields?: React.ReactNode;
+  matterId?: number;
+  poolPersonId?: number;
+  onPickPerson?: (p: PoolPerson | null) => void;
 }
 
-function PersonRow({ label, name, address, onChangeName, onChangeAddress, onRemove, showRemove = true, extraFields }: PersonRowProps) {
+function PersonRow({ label, name, address, onChangeName, onChangeAddress, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson }: PersonRowProps) {
   return (
     <div className="border border-border rounded-lg p-3 space-y-2 bg-card">
       <div className="flex items-center justify-between">
@@ -45,6 +49,16 @@ function PersonRow({ label, name, address, onChangeName, onChangeAddress, onRemo
           </button>
         )}
       </div>
+      {matterId !== undefined && onPickPerson && (
+        <div className="grid grid-cols-2 gap-2">
+          <PersonPickerField
+            matterId={matterId}
+            selectedId={poolPersonId}
+            onSelect={onPickPerson}
+            label="Select existing person or add new"
+          />
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">Full Name</Label>
@@ -91,15 +105,15 @@ export function MatterForm({ matter, onSaved }: Props) {
       executorType: e.executorType || "primary",
     }));
 
-  const [execs1, setExecs1] = useState<Array<{ fullName: string; address: string; executorType: string }>>(
+  const [execs1, setExecs1] = useState<Array<{ fullName: string; address: string; executorType: string; _poolId?: number }>>(
     toExecRows(isMirror ? "testator1" : "shared")
   );
-  const [execs2, setExecs2] = useState<Array<{ fullName: string; address: string; executorType: string }>>(
+  const [execs2, setExecs2] = useState<Array<{ fullName: string; address: string; executorType: string; _poolId?: number }>>(
     toExecRows("testator2")
   );
 
   // ── Guardian state ────────────────────────────────────────────────────────
-  const [guardians, setGuardians] = useState<Array<{ fullName: string; address: string; guardianType: string }>>(
+  const [guardians, setGuardians] = useState<Array<{ fullName: string; address: string; guardianType: string; _poolId?: number }>>(
     (matter.guardians || []).map((g: any) => ({
       fullName: g.fullName || "",
       address: g.address || "",
@@ -152,12 +166,12 @@ export function MatterForm({ matter, onSaved }: Props) {
       giftType: g.giftType || "asset",
     }));
 
-  const [gifts1, setGifts1] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string }>>(toGiftRows(isMirror ? "testator1" : "shared"));
-  const [gifts2, setGifts2] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string }>>(toGiftRows("testator2"));
+  const [gifts1, setGifts1] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
+  const [gifts2, setGifts2] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows("testator2"));
 
   // ── Pets state ────────────────────────────────────────────────────────────
   const [pets, setPets] = useState<Array<{
-    petName: string; petType: string; carerName: string; carerAddress: string; careNotes: string;
+    petName: string; petType: string; carerName: string; carerAddress: string; careNotes: string; _carerPoolId?: number;
   }>>(
     (matter.pets || []).map((p: any) => ({
       petName: p.petName || "",
@@ -283,6 +297,8 @@ export function MatterForm({ matter, onSaved }: Props) {
   const upsertExclusion = trpc.matters.upsertExclusion.useMutation();
   const deleteExclusion = trpc.matters.deleteExclusion.useMutation();
   const saveLow = trpc.matters.upsertLetterOfWishes.useMutation();
+  const upsertPersonPool = trpc.matters.upsertPersonPool.useMutation();
+  const poolUtils = trpc.useUtils();
 
   const handleSaveAll = async (silent = false) => {
     try {
@@ -435,6 +451,34 @@ export function MatterForm({ matter, onSaved }: Props) {
       if (isMirror) ops.push(saveLow.mutateAsync({ matterId: matter.id, clientRole: "testator2", content: low2 }));
 
       await Promise.all(ops);
+
+      // ── Sync People Pool ─────────────────────────────────────────────────
+      // Collect all named people from every section and upsert them into the pool.
+      // We do this AFTER the main save so the pool stays fresh without blocking.
+      const poolOps: Promise<any>[] = [];
+      const syncPerson = (fullName: string, address: string, relationship: string, sourceRole: string, id?: number) => {
+        if (!fullName.trim()) return;
+        poolOps.push(upsertPersonPool.mutateAsync({ matterId: matter.id, id, fullName: fullName.trim(), address: address?.trim() || "", relationship: relationship?.trim() || "", sourceRole }));
+      };
+      // Testators
+      if (t1.fullName) syncPerson(t1.fullName, t1.address || "", "testator", "testator1");
+      if (isMirror && t2.fullName) syncPerson(t2.fullName, t2.address || "", "testator", "testator2");
+      // Executors
+      [...execs1, ...(isMirror ? execs2 : [])].forEach(e => syncPerson(e.fullName, e.address, "", "executor", e._poolId));
+      // Guardians
+      guardians.forEach(g => syncPerson(g.fullName, g.address, "", "guardian", g._poolId));
+      // Beneficiaries
+      [...bens1, ...(isMirror ? bens2 : [])].forEach(b => syncPerson(b.fullName, b.address || "", b.relationship || "", "beneficiary", b._poolId));
+      // Gifts recipients
+      [...gifts1, ...(isMirror ? gifts2 : [])].forEach(g => syncPerson(g.recipientName, g.recipientAddress, "", "gift_recipient", g._poolId));
+      // Pets carers
+      pets.forEach(p => syncPerson(p.carerName, p.carerAddress, "", "pet_carer", p._carerPoolId));
+      // Exclusions
+      [...exclusions1, ...(isMirror ? exclusions2 : [])].forEach(e => syncPerson(e.fullName, "", e.relationship || "", "exclusion", (e as any)._poolId));
+      if (poolOps.length > 0) {
+        await Promise.all(poolOps);
+        poolUtils.matters.listPeoplePool.invalidate({ matterId: matter.id });
+      }
       utils.matters.list.invalidate();
       utils.matters.getById.invalidate({ id: matter.id });
       onSaved();
@@ -533,6 +577,7 @@ export function MatterForm({ matter, onSaved }: Props) {
               label={isMirror ? `Executors for ${t1.fullName || "Testator 1"}` : "Executors"}
               rows={execs1}
               onChange={setExecs1}
+              matterId={matter.id}
             />
             {isMirror && (
               <>
@@ -541,6 +586,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                   label={`Executors for ${t2.fullName || "Testator 2"}`}
                   rows={execs2}
                   onChange={setExecs2}
+                  matterId={matter.id}
                 />
               </>
             )}
@@ -551,7 +597,7 @@ export function MatterForm({ matter, onSaved }: Props) {
             <div className="text-sm text-muted-foreground mb-2">
               Guardians are shared across both Wills for minor children.
             </div>
-            <GuardianSection rows={guardians} onChange={setGuardians} />
+            <GuardianSection rows={guardians} onChange={setGuardians} matterId={matter.id} />
           </TabsContent>
 
           {/* ── PROPERTY ─────────────────────────────────────────────────── */}
@@ -570,6 +616,7 @@ export function MatterForm({ matter, onSaved }: Props) {
               label={isMirror ? `Specific Gifts from ${t1.fullName || "Testator 1"}` : "Specific Gifts"}
               rows={gifts1}
               onChange={setGifts1}
+              matterId={matter.id}
             />
             {isMirror && (
               <>
@@ -578,6 +625,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                   label={`Specific Gifts from ${t2.fullName || "Testator 2"}`}
                   rows={gifts2}
                   onChange={setGifts2}
+                  matterId={matter.id}
                 />
               </>
             )}
@@ -585,7 +633,7 @@ export function MatterForm({ matter, onSaved }: Props) {
 
           {/* ── PETS ─────────────────────────────────────────────────────── */}
           <TabsContent value="pets" className="space-y-4">
-            <PetsSection rows={pets} onChange={setPets} />
+            <PetsSection rows={pets} onChange={setPets} matterId={matter.id} />
           </TabsContent>
 
           {/* ── BENEFICIARIES ─────────────────────────────────────────────── */}
@@ -597,6 +645,7 @@ export function MatterForm({ matter, onSaved }: Props) {
               onChange={setBens1}
               wishes={wishes1}
               onWishesChange={setWishes1}
+              matterId={matter.id}
             />
             {isMirror && (
               <>
@@ -608,6 +657,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                   onChange={setBens2}
                   wishes={wishes2}
                   onWishesChange={setWishes2}
+                  matterId={matter.id}
                 />
               </>
             )}
@@ -638,6 +688,7 @@ export function MatterForm({ matter, onSaved }: Props) {
               label={isMirror ? `Exclusions for ${t1.fullName || "Testator 1"}` : "Exclusions"}
               rows={exclusions1}
               onChange={setExclusions1}
+              matterId={matter.id}
             />
             {isMirror && (
               <>
@@ -646,6 +697,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                   label={`Exclusions for ${t2.fullName || "Testator 2"}`}
                   rows={exclusions2}
                   onChange={setExclusions2}
+                  matterId={matter.id}
                 />
               </>
             )}
@@ -735,10 +787,10 @@ function ClientSection({ label, data, onChange }: { label: string; data: any; on
   );
 }
 
-function ExecutorSection({ label, rows, onChange }: { label: string; rows: any[]; onChange: (r: any[]) => void }) {
-  const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", executorType: type }]);
+function ExecutorSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+  const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", executorType: type, _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
-  const updateRow = (i: number, field: string, value: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+  const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
   const primary = rows.filter(r => r.executorType === "primary");
   const substitute = rows.filter(r => r.executorType === "substitute");
@@ -756,7 +808,15 @@ function ExecutorSection({ label, rows, onChange }: { label: string; rows: any[]
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary executors added.</p>}
         {rows.map((r, i) => r.executorType === "primary" && (
           <PersonRow key={i} label={`Primary Executor ${primary.indexOf(r) + 1}`} name={r.fullName} address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)}
+            matterId={matterId} poolPersonId={r._poolId}
+            onPickPerson={p => {
+              if (p) updateRow(i, "_poolId", p.id);
+              else updateRow(i, "_poolId", undefined);
+              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); }
+              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); }
+            }}
+          />
         ))}
       </div>
       <div className="space-y-2">
@@ -769,17 +829,25 @@ function ExecutorSection({ label, rows, onChange }: { label: string; rows: any[]
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute executors added.</p>}
         {rows.map((r, i) => r.executorType === "substitute" && (
           <PersonRow key={i} label={`Substitute Executor ${substitute.indexOf(r) + 1}`} name={r.fullName} address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)}
+            matterId={matterId} poolPersonId={r._poolId}
+            onPickPerson={p => {
+              if (p) updateRow(i, "_poolId", p.id);
+              else updateRow(i, "_poolId", undefined);
+              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); }
+              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); }
+            }}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function GuardianSection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => void }) {
-  const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", guardianType: type }]);
+function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+  const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", guardianType: type, _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
-  const updateRow = (i: number, field: string, value: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+  const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
   const primary = rows.filter(r => r.guardianType === "primary");
   const substitute = rows.filter(r => r.guardianType === "substitute");
@@ -796,7 +864,15 @@ function GuardianSection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "primary" && (
           <PersonRow key={i} label={`Primary Guardian ${primary.indexOf(r) + 1}`} name={r.fullName} address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)}
+            matterId={matterId} poolPersonId={r._poolId}
+            onPickPerson={p => {
+              if (p) updateRow(i, "_poolId", p.id);
+              else updateRow(i, "_poolId", undefined);
+              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); }
+              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); }
+            }}
+          />
         ))}
       </div>
       <div className="space-y-2">
@@ -809,7 +885,15 @@ function GuardianSection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "substitute" && (
           <PersonRow key={i} label={`Substitute Guardian ${substitute.indexOf(r) + 1}`} name={r.fullName} address={r.address}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)} />
+            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onRemove={() => removeRow(i)}
+            matterId={matterId} poolPersonId={r._poolId}
+            onPickPerson={p => {
+              if (p) updateRow(i, "_poolId", p.id);
+              else updateRow(i, "_poolId", undefined);
+              if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "address", p.address ?? ""); }
+              else { updateRow(i, "fullName", ""); updateRow(i, "address", ""); }
+            }}
+          />
         ))}
       </div>
     </div>
@@ -933,10 +1017,10 @@ function BusinessSection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
   );
 }
 
-function GiftsSection({ label, rows, onChange }: { label: string; rows: any[]; onChange: (r: any[]) => void }) {
-  const addRow = () => onChange([...rows, { recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset" }]);
+function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+  const addRow = () => onChange([...rows, { recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
-  const updateRow = (i: number, field: string, value: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+  const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
   return (
     <div className="space-y-3">
@@ -958,6 +1042,20 @@ function GiftsSection({ label, rows, onChange }: { label: string; rows: any[]; o
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
+          {matterId !== undefined && (
+            <div className="grid grid-cols-2 gap-2">
+              <PersonPickerField
+                matterId={matterId}
+                selectedId={r._poolId}
+                onSelect={p => {
+                  updateRow(i, "_poolId", p ? p.id : undefined);
+                  if (p) { updateRow(i, "recipientName", p.fullName); updateRow(i, "recipientAddress", p.address ?? ""); }
+                  else { updateRow(i, "recipientName", ""); updateRow(i, "recipientAddress", ""); }
+                }}
+                label="Select existing recipient or add new"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Gift Type</Label>
@@ -993,10 +1091,10 @@ function GiftsSection({ label, rows, onChange }: { label: string; rows: any[]; o
   );
 }
 
-function PetsSection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => void }) {
-  const addRow = () => onChange([...rows, { petName: "", petType: "", carerName: "", carerAddress: "", careNotes: "" }]);
+function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+  const addRow = () => onChange([...rows, { petName: "", petType: "", carerName: "", carerAddress: "", careNotes: "", _carerPoolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
-  const updateRow = (i: number, field: string, value: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+  const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
   return (
     <div className="space-y-3">
@@ -1018,6 +1116,20 @@ function PetsSection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => 
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
+          {matterId !== undefined && (
+            <div className="grid grid-cols-2 gap-2">
+              <PersonPickerField
+                matterId={matterId}
+                selectedId={r._carerPoolId}
+                onSelect={p => {
+                  updateRow(i, "_carerPoolId", p ? p.id : undefined);
+                  if (p) { updateRow(i, "carerName", p.fullName); updateRow(i, "carerAddress", p.address ?? ""); }
+                  else { updateRow(i, "carerName", ""); updateRow(i, "carerAddress", ""); }
+                }}
+                label="Select existing carer or add new"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Pet Name</Label>
@@ -1046,15 +1158,16 @@ function PetsSection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => 
   );
 }
 
-function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange }: {
+function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange, matterId }: {
   label: string;
   partnerName?: string;
   rows: any[];
   onChange: (r: any[]) => void;
   wishes: any;
   onWishesChange: (w: any) => void;
+  matterId?: number;
 }) {
-  const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1 }]);
+  const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1096,6 +1209,20 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            {matterId !== undefined && (
+              <div className="grid grid-cols-2 gap-2">
+                <PersonPickerField
+                  matterId={matterId}
+                  selectedId={r._poolId}
+                  onSelect={p => {
+                    updateRow(i, "_poolId", p ? p.id : undefined);
+                    if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "relationship", p.relationship ?? ""); }
+                    else { updateRow(i, "fullName", ""); updateRow(i, "relationship", ""); }
+                  }}
+                  label="Select existing beneficiary or add new"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">Full Name</Label>
@@ -1135,6 +1262,20 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            {matterId !== undefined && (
+              <div className="grid grid-cols-2 gap-2">
+                <PersonPickerField
+                  matterId={matterId}
+                  selectedId={r._poolId}
+                  onSelect={p => {
+                    updateRow(i, "_poolId", p ? p.id : undefined);
+                    if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "relationship", p.relationship ?? ""); }
+                    else { updateRow(i, "fullName", ""); updateRow(i, "relationship", ""); }
+                  }}
+                  label="Select existing beneficiary or add new"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">Full Name</Label>
@@ -1486,15 +1627,17 @@ function ExclusionsSection({
   label,
   rows,
   onChange,
+  matterId,
 }: {
   label: string;
-  rows: Array<{ id?: number; clientRole: string; fullName: string; relationship: string; reasonPreset: string; reasonCustom: string }>;
+  rows: Array<{ id?: number; clientRole: string; fullName: string; relationship: string; reasonPreset: string; reasonCustom: string; _poolId?: number }>;
   onChange: (r: any[]) => void;
+  matterId?: number;
 }) {
   const addRow = () =>
-    onChange([...rows, { clientRole: "testator1", fullName: "", relationship: "", reasonPreset: "", reasonCustom: "" }]);
+    onChange([...rows, { clientRole: "testator1", fullName: "", relationship: "", reasonPreset: "", reasonCustom: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
-  const updateRow = (i: number, field: string, value: string) =>
+  const updateRow = (i: number, field: string, value: any) =>
     onChange(rows.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)));
 
   return (
@@ -1526,6 +1669,20 @@ function ExclusionsSection({
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
+          {matterId !== undefined && (
+            <div className="grid grid-cols-2 gap-2">
+              <PersonPickerField
+                matterId={matterId}
+                selectedId={r._poolId}
+                onSelect={p => {
+                  updateRow(i, "_poolId", p ? p.id : undefined);
+                  if (p) { updateRow(i, "fullName", p.fullName); updateRow(i, "relationship", p.relationship ?? ""); }
+                  else { updateRow(i, "fullName", ""); updateRow(i, "relationship", ""); }
+                }}
+                label="Select existing person or add new"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Full Name</Label>

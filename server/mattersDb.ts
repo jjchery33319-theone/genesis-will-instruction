@@ -38,6 +38,8 @@ import {
   type NewMatterExclusion,
   matterLettersOfWishes,
   type MatterLetterOfWishes,
+  matterPeoplePool,
+  type MatterPersonPool,
 } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -351,6 +353,47 @@ export async function upsertLetterOfWishes(
   } else {
     await db.insert(matterLettersOfWishes).values({ matterId, clientRole, content, createdAt: now, updatedAt: now });
   }
+}
+
+// ── People Pool helpers ─────────────────────────────────────────────────────
+
+export async function listPeoplePool(matterId: number): Promise<MatterPersonPool[]> {
+  const db = await d();
+  return db.select().from(matterPeoplePool)
+    .where(eq(matterPeoplePool.matterId, matterId))
+    .orderBy(matterPeoplePool.fullName);
+}
+
+export async function upsertPersonPool(
+  matterId: number,
+  data: { id?: number; fullName: string; dateOfBirth?: string; address?: string; relationship?: string; sourceRole?: string }
+): Promise<number> {
+  const db = await d();
+  const now = Date.now();
+  if (data.id) {
+    await db.update(matterPeoplePool)
+      .set({ fullName: data.fullName, dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", updatedAt: now })
+      .where(and(eq(matterPeoplePool.id, data.id), eq(matterPeoplePool.matterId, matterId)));
+    return data.id;
+  }
+  // Check for existing person with same name (case-insensitive)
+  const existing = await db.select().from(matterPeoplePool)
+    .where(and(eq(matterPeoplePool.matterId, matterId), eq(matterPeoplePool.fullName, data.fullName)));
+  if (existing[0]) {
+    await db.update(matterPeoplePool)
+      .set({ dateOfBirth: data.dateOfBirth ?? existing[0].dateOfBirth ?? "", address: data.address ?? existing[0].address ?? "", relationship: data.relationship ?? existing[0].relationship ?? "", sourceRole: data.sourceRole ?? existing[0].sourceRole ?? "", updatedAt: now })
+      .where(eq(matterPeoplePool.id, existing[0].id));
+    return existing[0].id;
+  }
+  const result = await db.insert(matterPeoplePool).values({ matterId, fullName: data.fullName, dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", createdAt: now, updatedAt: now });
+  return (result as any)[0].insertId as number;
+}
+
+export async function deletePersonPool(id: number, matterId: number): Promise<void> {
+  const db = await d();
+  await db.delete(matterPeoplePool).where(
+    and(eq(matterPeoplePool.id, id), eq(matterPeoplePool.matterId, matterId))
+  );
 }
 
 export async function clearEditedWillHtml(
