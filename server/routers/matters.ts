@@ -274,6 +274,9 @@ export const mattersRouter = router({
         namedBeneficiaryDisability: z.string().optional(),
         ageVesting: z.number().int().optional(),
         notes: z.string().optional(),
+        terminateDeath: z.number().int().min(0).max(1).optional(),
+        terminateRemarriage: z.number().int().min(0).max(1).optional(),
+        terminateCohabitation: z.number().int().min(0).max(1).optional(),
       })),
     }))
     .mutation(async ({ input }) => {
