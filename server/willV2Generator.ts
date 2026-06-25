@@ -746,7 +746,26 @@ function trusteeNames(trustees?: Array<{ name: string; address: string }> | null
   return trustees.map(t => `<strong>${t.name}</strong>${t.address ? ` of ${t.address}` : ""}`).join(" and ");
 }
 
-function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: string; address: string }> | null; lifeTenants?: Array<{ name: string; address: string }> | null; beneficiaries?: Array<{ name: string; relationship: string }> | null; propertyAddress?: string | null; sharePercentage?: string | null; namedBeneficiary?: string | null; namedBeneficiaryDisability?: string | null; ageVesting?: number | null; notes?: string | null }, num: number): string {
+/** Build the dynamic termination clause for PPT based on selected triggers */
+function buildTerminationClause(tc: { terminateDeath?: number | null; terminateRemarriage?: number | null; terminateCohabitation?: number | null }): string {
+  const triggers: string[] = [];
+  if ((tc.terminateDeath ?? 1) === 1) triggers.push("upon the death of the Life Tenant");
+  if ((tc.terminateRemarriage ?? 1) === 1) triggers.push("upon the Life Tenant remarrying or entering into a new civil partnership");
+  if ((tc.terminateCohabitation ?? 1) === 1) triggers.push("upon the Life Tenant ceasing to permanently reside in the Property");
+
+  if (triggers.length === 0) {
+    // Fallback — should never happen if at least one is checked
+    return "The Trust Period shall terminate upon the death of the Life Tenant.";
+  }
+  if (triggers.length === 1) {
+    return `The Trust Period shall terminate ${triggers[0]}.`;
+  }
+  // 2 or 3 triggers — join with ", or " and append "whichever shall first occur"
+  const joined = triggers.slice(0, -1).join(", or ") + ", or " + triggers[triggers.length - 1];
+  return `The Trust Period shall terminate ${joined}, whichever shall first occur.`;
+}
+
+function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: string; address: string }> | null; lifeTenants?: Array<{ name: string; address: string }> | null; beneficiaries?: Array<{ name: string; relationship: string }> | null; propertyAddress?: string | null; sharePercentage?: string | null; namedBeneficiary?: string | null; namedBeneficiaryDisability?: string | null; ageVesting?: number | null; notes?: string | null; terminateDeath?: number | null; terminateRemarriage?: number | null; terminateCohabitation?: number | null }, num: number): string {
   const trNames = trusteeNames(tc.trustees);
   const notes = tc.notes ? `<p>${tc.notes}</p>` : "";
 
@@ -764,7 +783,7 @@ function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: 
   <p>I DECLARE that my share of the property known as <strong>${property}</strong> (hereinafter referred to as "the Property") shall not pass under the general gift of my Residuary Estate but shall instead be held upon the following trusts:</p>
   <p>(a) The Trustees of this trust shall be ${trNames}.</p>
   <p>(b) The Trustees shall hold my share of the Property upon trust to permit ${ltStr} (hereinafter referred to as "the Life Tenant") to have the right to reside in the Property during the Trust Period.</p>
-  <p>(c) The Trust Period shall terminate upon the death of the Life Tenant, or upon the Life Tenant remarrying or entering into a new civil partnership, or upon the Life Tenant ceasing to permanently reside in the Property, whichever shall first occur.</p>
+  <p>(c) ${buildTerminationClause(tc)}</p>
   <p>(d) Upon the termination of the Trust Period the Trustees shall hold the Property (or the net proceeds of sale thereof) upon trust for ${ultBens}.</p>
   <p>(e) The Life Tenant shall be responsible for the payment of all outgoings in respect of the Property including rates, taxes, insurance, and the cost of all repairs and maintenance.</p>
   <p>(f) The Trustees shall have power to sell the Property and to apply the proceeds of sale in the purchase of another property to be held upon the same trusts or to invest the same as if they were absolute beneficial owners thereof.</p>

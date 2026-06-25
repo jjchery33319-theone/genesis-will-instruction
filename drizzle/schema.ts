@@ -508,6 +508,10 @@ export const matterTrustClauses = mysqlTable("matter_trust_clauses", {
   namedBeneficiaryDisability: text("named_beneficiary_disability"),
   ageVesting: int("age_vesting"),
   notes: text("notes"),
+  // PPT termination triggers (1 = checked/enabled, default all on)
+  terminateDeath: tinyint("terminate_death").notNull().default(1),
+  terminateRemarriage: tinyint("terminate_remarriage").notNull().default(1),
+  terminateCohabitation: tinyint("terminate_cohabitation").notNull().default(1),
   createdAt: bigint("created_at", { mode: "number" }).notNull().default(0),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(0),
 });

@@ -216,6 +216,10 @@ export function MatterForm({ matter, onSaved }: Props) {
     namedBeneficiaryDisability: string;
     ageVesting: number;
     notes: string;
+    // PPT termination triggers
+    terminateDeath: number;
+    terminateRemarriage: number;
+    terminateCohabitation: number;
   };
 
   const ALL_TRUST_TYPES = [
@@ -245,6 +249,9 @@ export function MatterForm({ matter, onSaved }: Props) {
         namedBeneficiaryDisability: found?.namedBeneficiaryDisability || "",
         ageVesting: found?.ageVesting ?? 25,
         notes: found?.notes || "",
+        terminateDeath: found?.terminateDeath ?? 1,
+        terminateRemarriage: found?.terminateRemarriage ?? 1,
+        terminateCohabitation: found?.terminateCohabitation ?? 1,
       };
     });
   };
@@ -1388,6 +1395,10 @@ type TrustClauseRow = {
   namedBeneficiaryDisability: string;
   ageVesting: number;
   notes: string;
+  // PPT termination triggers
+  terminateDeath: number;
+  terminateRemarriage: number;
+  terminateCohabitation: number;
 };
 
 const TRUST_DESCRIPTIONS: Record<string, string> = {
@@ -1545,6 +1556,44 @@ function TrustClausesSection({
                   </div>
                 )}
 
+                {/* Trust Termination Triggers (PPT only) */}
+                {needsLifeTenants && (
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Trust Termination Triggers</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">The Trust Period shall terminate when any of the selected events occur.</p>
+                    </div>
+                    <div className="space-y-1.5 pl-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tc.terminateDeath === 1}
+                          onChange={e => updateClause(i, "terminateDeath", e.target.checked ? 1 : 0)}
+                          className="h-3.5 w-3.5 rounded border-border accent-primary"
+                        />
+                        <span className="text-xs">Death: Upon the death of the Life Tenant</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tc.terminateRemarriage === 1}
+                          onChange={e => updateClause(i, "terminateRemarriage", e.target.checked ? 1 : 0)}
+                          className="h-3.5 w-3.5 rounded border-border accent-primary"
+                        />
+                        <span className="text-xs">Remarriage: Upon the Life Tenant remarrying or entering into a new civil partnership</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tc.terminateCohabitation === 1}
+                          onChange={e => updateClause(i, "terminateCohabitation", e.target.checked ? 1 : 0)}
+                          className="h-3.5 w-3.5 rounded border-border accent-primary"
+                        />
+                        <span className="text-xs">Cohabitation/Residence: Upon the Life Tenant ceasing to permanently reside in the Property</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
                 {/* Trustees */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
