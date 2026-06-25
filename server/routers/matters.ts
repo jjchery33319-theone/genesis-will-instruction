@@ -23,6 +23,9 @@ import {
   deleteExclusion,
   getLetterOfWishes,
   upsertLetterOfWishes,
+  listPeoplePool,
+  upsertPersonPool,
+  deletePersonPool,
 } from "../mattersDb";
 
 const personSchema = z.object({
@@ -329,6 +332,34 @@ export const mattersRouter = router({
     }))
     .mutation(async ({ input }) => {
       await upsertLetterOfWishes(input.matterId, input.clientRole, input.content);
+      return { success: true };
+    }),
+
+  // ── People Pool ────────────────────────────────────────────────────────────────────
+  listPeoplePool: protectedProcedure
+    .input(z.object({ matterId: z.number().int() }))
+    .query(async ({ input }) => listPeoplePool(input.matterId)),
+
+  upsertPersonPool: protectedProcedure
+    .input(z.object({
+      matterId: z.number().int(),
+      id: z.number().int().optional(),
+      fullName: z.string(),
+      dateOfBirth: z.string().optional(),
+      address: z.string().optional(),
+      relationship: z.string().optional(),
+      sourceRole: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { matterId, ...data } = input;
+      const id = await upsertPersonPool(matterId, data);
+      return { id };
+    }),
+
+  deletePersonPool: protectedProcedure
+    .input(z.object({ id: z.number().int(), matterId: z.number().int() }))
+    .mutation(async ({ input }) => {
+      await deletePersonPool(input.id, input.matterId);
       return { success: true };
     }),
 });
