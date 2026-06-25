@@ -369,6 +369,15 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     margin-bottom: 3mm;
     color: #1a3a5c;
   }
+  h3 {
+    font-size: 11.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 5mm;
+    margin-bottom: 2mm;
+    color: #1a3a5c;
+  }
   .clause {
     margin-bottom: 6mm;
   }
@@ -772,21 +781,38 @@ function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: 
   switch (tc.trustType) {
     case "ppt": {
       const property = tc.propertyAddress || "my principal residence";
-      const ltStr = tc.lifeTenants && tc.lifeTenants.length > 0
+      const ltName = tc.lifeTenants && tc.lifeTenants.length > 0
         ? tc.lifeTenants.map(lt => `<strong>${lt.name}</strong>`).join(" and ")
         : "my surviving spouse or civil partner";
-      const ultBens = tc.beneficiaries && tc.beneficiaries.length > 0
+      const remaindermen = tc.beneficiaries && tc.beneficiaries.length > 0
         ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ")
-        : "my children and remoter issue in equal shares absolutely";
+        : "my Residuary Beneficiaries";
       return `
-  <h2>${num}. Protective Property Trust (Lifetime Interest Trust)</h2>
-  <p>I DECLARE that my share of the property known as <strong>${property}</strong> (hereinafter referred to as "the Property") shall not pass under the general gift of my Residuary Estate but shall instead be held upon the following trusts:</p>
-  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
-  <p>(b) The Trustees shall hold my share of the Property upon trust to permit ${ltStr} (hereinafter referred to as "the Life Tenant") to have the right to reside in the Property during the Trust Period.</p>
-  <p>(c) ${buildTerminationClause(tc)}</p>
-  <p>(d) Upon the termination of the Trust Period the Trustees shall hold the Property (or the net proceeds of sale thereof) upon trust for ${ultBens}.</p>
-  <p>(e) The Life Tenant shall be responsible for the payment of all outgoings in respect of the Property including rates, taxes, insurance, and the cost of all repairs and maintenance.</p>
-  <p>(f) The Trustees shall have power to sell the Property and to apply the proceeds of sale in the purchase of another property to be held upon the same trusts or to invest the same as if they were absolute beneficial owners thereof.</p>
+  <h2>${num}. LIFE INTEREST TRUST COMPONENT</h2>
+
+  <h3>${num}.1 DEFINITIONS</h3>
+  <p>"The Property" shall mean my property known as <strong>${property}</strong> or any other property which I may own at the date of my death and use as my principal private residence.</p>
+  <p>"The Life Tenant" shall mean ${ltName}.</p>
+  <p>"The Remaindermen" shall mean ${remaindermen}.</p>
+  <p>"The Trust Fund" shall mean the Property together with any cash or replacement property held under the terms of this Trust.</p>
+
+  <h3>${num}.2 GIFT OF LIFE INTEREST</h3>
+  <p>I give my interest in the Property to my Trustees upon trust to permit the Life Tenant to reside personally in the Property for as long as they desire during the Trust Period.</p>
+
+  <h3>${num}.3 CONDITIONS OF OCCUPANCY</h3>
+  <p>During the Trust Period, the Life Tenant shall be responsible for:</p>
+  <p>(a) Keeping the Property in good repair and decorative condition;</p>
+  <p>(b) Keeping the Property fully insured to its full reinstatement value against comprehensive risks to the satisfaction of my Trustees;</p>
+  <p>(c) Paying all rates, taxes, utilities, council tax, and other outgoings relating to the Property.</p>
+
+  <h3>${num}.4 TERMINATION OF THE TRUST</h3>
+  <p>${buildTerminationClause(tc)}</p>
+
+  <h3>${num}.5 POWER OF SALE AND REINVESTMENT</h3>
+  <p>My Trustees shall have the power, with the written consent of the Life Tenant during their lifetime, to sell the Property and apply all or part of the net proceeds toward the purchase of a replacement property (which shall be held on the same trusts as herein declared). Any surplus proceeds not used for a replacement property shall be invested to generate an income, which shall be paid to the Life Tenant for the remainder of the Trust Period.</p>
+
+  <h3>${num}.6 ULTIMATE GIFT (ON TERMINATION)</h3>
+  <p>Upon the termination of the Trust Period, my Trustees shall hold the Trust Fund (including the Property or any replacement assets) absolutely for The Remaindermen, and if more than one in equal shares.</p>
   ${notes}`;
     }
 
