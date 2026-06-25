@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Download, RotateCcw, Save, FileText, MessageSquare, ClipboardList, Loader2, CheckCircle2, AlertCircle, Users } from "lucide-react";
+import { Download, RotateCcw, Save, FileText, MessageSquare, ClipboardList, Loader2, CheckCircle2, AlertCircle, Users, FileWarning } from "lucide-react";
 
 type FullMatter = any;
 
@@ -70,12 +72,14 @@ function DocViewer({
   doc,
   isEditable,
   clientName,
+  isDraft,
 }: {
   matterId: number;
   testatorRole: "testator1" | "testator2";
   doc: DocTab;
   isEditable: boolean;
   clientName: string;
+  isDraft: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
@@ -85,10 +89,11 @@ function DocViewer({
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
 
-  const url = doc.endpoint(matterId, testatorRole);
+  const draftParam = isDraft ? "&draft=1" : "";
+  const url = doc.endpoint(matterId, testatorRole) + draftParam;
   // PDF URL is the same HTML endpoint with ?print=1 — opens in new tab and auto-triggers print dialog
-  const printUrl = `${doc.endpoint(matterId, testatorRole)}${doc.endpoint(matterId, testatorRole).includes('?') ? '&' : '?'}print=1`;
-  const downloadDocxUrl = doc.downloadDocxEndpoint ? doc.downloadDocxEndpoint(matterId, testatorRole) : null;
+  const printUrl = `${doc.endpoint(matterId, testatorRole)}${doc.endpoint(matterId, testatorRole).includes('?') ? '&' : '?'}print=1${draftParam}`;
+  const downloadDocxUrl = doc.downloadDocxEndpoint ? doc.downloadDocxEndpoint(matterId, testatorRole) + draftParam : null;
 
   useEffect(() => {
     if (doc.id !== "will") return;
@@ -274,10 +279,12 @@ function TestatorDocSet({
   matter,
   testatorRole,
   clientName,
+  isDraft,
 }: {
   matter: FullMatter;
   testatorRole: "testator1" | "testator2";
   clientName: string;
+  isDraft: boolean;
 }) {
   const [activeDoc, setActiveDoc] = useState<DocType>("will");
   const activeDocDef = DOC_TABS.find(d => d.id === activeDoc)!;
@@ -296,13 +303,14 @@ function TestatorDocSet({
     setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
   };
 
+  const draftParam = isDraft ? "&draft=1" : "";
   const handleDownloadAll = () => {
     // Open each document in a new tab with ?print=1 — each auto-triggers the print dialog
     // User saves each as PDF via the browser's native print-to-PDF
     const t = testatorRole;
-    window.open(`/api/matters/${matter.id}/will?testator=${t}&print=1`, "_blank");
-    setTimeout(() => window.open(`/api/matters/${matter.id}/commentary?testator=${t}&print=1`, "_blank"), 600);
-    setTimeout(() => window.open(`/api/matters/${matter.id}/signing-guide?testator=${t}&print=1`, "_blank"), 1200);
+    window.open(`/api/matters/${matter.id}/will?testator=${t}&print=1${draftParam}`, "_blank");
+    setTimeout(() => window.open(`/api/matters/${matter.id}/commentary?testator=${t}&print=1${draftParam}`, "_blank"), 600);
+    setTimeout(() => window.open(`/api/matters/${matter.id}/signing-guide?testator=${t}&print=1${draftParam}`, "_blank"), 1200);
     toast.info(`Opening 3 documents for ${clientName} — save each as PDF using the print dialog. Letter of Wishes can be printed separately.`);
   };
 
@@ -338,12 +346,47 @@ function TestatorDocSet({
       {/* Document viewer */}
       <div className="flex-1 overflow-hidden">
         <DocViewer
-          key={`${matter.id}-${testatorRole}-${activeDoc}`}
+          key={`${matter.id}-${testatorRole}-${activeDoc}-${isDraft ? 'draft' : 'final'}`}
           matterId={matter.id}
           testatorRole={testatorRole}
           doc={activeDocDef}
           isEditable={activeDoc === "will"}
           clientName={clientName}
+          isDraft={isDraft}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Draft toggle bar (shared across single and mirror views) ─────────────────
+
+function DraftToggleBar({ isDraft, onToggle }: { isDraft: boolean; onToggle: (v: boolean) => void }) {
+  return (
+    <div className={`flex items-center gap-3 px-4 py-2 border-b flex-shrink-0 transition-colors ${
+      isDraft
+        ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
+        : "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800"
+    }`}>
+      <FileWarning className={`h-4 w-4 shrink-0 ${isDraft ? "text-amber-600" : "text-green-600"}`} />
+      <div className="flex-1 min-w-0">
+        <span className={`text-xs font-semibold ${isDraft ? "text-amber-700 dark:text-amber-400" : "text-green-700 dark:text-green-400"}`}>
+          {isDraft ? "Draft Mode — documents include a DRAFT watermark" : "Final Mode — documents are clean and ready for signing"}
+        </span>
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          {isDraft
+            ? "Uncheck to remove the watermark when the client has approved the Will."
+            : "The watermark has been removed. This document is ready for execution."}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <Label htmlFor="draft-toggle" className="text-xs font-medium cursor-pointer select-none">
+          Mark as Draft
+        </Label>
+        <Switch
+          id="draft-toggle"
+          checked={isDraft}
+          onCheckedChange={onToggle}
         />
       </div>
     </div>
@@ -354,6 +397,7 @@ function TestatorDocSet({
 
 export function MatterPreview({ matter }: Props) {
   const isMirror = matter.matterType === "mirror";
+  const [isDraft, setIsDraft] = useState(true); // default: Draft mode ON
 
   const t1Name = matter.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "Testator 1";
   const t2Name = matter.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "Testator 2";
@@ -362,7 +406,8 @@ export function MatterPreview({ matter }: Props) {
   if (!isMirror) {
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        <TestatorDocSet matter={matter} testatorRole="testator1" clientName={t1Name} />
+        <DraftToggleBar isDraft={isDraft} onToggle={setIsDraft} />
+        <TestatorDocSet matter={matter} testatorRole="testator1" clientName={t1Name} isDraft={isDraft} />
       </div>
     );
   }
@@ -372,6 +417,9 @@ export function MatterPreview({ matter }: Props) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Draft toggle — applies to all documents */}
+      <DraftToggleBar isDraft={isDraft} onToggle={setIsDraft} />
+
       {/* Mirror Will testator selector header */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card/80 flex-shrink-0">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -405,6 +453,7 @@ export function MatterPreview({ matter }: Props) {
             matter={matter}
             testatorRole="testator1"
             clientName={t1Name}
+            isDraft={isDraft}
           />
         ) : (
           <TestatorDocSet
@@ -412,6 +461,7 @@ export function MatterPreview({ matter }: Props) {
             matter={matter}
             testatorRole="testator2"
             clientName={t2Name}
+            isDraft={isDraft}
           />
         )}
       </div>
