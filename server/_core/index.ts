@@ -361,6 +361,53 @@ async function startServer() {
   });
 
   // ── Will V2 document endpoints ─────────────────────────────────────────────
+
+  /**
+   * Injects a diagonal DRAFT watermark into any HTML document string.
+   * Uses a fixed-position SVG overlay so it appears on every page when printed
+   * without obscuring the legal text (pointer-events: none, low opacity).
+   */
+  function injectDraftWatermark(html: string, draft: boolean): string {
+    if (!draft) return html;
+    const overlay = `
+<style id="draft-watermark-style">
+  #draft-wm {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    overflow: hidden;
+  }
+  #draft-wm svg { width: 100%; height: 100%; position: absolute; inset: 0; }
+  @media print {
+    #draft-wm { position: fixed; inset: 0; width: 100%; height: 100%; }
+  }
+</style>
+<div id="draft-wm" aria-hidden="true">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1131" preserveAspectRatio="xMidYMid meet">
+    <text
+      x="50%" y="50%"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      transform="rotate(-45 400 565)"
+      font-family="Arial,Helvetica,sans-serif"
+      font-size="120"
+      font-weight="900"
+      letter-spacing="12"
+      fill="rgba(180,180,180,0.20)"
+      stroke="rgba(150,150,150,0.25)"
+      stroke-width="1"
+    >DRAFT</text>
+  </svg>
+</div>`;
+    if (html.includes('<body')) {
+      return html.replace(/(<body[^>]*>)/, `$1\n${overlay}`);
+    }
+    return overlay + html;
+  }
+
   app.get("/api/matters/:id/will", async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
@@ -372,6 +419,8 @@ async function startServer() {
       const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
       let html = savedHtml || generateWillV2Html(matter, testatorRole);
       const isEdited = !!savedHtml;
+      const isDraft = req.query.draft === "1";
+      html = injectDraftWatermark(html, isDraft);
       if (req.query.print === "1") {
         html = html.replace("</body>", `<script>window.onload=function(){window.print();}</script></body>`);
       }
@@ -446,6 +495,7 @@ async function startServer() {
       let html = generateCommentaryHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      html = injectDraftWatermark(html, req.query.draft === "1");
       if (req.query.print === "1") {
         html = html.replace("</body>", `<script>window.onload=function(){window.print();}</script></body>`);
       }
@@ -518,6 +568,7 @@ async function startServer() {
       let html = generateSigningGuideHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "SigningGuide").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      html = injectDraftWatermark(html, req.query.draft === "1");
       if (req.query.print === "1") {
         html = html.replace("</body>", `<script>window.onload=function(){window.print();}</script></body>`);
       }
@@ -563,6 +614,7 @@ async function startServer() {
       let html = generateLetterOfWishesHtml(matter, testatorRole);
       const client = matter.clients.find((c: any) => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "LetterOfWishes").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      html = injectDraftWatermark(html, req.query.draft === "1");
       if (req.query.print === "1") {
         html = html.replace("</body>", `<script>window.onload=function(){window.print();}<\/script></body>`);
       }
