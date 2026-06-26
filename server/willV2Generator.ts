@@ -309,8 +309,10 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     text-align: center;
     min-height: 297mm;
     padding: 20mm 22mm;
-    border: 2px solid #1a1a1a;
     position: relative;
+    /* Double-line border: outer line via box-shadow, inner line via border */
+    border: 3px solid #1a1a1a;
+    box-shadow: inset 0 0 0 5px #fff, inset 0 0 0 8px #1a1a1a;
   }
   .cover-box {
     border: 1px solid #1a1a1a;
@@ -479,6 +481,11 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
       min-height: 0 !important;
       height: 100vh;
       padding: 18mm 20mm !important;
+      /* Preserve double-line border in print */
+      border: 3pt solid #1a1a1a !important;
+      box-shadow: inset 0 0 0 5pt #fff, inset 0 0 0 8pt #1a1a1a !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
     /* ── Keep headings with their following content ── */
