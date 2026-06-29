@@ -178,10 +178,11 @@ export function generateTestimoniumHtml(matter: FullMatter, testatorRole: Testat
     <div class="company-block">
       <div><div class="logo-circle">GW</div></div>
       <div class="company-name">Genesis Wills and Estate Planning Ltd</div>
-      <div>Suite 1, Parkway House</div>
-      <div>Palatine Road, Northenden</div>
-      <div>Manchester, M22 4DB</div>
-      <div>0161 914 5757</div>
+      <div>The Business Village, Innovation Way</div>
+      <div>Barnsley, South Yorkshire S75 1JL</div>
+      <div>office@genesisestateplanning.info</div>
+      <div>0330 1180937</div>
+      <div>https://www.genesisestateplanning.net/</div>
     </div>
   </div>
 
@@ -280,7 +281,7 @@ export function generateTestimoniumHtml(matter: FullMatter, testatorRole: Testat
 
   <!-- Page footer -->
   <div class="page-footer">
-    Genesis Wills and Estate Planning Ltd, Suite 1, Parkway House, Palatine Road, Northenden, Manchester, M22 4DB &nbsp;|&nbsp; 0161 914 5757
+    Genesis Wills and Estate Planning Ltd, The Business Village, Innovation Way, Barnsley, South Yorkshire S75 1JL &nbsp;|&nbsp; 0330 1180937
   </div>
 
 </div>
