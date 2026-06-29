@@ -1259,22 +1259,15 @@ export default function AdminSubmissionEditor() {
 function ImportToV2Button({ submissionId, isMirror }: { submissionId: number; isMirror: boolean }) {
   const [, navigate] = useLocation();
   const [showDialog, setShowDialog] = useState(false);
-  const [importType, setImportType] = useState<"will" | "lpa" | "both">("will");
 
-  const importMutation = trpc.lpa.importFromV1.useMutation({
+  const transferMutation = trpc.matters.transferFromInstruction.useMutation({
     onSuccess: (data) => {
-      toast.success(`Imported to V2 — Matter #${data.matterId} created`);
+      toast.success(`Transferred to V2 — Matter #${data.matterId} created`);
       setShowDialog(false);
-      navigate(`/admin/wills`);
+      navigate(`/admin/wills/${data.matterId}`);
     },
-    onError: (err) => toast.error(`Import failed: ${err.message}`),
+    onError: (err) => toast.error(`Transfer failed: ${err.message}`),
   });
-
-  const handleImport = () => {
-    importMutation.mutate({
-      willInstructionId: submissionId,
-    });
-  };
 
   return (
     <>
@@ -1283,51 +1276,34 @@ function ImportToV2Button({ submissionId, isMirror }: { submissionId: number; is
         variant="outline"
         className="gap-1.5 bg-white border-purple-500 text-purple-700 hover:bg-purple-50"
         onClick={() => setShowDialog(true)}
-        title="Import this submission into Will Drafting V2"
+        title="Transfer this submission into Will Drafting V2"
       >
         <ArrowUpRight className="w-3.5 h-3.5" />
-        Import to V2
+        Transfer to V2
       </Button>
 
       {showDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-base font-semibold mb-1">Import Submission to V2</h2>
+            <h2 className="text-base font-semibold mb-1">Transfer to Will Drafting V2</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              This will create a new {isMirror ? "Mirror" : "Single"} Will matter in the Will Drafting V2 system
-              using the client data from this submission.
+              This will create a new <strong>{isMirror ? "Mirror" : "Single"} Will</strong> matter in the V2 drafting
+              system, pre-populated with all client data from this submission — clients, executors, guardians,
+              beneficiaries, gifts, property, and wishes. No information needs to be re-entered.
             </p>
-            <div className="space-y-3 mb-5">
-              <Label className="text-sm font-medium">What to create</Label>
-              <div className="flex flex-col gap-2">
-                {[
-                  { value: "will", label: "Will matter only" },
-                  { value: "lpa", label: "LPA records only (Property & Financial + Health & Welfare)" },
-                  { value: "both", label: "Will matter + LPA records" },
-                ].map(opt => (
-                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="importType"
-                      value={opt.value}
-                      checked={importType === opt.value}
-                      onChange={() => setImportType(opt.value as typeof importType)}
-                    />
-                    <span className="text-sm">{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-5">
+              A new matter will be created. This submission will remain unchanged.
+            </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowDialog(false)}>Cancel</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowDialog(false)} disabled={transferMutation.isPending}>Cancel</Button>
               <Button
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
-                onClick={handleImport}
-                disabled={importMutation.isPending}
+                onClick={() => transferMutation.mutate({ instructionId: submissionId })}
+                disabled={transferMutation.isPending}
               >
-                {importMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
-                Import
+                {transferMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
+                {transferMutation.isPending ? "Transferring…" : "Transfer Now"}
               </Button>
             </div>
           </div>
