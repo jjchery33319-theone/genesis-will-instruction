@@ -295,7 +295,7 @@ export function MatterForm({ matter, onSaved }: Props) {
           sharePercentage: b.sharePercentage || "",
           businessNotes: b.businessNotes || "",
         }))
-      : [{ businessName: "Genesis Wills and Estate Planning Ltd", businessType: "Limited Company", sharePercentage: "", businessNotes: "" }]
+      : []
   );
 
   // ── Mutations ─────────────────────────────────────────────────────────────
