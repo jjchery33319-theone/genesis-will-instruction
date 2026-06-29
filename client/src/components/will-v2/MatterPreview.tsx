@@ -14,7 +14,7 @@ interface Props {
   matter: FullMatter;
 }
 
-type DocType = "will" | "commentary" | "signing-guide" | "letter-of-wishes";
+type DocType = "will" | "commentary" | "signing-guide" | "letter-of-wishes" | "testimonium";
 
 interface DocTab {
   id: DocType;
@@ -61,6 +61,14 @@ const DOC_TABS: DocTab[] = [
     endpoint: (id, t) => `/api/matters/${id}/letter-of-wishes?testator=${t}`,
     downloadPdfEndpoint: (id, t) => `/api/matters/${id}/letter-of-wishes?testator=${t}&print=1`,
     downloadPdfLabel: "Print Letter of Wishes (PDF)",
+  },
+  {
+    id: "testimonium",
+    label: "Testimonium & Attestation",
+    icon: <ClipboardList className="h-3.5 w-3.5" />,
+    endpoint: (id, t) => `/api/matters/${id}/testimonium?testator=${t}`,
+    downloadPdfEndpoint: (id, t) => `/api/matters/${id}/testimonium?testator=${t}&print=1`,
+    downloadPdfLabel: "Print Testimonium (PDF)",
   },
 ];
 
