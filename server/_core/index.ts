@@ -21,6 +21,7 @@ import { generateWillHtml as generateWillV2Html } from "../willV2Generator";
 import { generateCommentaryHtml } from "../willV2Commentary";
 import { generateSigningGuideHtml } from "../willV2SigningGuide";
 import { generateLetterOfWishesHtml } from "../willV2LetterOfWishes";
+import { generateTestimoniumHtml } from "../willV2Testimonium";
 import { getMatterById } from "../mattersDb";
 import { htmlToPdf } from "../htmlToPdf";
 import { createRequire } from "module";
@@ -621,6 +622,30 @@ async function startServer() {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[Letter of Wishes] Error:", msg, err);
       res.status(500).json({ error: "Failed to generate Letter of Wishes", detail: msg });
+    }
+  });
+
+  // Testimonium & Attestation — HTML (print-to-PDF)
+  app.get("/api/matters/:id/testimonium", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(404).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      let html = generateTestimoniumHtml(matter, testatorRole);
+      const client = matter.clients.find((c: any) => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "Testimonium").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      if (req.query.print === "1") {
+        html = html.replace("</body>", `<script>window.onload=function(){window.print();}<\/script></body>`);
+      }
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `inline; filename="${safeName}-Testimonium.html"`);
+      res.send(html);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Testimonium] Error:", msg, err);
+      res.status(500).json({ error: "Failed to generate Testimonium", detail: msg });
     }
   });
 
