@@ -429,10 +429,21 @@ export const mattersRouter = router({
         });
       }
 
+      // Helper to reconstruct full name from instruction person object (which stores firstName/lastName separately)
+      const personFullName = (p: Record<string, unknown>): string => {
+        // Try pre-assembled fullName first (V2 pool format)
+        if (p.fullName && typeof p.fullName === "string" && p.fullName.trim()) return p.fullName.trim();
+        // Fall back to component parts (instruction form format)
+        const parts = [p.prefix, p.firstName, p.middleName, p.lastName].filter(v => typeof v === "string" && (v as string).trim());
+        if (parts.length > 0) return parts.join(" ").trim();
+        // Last resort: name field
+        return typeof p.name === "string" ? p.name.trim() : "";
+      };
+
       // 3. Executors
-      type PersonEntry = { name?: string; fullName?: string; address?: string };
+      type PersonEntry = Record<string, unknown>;
       const toExecRows = (arr: PersonEntry[], type: "primary" | "substitute") =>
-        arr.map(p => ({ fullName: p.fullName ?? p.name ?? "", address: p.address ?? "", executorType: type }));
+        arr.map(p => ({ fullName: personFullName(p), address: typeof p.address === "string" ? p.address : "", executorType: type }));
 
       if (isMirror) {
         await replaceExecutors(matterId, "testator1", [
@@ -451,52 +462,55 @@ export const mattersRouter = router({
       }
 
       // 4. Guardians
-      type GuardianEntry = { name?: string; fullName?: string; address?: string };
-      const toGuardianRows = (arr: GuardianEntry[], type: "primary" | "substitute") =>
-        arr.map(p => ({ fullName: p.fullName ?? p.name ?? "", address: p.address ?? "", guardianType: type }));
+      const toGuardianRows = (arr: PersonEntry[], type: "primary" | "substitute") =>
+        arr.map(p => ({ fullName: personFullName(p), address: typeof p.address === "string" ? p.address : "", guardianType: type }));
 
       if (isMirror) {
         const allGuards = [
-          ...toGuardianRows(safeArr<GuardianEntry>(ins.client1Guardians), "primary"),
-          ...toGuardianRows(safeArr<GuardianEntry>(ins.client1ReservedGuardians), "substitute"),
-          ...toGuardianRows(safeArr<GuardianEntry>(ins.client2Guardians), "primary"),
-          ...toGuardianRows(safeArr<GuardianEntry>(ins.client2ReservedGuardians), "substitute"),
+          ...toGuardianRows(safeArr<PersonEntry>(ins.client1Guardians), "primary"),
+          ...toGuardianRows(safeArr<PersonEntry>(ins.client1ReservedGuardians), "substitute"),
+          ...toGuardianRows(safeArr<PersonEntry>(ins.client2Guardians), "primary"),
+          ...toGuardianRows(safeArr<PersonEntry>(ins.client2ReservedGuardians), "substitute"),
         ];
         await replaceGuardians(matterId, allGuards);
       } else {
         await replaceGuardians(matterId, [
-          ...toGuardianRows(safeArr<GuardianEntry>(ins.guardians), "primary"),
-          ...toGuardianRows(safeArr<GuardianEntry>(ins.reservedGuardians), "substitute"),
+          ...toGuardianRows(safeArr<PersonEntry>(ins.guardians), "primary"),
+          ...toGuardianRows(safeArr<PersonEntry>(ins.reservedGuardians), "substitute"),
         ]);
       }
 
       // 5. Beneficiaries
-      type BenEntry = { name?: string; fullName?: string; address?: string; relationship?: string; share?: string };
-      const toBenRows = (arr: BenEntry[], type: "primary" | "fallback") =>
+      const toBenRows = (arr: PersonEntry[], type: "primary" | "fallback") =>
         arr.map(p => ({
-          fullName: p.fullName ?? p.name ?? "",
-          address: p.address ?? "",
-          relationship: p.relationship ?? "",
-          shareFraction: p.share ?? "",
+          fullName: personFullName(p),
+          address: typeof p.address === "string" ? p.address : "",
+          relationship: typeof p.relationship === "string" ? p.relationship : "",
+          shareFraction: typeof p.share === "string" ? p.share : "",
           beneficiaryType: type,
           includeIssue: 1,
         }));
 
       if (isMirror) {
-        await replaceBeneficiaries(matterId, "testator1", toBenRows(safeArr<BenEntry>(ins.client1Beneficiaries), "primary"));
-        await replaceBeneficiaries(matterId, "testator2", toBenRows(safeArr<BenEntry>(ins.client2Beneficiaries), "primary"));
+        await replaceBeneficiaries(matterId, "testator1", toBenRows(safeArr<PersonEntry>(ins.client1Beneficiaries), "primary"));
+        await replaceBeneficiaries(matterId, "testator2", toBenRows(safeArr<PersonEntry>(ins.client2Beneficiaries), "primary"));
       } else {
-        await replaceBeneficiaries(matterId, "shared", toBenRows(safeArr<BenEntry>(ins.beneficiaries), "primary"));
+        await replaceBeneficiaries(matterId, "shared", toBenRows(safeArr<PersonEntry>(ins.beneficiaries), "primary"));
       }
 
-      // 6. Gifts
-      type GiftEntry = { recipient?: string; recipientName?: string; recipientAddress?: string; description?: string; giftDescription?: string; type?: string; giftType?: string };
+      // 6. Gifts — instruction stores as { description, recipient, value, notes } or { giftDescription, recipientName }
+      type GiftEntry = Record<string, unknown>;
       const toGiftRows = (arr: GiftEntry[]) =>
         arr.map(g => ({
-          recipientName: g.recipientName ?? g.recipient ?? "",
-          recipientAddress: g.recipientAddress ?? "",
-          giftDescription: g.giftDescription ?? g.description ?? "",
-          giftType: (g.giftType ?? g.type ?? "asset") as "monetary" | "asset" | "residue",
+          recipientName: (typeof g.recipientName === "string" ? g.recipientName : null)
+            ?? (typeof g.recipient === "string" ? g.recipient : ""),
+          recipientAddress: typeof g.recipientAddress === "string" ? g.recipientAddress : "",
+          giftDescription: (typeof g.giftDescription === "string" ? g.giftDescription : null)
+            ?? (typeof g.description === "string" ? g.description : ""),
+          giftType: (
+            (typeof g.giftType === "string" ? g.giftType : null)
+            ?? (typeof g.type === "string" ? g.type : "asset")
+          ) as "monetary" | "asset" | "residue",
         }));
 
       if (isMirror) {
@@ -547,8 +561,8 @@ export const mattersRouter = router({
         if (c2Name2) poolPeople.push({ fullName: c2Name2, address: c2Address2, dateOfBirth: ins.client2Dob ?? undefined, sourceRole: "testator2" });
       }
       const addToPool = (arr: PersonEntry[], role: string) => arr.forEach(p => {
-        const n = p.fullName ?? p.name ?? "";
-        if (n) poolPeople.push({ fullName: n, address: p.address ?? undefined, sourceRole: role });
+        const n = personFullName(p);
+        if (n) poolPeople.push({ fullName: n, address: typeof p.address === "string" ? p.address : undefined, sourceRole: role });
       });
       addToPool(safeArr(isMirror ? ins.client1Executors : ins.executors), "executor");
       if (isMirror) addToPool(safeArr(ins.client2Executors), "executor");
