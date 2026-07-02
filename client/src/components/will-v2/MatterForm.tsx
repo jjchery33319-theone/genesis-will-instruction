@@ -167,7 +167,7 @@ export function MatterForm({ matter, onSaved }: Props) {
 
   // ── Gifts state ───────────────────────────────────────────────────────────
   const toGiftRows = (role: string) =>
-    (matter.gifts || []).filter((g: any) => g.clientRole === role || g.clientRole === "shared").map((g: any) => ({
+    (matter.gifts || []).filter((g: any) => g.clientRole === role).map((g: any) => ({
       recipientName: g.recipientName || "",
       recipientAddress: g.recipientAddress || "",
       giftDescription: g.giftDescription || "",
@@ -234,7 +234,7 @@ export function MatterForm({ matter, onSaved }: Props) {
   ];
 
   const toTrustRows = (role: string): TrustClause[] => {
-    const existing = (matter.trustClauses || []).filter((tc: any) => tc.clientRole === role || tc.clientRole === "shared");
+    const existing = (matter.trustClauses || []).filter((tc: any) => tc.clientRole === role);
     return ALL_TRUST_TYPES.map(tt => {
       const found = existing.find((tc: any) => tc.trustType === tt.value);
       return {

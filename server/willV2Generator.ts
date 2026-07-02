@@ -102,12 +102,12 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 
   // Gifts for this testator
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
-  const specificGifts = (matter.gifts || []).filter(g => g.clientRole === giftRole || g.clientRole === "shared");
+  const specificGifts = (matter.gifts || []).filter(g => g.clientRole === giftRole);
 
   // Trust clauses for this testator (or shared)
   const trustRole = matter.matterType === "mirror" ? testatorRole : "shared";
   const trustClauses = (matter.trustClauses || []).filter(tc =>
-    (tc.clientRole === trustRole || tc.clientRole === "shared") && tc.enabled
+    tc.clientRole === trustRole && tc.enabled
   );
 
   // Exclusions for this testator
