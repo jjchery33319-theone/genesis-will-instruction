@@ -105,9 +105,9 @@ export default function UserManagement() {
             <div>
               <h2 className="font-semibold text-base mb-1">Team Access Control</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                All team members who have signed in via Manus OAuth appear below. The project owner
-                can promote users to <strong>Admin</strong> (full access) or demote them back to{" "}
-                <strong>User</strong> (read-only). Only the project owner can change roles.
+                All team members who have signed in via Manus OAuth appear below. Any admin can
+                promote users to <strong>Admin</strong> (full access) or demote them back to{" "}
+                <strong>User</strong> (read-only). You cannot demote yourself.
               </p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function UserManagement() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-4 text-center">
-          Role changes take effect immediately. The project owner's role cannot be changed.
+          Role changes take effect immediately. You cannot demote your own account.
         </p>
       </div>
 
