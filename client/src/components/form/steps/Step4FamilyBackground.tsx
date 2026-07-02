@@ -15,6 +15,15 @@ interface Props {
   isMirrorWill?: boolean;
 }
 
+const RELATIONSHIP_OPTIONS = [
+  { value: "Son", label: "Son" },
+  { value: "Daughter", label: "Daughter" },
+  { value: "Step-Son", label: "Step-Son" },
+  { value: "Step-Daughter", label: "Step-Daughter" },
+  { value: "Adopted Son", label: "Adopted Son" },
+  { value: "Adopted Daughter", label: "Adopted Daughter" },
+];
+
 // ── Blank child factory ──────────────────────────────────────────────────────
 function blankChild(ageGroup: "under18" | "over18"): ChildEntry {
   return { firstName: "", ageGroup };
@@ -25,12 +34,14 @@ function ChildCard({
   child,
   index,
   ageGroup,
+  isMirrorWill,
   onUpdate,
   onRemove,
 }: {
   child: ChildEntry;
   index: number;
   ageGroup: "under18" | "over18";
+  isMirrorWill?: boolean;
   onUpdate: (updated: ChildEntry) => void;
   onRemove: () => void;
 }) {
@@ -100,15 +111,31 @@ function ChildCard({
           >
             <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Child from current marriage">Child — current marriage</SelectItem>
-              <SelectItem value="Child from previous relationship">Child — previous relationship</SelectItem>
-              <SelectItem value="Stepchild">Stepchild</SelectItem>
-              <SelectItem value="Adopted child">Adopted child</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
+              {RELATIONSHIP_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
+
+      {/* Client ownership — only shown for mirror wills */}
+      {isMirrorWill && (
+        <div>
+          <Label className="text-xs text-muted-foreground mb-1 block">Child of</Label>
+          <Select
+            value={child.clientOwner ?? ""}
+            onValueChange={v => u({ clientOwner: v as "client1" | "client2" | "both" })}
+          >
+            <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="client1">Client 1 only</SelectItem>
+              <SelectItem value="client2">Client 2 only</SelectItem>
+              <SelectItem value="both">Both clients</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Special needs toggle */}
       <div className="flex items-center gap-3 pt-1">
@@ -155,11 +182,13 @@ function ClientChildrenSection({
   fieldPrefix,
   data,
   onChange,
+  isMirrorWill,
 }: {
   label: string;
   fieldPrefix: "client1" | "client2";
   data: WillFormData;
   onChange: (updates: Partial<WillFormData>) => void;
+  isMirrorWill?: boolean;
 }) {
   const hasChildren = data[`${fieldPrefix}HasChildren`];
   const under18Key = `${fieldPrefix}ChildrenUnder18` as "client1ChildrenUnder18" | "client2ChildrenUnder18";
@@ -306,6 +335,7 @@ function ClientChildrenSection({
                 child={child}
                 index={i}
                 ageGroup="under18"
+                isMirrorWill={isMirrorWill}
                 onUpdate={updated => updateChild(under18Key, i, updated)}
                 onRemove={() => removeChild(under18Key, i)}
               />
@@ -344,6 +374,7 @@ function ClientChildrenSection({
                 child={child}
                 index={i}
                 ageGroup="over18"
+                isMirrorWill={isMirrorWill}
                 onUpdate={updated => updateChild(over18Key, i, updated)}
                 onRemove={() => removeChild(over18Key, i)}
               />
@@ -388,19 +419,20 @@ export default function Step4FamilyBackground({ data, onChange, isMirrorWill }: 
         subtitle="Information about family circumstances, marriage plans, and children"
         icon={<Users className="w-4 h-4" />}
       >
-        <ClientChildrenSection
+                <ClientChildrenSection
           label="Client 1 — Family Background"
           fieldPrefix="client1"
           data={data}
           onChange={onChange}
+          isMirrorWill={isMirrorWill}
         />
-
         {isMirrorWill && (
           <ClientChildrenSection
             label="Client 2 — Family Background"
             fieldPrefix="client2"
             data={data}
             onChange={onChange}
+            isMirrorWill={isMirrorWill}
           />
         )}
       </FormCard>
