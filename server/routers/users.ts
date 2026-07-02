@@ -1,10 +1,9 @@
 import { adminProcedure, router } from "../_core/trpc";
-import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { ENV } from "../_core/env";
+import { getDb } from "../db";
 
 async function d() {
   const db = await getDb();
@@ -29,7 +28,7 @@ export const usersRouter = router({
     return rows;
   }),
 
-  /** Promote or demote a user — only the project owner can do this */
+  /** Promote or demote a user — any admin can do this */
   setRole: adminProcedure
     .input(
       z.object({
@@ -38,15 +37,7 @@ export const usersRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Only the project owner (the Manus account that created the project) can change roles
-      if (ctx.user.openId !== ENV.ownerOpenId) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the project owner can change user roles.",
-        });
-      }
       const db = await d();
-      // Prevent the owner from demoting themselves
       const [target] = await db
         .select({ openId: users.openId })
         .from(users)
@@ -54,10 +45,11 @@ export const usersRouter = router({
       if (!target) {
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
       }
-      if (target.openId === ENV.ownerOpenId && input.role !== "admin") {
+      // Prevent admins from demoting themselves
+      if (target.openId === ctx.user.openId && input.role !== "admin") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You cannot demote the project owner.",
+          message: "You cannot demote yourself.",
         });
       }
       await db
