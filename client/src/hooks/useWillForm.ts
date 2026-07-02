@@ -50,6 +50,7 @@ export type ChildEntry = {
   hasSpecialNeeds?: boolean;
   specialNeedsDetails?: string;
   relationship?: string;
+  clientOwner?: "client1" | "client2" | "both";
   notes?: string;
 };
 
