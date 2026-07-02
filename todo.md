@@ -468,3 +468,13 @@
 - [x] Invalidate pool query after sync so dropdowns refresh immediately
 - [x] TypeScript: all types updated to include _poolId / _carerPoolId optional fields
 - [x] All 45 tests passing
+
+## User Management — Admin Access Control
+- [x] Switch AdminGuard from hardcoded password to Manus OAuth login
+- [x] Create `server/routers/users.ts` with `list` and `setRole` adminProcedures
+- [x] Register `usersRouter` in `server/routers.ts`
+- [x] Create `client/src/pages/UserManagement.tsx` — table of all users with Promote/Demote buttons
+- [x] Add `/admin/users` route in `client/src/App.tsx` (wrapped in AdminGuard)
+- [x] Add "Team" nav button in AdminDashboard header linking to `/admin/users`
+- [x] Server-side enforcement: only project owner (ENV.ownerOpenId) can change roles
+- [x] Prevent owner from demoting themselves
