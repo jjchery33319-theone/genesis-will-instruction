@@ -3,7 +3,7 @@ import { trpc } from "../lib/trpc";
 import { Link, useLocation } from "wouter";
 import {
   Loader2, FileText, Eye, Plus, LayoutDashboard, FileEdit,
-  Trash2, PlayCircle, Clock, CheckCircle2, XCircle, ChevronDown, FileDown,
+  Trash2, PlayCircle, Clock, CheckCircle2, XCircle, ChevronDown, FileDown, Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +181,17 @@ export default function AdminDashboard() {
                   <FileEdit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Will Drafting</span>
                   <span className="sm:hidden">Wills</span>
+                </Button>
+              </Link>
+              <Link href="/admin/users">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
+                >
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Team</span>
+                  <span className="sm:hidden">Team</span>
                 </Button>
               </Link>
               <Link href="/" className="flex-shrink-0">

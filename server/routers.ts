@@ -6,6 +6,7 @@ import { z } from "zod";
 import { willInstructionsRouter } from "./routers/willInstructions";
 import { lpaRouter } from "./routers/lpa";
 import { mattersRouter } from "./routers/matters";
+import { usersRouter } from "./routers/users";
 
 export const appRouter = router({
   system: systemRouter,
@@ -20,6 +21,7 @@ export const appRouter = router({
   will: willInstructionsRouter,
   lpa: lpaRouter,
   matters: mattersRouter,
+  users: usersRouter,
 });
 
 export type AppRouter = typeof appRouter;
