@@ -101,6 +101,10 @@ function createTransporter() {
 }
 
 // ─── HTML builder ─────────────────────────────────────────────────────────────
+export function buildClientEmailPreview(record: WillInstruction): string {
+  return buildClientEmailHtml(record);
+}
+
 function buildClientEmailHtml(record: WillInstruction): string {
   const client1Name = `${record.client1Prefix ?? ""} ${record.client1FirstName ?? ""} ${record.client1LastName ?? ""}`.trim() || "Client";
   const products = formatProductsList(record.productsOrdered);
