@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { invokeLLM } from "../_core/llm";
 import { ADMIN_EMAILS } from "../../shared/willConstants";
 import { sendAdminEmail } from "../emailService";
-import { sendClientConfirmationEmail, sendAdviserConfirmationEmail } from "../clientEmailService";
+import { sendClientConfirmationEmail, sendAdviserConfirmationEmail, buildClientEmailPreview } from "../clientEmailService";
 import { generateWillPdf } from "../pdfGenerator";
 import { uploadToOneDrive } from "../oneDriveService";
 import { formatWillDocument, buildFilename } from "../willDocumentFormatter";
@@ -700,6 +700,21 @@ export const willInstructionsRouter = router({
         .where(eq(willInstructions.id, id));
 
       return { success: true };
+    }),
+
+  // Preview the client confirmation email HTML for a given submission
+  previewEmail: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const [record] = await db
+        .select()
+        .from(willInstructions)
+        .where(eq(willInstructions.id, input.id))
+        .limit(1);
+      if (!record) throw new Error("Submission not found");
+      return { html: buildClientEmailPreview(record) };
     }),
 
   // Update status of a submitted instruction

@@ -1,13 +1,13 @@
 import { useParams, Link } from "wouter";
 import { trpc } from "../lib/trpc";
-import {
-  Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2,
+import { Loader2, ArrowLeft, Mail, ClipboardList, User, Users, Scale, Heart, Home, Flower2,
   Calendar, ShoppingBag, FileDown, FileText, Shield, GitFork, HeartHandshake, Pencil,
   ScrollText, Baby, Globe, Briefcase, PawPrint, DollarSign, Building2, AlertTriangle,
-  CheckCircle2, XCircle, Info, ChevronDown, ChevronRight
+  CheckCircle2, XCircle, Info, ChevronDown, ChevronRight, Eye
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -211,6 +211,11 @@ export default function SubmissionDetail() {
     { id },
     { enabled: !!id }
   );
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const { data: emailPreview, isFetching: emailPreviewLoading } = trpc.will.previewEmail.useQuery(
+    { id },
+    { enabled: emailPreviewOpen && !!id }
+  );
 
   if (isLoading) {
     return (
@@ -266,6 +271,15 @@ export default function SubmissionDetail() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
+              <Button
+                variant="outline" size="sm"
+                className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3"
+                onClick={() => setEmailPreviewOpen(true)}
+              >
+                <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Preview Email</span>
+                <span className="sm:hidden">Email</span>
+              </Button>
               <a href={`/api/submissions/${id}/pdf`} download>
                 <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3">
                   <FileDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -683,6 +697,37 @@ export default function SubmissionDetail() {
             )}
           </Section>
         )}
+
+      {/* ── Email Preview Modal ── */}
+      <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+        <DialogContent className="max-w-3xl w-full h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 py-4 border-b flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 font-serif">
+              <Mail className="w-4 h-4" style={{ color: "oklch(0.28 0.07 155)" }} />
+              Client Email Preview
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">This is exactly how the confirmation email will appear to the client.</p>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden relative">
+            {emailPreviewLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: "oklch(0.28 0.07 155)" }} />
+              </div>
+            ) : emailPreview?.html ? (
+              <iframe
+                srcDoc={emailPreview.html}
+                className="w-full h-full border-0"
+                title="Email Preview"
+                sandbox="allow-same-origin"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+                Unable to load email preview.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );
