@@ -70,7 +70,7 @@ export const ADMIN_EMAILS = [
   "amelia@genesisestateplanning.info",
 ] as const;
 
-export const PREFIXES = ["Mr.", "Mrs.", "Miss.", "Ms.", "Dr.", "Rev.", "Prof."] as const;
+export const PREFIXES = ["Mr", "Mrs", "Miss", "Ms", "Dr", "Rev", "Prof", "Mx"] as const;
 
 export const MARITAL_STATUSES = [
   "Single",

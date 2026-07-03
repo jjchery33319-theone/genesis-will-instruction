@@ -103,6 +103,7 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeT
             <option value="Miss">Miss</option>
             <option value="Ms">Ms</option>
             <option value="Dr">Dr</option>
+            <option value="Rev">Rev</option>
             <option value="Prof">Prof</option>
             <option value="Mx">Mx</option>
           </select>
@@ -1337,6 +1338,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   <option value="Dr">Dr</option>
                   <option value="Rev">Rev</option>
                   <option value="Prof">Prof</option>
+                  <option value="Mx">Mx</option>
                 </select>
               </div>
               <div className="space-y-1">
@@ -1429,6 +1431,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   <option value="Dr">Dr</option>
                   <option value="Rev">Rev</option>
                   <option value="Prof">Prof</option>
+                  <option value="Mx">Mx</option>
                 </select>
               </div>
               <div className="space-y-1">
