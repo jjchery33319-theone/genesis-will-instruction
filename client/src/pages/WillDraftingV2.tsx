@@ -228,9 +228,9 @@ export default function WillDraftingV2() {
             {/* Content */}
             <div className="flex-1 overflow-hidden">
               {viewMode === "form" ? (
-                <MatterForm matter={selectedMatter} onSaved={() => utils.matters.list.invalidate()} />
+                <MatterForm key={selectedMatter.id} matter={selectedMatter} onSaved={() => utils.matters.list.invalidate()} />
               ) : (
-                <MatterPreview matter={selectedMatter} />
+                <MatterPreview key={selectedMatter.id} matter={selectedMatter} />
               )}
             </div>
           </>
