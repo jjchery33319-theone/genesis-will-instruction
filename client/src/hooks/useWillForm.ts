@@ -46,6 +46,7 @@ export type ChildEntry = {
   firstName: string;
   lastName?: string;
   dob?: string;
+  address?: string;
   ageGroup: "under18" | "over18";
   hasSpecialNeeds?: boolean;
   specialNeedsDetails?: string;

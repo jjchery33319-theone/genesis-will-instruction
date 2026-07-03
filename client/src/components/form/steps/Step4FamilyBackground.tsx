@@ -150,6 +150,18 @@ function ChildCard({
         </Label>
       </div>
 
+      {/* Address — only shown for over-18 children */}
+      {ageGroup === "over18" && (
+        <div>
+          <Label className="text-xs text-muted-foreground mb-1 block">Address</Label>
+          <Input
+            value={child.address ?? ""}
+            onChange={e => u({ address: e.target.value })}
+            placeholder="Full address"
+          />
+        </div>
+      )}
+
       {child.hasSpecialNeeds && (
         <div>
           <Label className="text-xs text-muted-foreground mb-1 block">Special Needs / Vulnerability Details</Label>
