@@ -29,6 +29,7 @@ import {
 } from "../mattersDb";
 
 const personSchema = z.object({
+  title: z.string().optional(),
   fullName: z.string().optional(),
   address: z.string().optional(),
   gender: z.string().optional(),

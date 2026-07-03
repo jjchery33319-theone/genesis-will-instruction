@@ -28,10 +28,12 @@ interface Props {
 
 interface PersonRowProps {
   label: string;
+  title?: string;
   name: string;
   address: string;
   dateOfBirth?: string;
   gender?: string;
+  onChangeTitle?: (v: string) => void;
   onChangeName: (v: string) => void;
   onChangeAddress: (v: string) => void;
   onChangeDateOfBirth?: (v: string) => void;
@@ -44,7 +46,29 @@ interface PersonRowProps {
   onPickPerson?: (p: PoolPerson | null) => void;
 }
 
-function PersonRow({ label, name, address, dateOfBirth, gender, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson }: PersonRowProps) {
+// Map title → gender for auto-detection
+const TITLE_GENDER_MAP: Record<string, string> = {
+  "Mr": "male",
+  "Mr.": "male",
+  "Dr": "",      // Dr is gender-neutral
+  "Prof": "",
+  "Mrs": "female",
+  "Mrs.": "female",
+  "Miss": "female",
+  "Ms": "female",
+  "Ms.": "female",
+  "Mx": "neutral",
+};
+
+function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeTitle, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson }: PersonRowProps) {
+  function handleTitleChange(v: string) {
+    onChangeTitle?.(v);
+    // Auto-set gender if the title unambiguously implies one
+    const autoGender = TITLE_GENDER_MAP[v];
+    if (autoGender !== undefined) {
+      onChangeGender?.(autoGender);
+    }
+  }
   return (
     <div className="border border-border rounded-lg p-3 space-y-2 bg-card">
       <div className="flex items-center justify-between">
@@ -66,6 +90,23 @@ function PersonRow({ label, name, address, dateOfBirth, gender, onChangeName, on
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Title</Label>
+          <select
+            value={title ?? ""}
+            onChange={e => handleTitleChange(e.target.value)}
+            className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
+          >
+            <option value="">Select…</option>
+            <option value="Mr">Mr</option>
+            <option value="Mrs">Mrs</option>
+            <option value="Miss">Miss</option>
+            <option value="Ms">Ms</option>
+            <option value="Dr">Dr</option>
+            <option value="Prof">Prof</option>
+            <option value="Mx">Mx</option>
+          </select>
+        </div>
         <div className="space-y-1">
           <Label className="text-xs">Full Name</Label>
           <Input value={name} onChange={e => onChangeName(e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
@@ -152,22 +193,24 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   // ── Executor state ────────────────────────────────────────────────────────
   const toExecRows = (role: string) =>
         (m.executors || []).filter((e: any) => e.clientRole === role).map((e: any) => ({
+      title: e.title || "",
       fullName: e.fullName || "",
       address: e.address || "",
       dateOfBirth: e.dateOfBirth || "",
       executorType: e.executorType || "primary",
       gender: e.gender || "",
     }));
-  const [execs1, setExecs1] = useState<Array<{ fullName: string; address: string; dateOfBirth: string; executorType: string; gender: string; _poolId?: number }>>(
+  const [execs1, setExecs1] = useState<Array<{ title: string; fullName: string; address: string; dateOfBirth: string; executorType: string; gender: string; _poolId?: number }>>(
     toExecRows(isMirror ? "testator1" : "shared")
   );
-  const [execs2, setExecs2] = useState<Array<{ fullName: string; address: string; dateOfBirth: string; executorType: string; gender: string; _poolId?: number }>>(
+  const [execs2, setExecs2] = useState<Array<{ title: string; fullName: string; address: string; dateOfBirth: string; executorType: string; gender: string; _poolId?: number }>>(
     toExecRows("testator2")
   );
 
   // ── Guardian state ────────────────────────────────────────────────────────
-  const [guardians, setGuardians] = useState<Array<{ fullName: string; address: string; dateOfBirth: string; guardianType: string; gender: string; _poolId?: number }>>(
+  const [guardians, setGuardians] = useState<Array<{ title: string; fullName: string; address: string; dateOfBirth: string; guardianType: string; gender: string; _poolId?: number }>>(
     (m.guardians || []).map((g: any) => ({
+      title: g.title || "",
       fullName: g.fullName || "",
       address: g.address || "",
       dateOfBirth: g.dateOfBirth || "",
@@ -179,8 +222,9 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   // ── Beneficiary state ─────────────────────────────────────────────────────
   const toBenRows = (role: string) =>
     (m.beneficiaries || []).filter((b: any) => b.clientRole === role).map((b: any): {
-      fullName: string; address: string; dateOfBirth: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number; gender: string;
+      title: string; fullName: string; address: string; dateOfBirth: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number; gender: string;
     } => ({
+      title: b.title || "",
       fullName: b.fullName || "",
       address: b.address || "",
       dateOfBirth: b.dateOfBirth || "",
@@ -875,8 +919,8 @@ function ExecutorSection({ label, rows, onChange, matterId }: { label: string; r
         </div>
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary executors added.</p>}
         {rows.map((r, i) => r.executorType === "primary" && (
-          <PersonRow key={i} label={`Primary Executor ${primary.indexOf(r) + 1}`} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+          <PersonRow key={i} label={`Primary Executor ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
@@ -893,8 +937,8 @@ function ExecutorSection({ label, rows, onChange, matterId }: { label: string; r
         </div>
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute executors added.</p>}
         {rows.map((r, i) => r.executorType === "substitute" && (
-          <PersonRow key={i} label={`Substitute Executor ${substitute.indexOf(r) + 1}`} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+          <PersonRow key={i} label={`Substitute Executor ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
@@ -925,8 +969,8 @@ function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: 
         </div>
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "primary" && (
-          <PersonRow key={i} label={`Primary Guardian ${primary.indexOf(r) + 1}`} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+          <PersonRow key={i} label={`Primary Guardian ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
@@ -943,8 +987,8 @@ function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: 
         </div>
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "substitute" && (
-          <PersonRow key={i} label={`Substitute Guardian ${substitute.indexOf(r) + 1}`} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+          <PersonRow key={i} label={`Substitute Guardian ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
@@ -1275,6 +1319,27 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
             )}
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
+                <Label className="text-xs">Title</Label>
+                <select
+                  value={r.title ?? ""}
+                  onChange={e => {
+                    const t = e.target.value;
+                    const autoGender = ["mr","rev","dr"].includes(t.toLowerCase()) ? "male" : ["mrs","miss","ms","dame","lady"].includes(t.toLowerCase()) ? "female" : "";
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, title: t, ...(autoGender ? { gender: autoGender } : {}) }));
+                  }}
+                  className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
+                >
+                  <option value="">Select title</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Dr">Dr</option>
+                  <option value="Rev">Rev</option>
+                  <option value="Prof">Prof</option>
+                </select>
+              </div>
+              <div className="space-y-1">
                 <Label className="text-xs">Full Name</Label>
                 <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
               </div>
@@ -1345,6 +1410,27 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Title</Label>
+                <select
+                  value={r.title ?? ""}
+                  onChange={e => {
+                    const t = e.target.value;
+                    const autoGender = ["mr","rev","dr"].includes(t.toLowerCase()) ? "male" : ["mrs","miss","ms","dame","lady"].includes(t.toLowerCase()) ? "female" : "";
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, title: t, ...(autoGender ? { gender: autoGender } : {}) }));
+                  }}
+                  className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
+                >
+                  <option value="">Select title</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Dr">Dr</option>
+                  <option value="Rev">Rev</option>
+                  <option value="Prof">Prof</option>
+                </select>
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Full Name</Label>
                 <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
