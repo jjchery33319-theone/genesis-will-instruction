@@ -387,6 +387,7 @@ export const matterExecutors = mysqlTable("matter_executors", {
   sortOrder: int("sort_order").default(0).notNull(),
   fullName: varchar("full_name", { length: 200 }),
   address: text("address"),
+  gender: varchar("gender", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type MatterExecutor = typeof matterExecutors.$inferSelect;
@@ -399,6 +400,7 @@ export const matterGuardians = mysqlTable("matter_guardians", {
   sortOrder: int("sort_order").default(0).notNull(),
   fullName: varchar("full_name", { length: 200 }),
   address: text("address"),
+  gender: varchar("gender", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type MatterGuardian = typeof matterGuardians.$inferSelect;
@@ -414,6 +416,7 @@ export const matterBeneficiaries = mysqlTable("matter_beneficiaries", {
   relationship: varchar("relationship", { length: 100 }),
   shareFraction: varchar("share_fraction", { length: 50 }),
   includeIssue: int("include_issue").default(1),
+  gender: varchar("gender", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type MatterBeneficiary = typeof matterBeneficiaries.$inferSelect;

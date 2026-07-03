@@ -724,14 +724,21 @@ function buildResidueClause(
     parts.push(`<p>In the event that <strong>${partner.fullName}</strong> does not survive me by ${survivorshipDays} days, or in the event that the above gift fails for any reason, I direct that the residue of my Estate shall be held on trust and distributed as follows:</p>`);
   }
 
+  function benPronoun(b: MatterBeneficiary) {
+    if (b.gender === "male") return { subj: "he", poss: "his" };
+    if (b.gender === "female") return { subj: "she", poss: "her" };
+    return { subj: "they", poss: "their" };
+  }
+
   if (primary.length === 0) {
     parts.push(`<p>I give the whole of my Estate to such of my children as survive me and attain the age of ${ageCondition} years, and if more than one in equal shares.</p>`);
   } else if (primary.length === 1) {
     const b = primary[0];
     const share = b.shareFraction ? ` (${b.shareFraction})` : "";
-    parts.push(`<p>I give the whole of my Estate${share} to <strong>${b.fullName || "_______________"}</strong>${b.relationship ? `, my ${b.relationship},` : ""} absolutely, provided they survive me by ${survivorshipDays} days.</p>`);
+    const { subj, poss } = benPronoun(b);
+    parts.push(`<p>I give the whole of my Estate${share} to <strong>${b.fullName || "_______________"}</strong>${b.relationship ? `, my ${b.relationship},` : ""} absolutely, provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days.</p>`);
     if (b.includeIssue) {
-      parts.push(`<p>If <strong>${b.fullName || "the above beneficiary"}</strong> does not survive me by ${survivorshipDays} days, their share shall pass to their issue in equal shares per stirpes.</p>`);
+      parts.push(`<p>If <strong>${b.fullName || "the above beneficiary"}</strong> does not survive me by ${survivorshipDays} days, ${poss} share shall pass to ${poss} issue in equal shares per stirpes.</p>`);
     }
   } else {
     const shareText = primary.map(b => {

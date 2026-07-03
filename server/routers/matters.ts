@@ -31,6 +31,7 @@ import {
 const personSchema = z.object({
   fullName: z.string().optional(),
   address: z.string().optional(),
+  gender: z.string().optional(),
 });
 
 const executorSchema = personSchema.extend({
