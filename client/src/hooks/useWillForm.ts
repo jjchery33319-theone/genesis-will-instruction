@@ -258,6 +258,9 @@ export type WillFormData = {
 
   // Manual Needs Assessment / Recommendations
   manualNeedsAssessment?: string;
+  considerLPA?: boolean;
+  considerPPT?: boolean;
+  considerAAT?: boolean;
 };
 
 const initialData: WillFormData = {
@@ -389,6 +392,9 @@ export function useWillForm() {
         client1ChildrenOver18: (d.client1ChildrenOver18 as ChildEntry[] | null) ?? [],
         client2ChildrenUnder18: (d.client2ChildrenUnder18 as ChildEntry[] | null) ?? [],
         client2ChildrenOver18: (d.client2ChildrenOver18 as ChildEntry[] | null) ?? [],
+        considerLPA: !!d.considerLPA,
+        considerPPT: !!d.considerPPT,
+        considerAAT: !!d.considerAAT,
       };
       setFormData(restored);
       setCurrentStep(d.currentStep ?? 1);

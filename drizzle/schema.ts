@@ -239,6 +239,9 @@ export const willInstructions = mysqlTable("will_instructions", {
 
   // ── Manual Needs Assessment ─────────────────────────────────────────────────
   manualNeedsAssessment: text("manualNeedsAssessment"),
+  considerLPA: tinyint("considerLPA").default(0),
+  considerPPT: tinyint("considerPPT").default(0),
+  considerAAT: tinyint("considerAAT").default(0),
 
   // ── AI Output ─────────────────────────────────────────────────────────────
   recommendationsJson: json("recommendationsJson"),

@@ -355,6 +355,9 @@ const willInstructionInputSchema = z.object({
 
   // Manual Needs Assessment / Recommendations
   manualNeedsAssessment: z.string().optional(),
+  considerLPA: z.boolean().optional(),
+  considerPPT: z.boolean().optional(),
+  considerAAT: z.boolean().optional(),
 });
 
 export const willInstructionsRouter = router({
@@ -412,6 +415,9 @@ export const willInstructionsRouter = router({
         bereavedMinorTrusts: input.bereavedMinorTrusts ?? [],
         age18To25Trusts: input.age18To25Trusts ?? [],
         businessPropertyReliefs: input.businessPropertyReliefs ?? [],
+        considerLPA: input.considerLPA ? 1 : 0,
+        considerPPT: input.considerPPT ? 1 : 0,
+        considerAAT: input.considerAAT ? 1 : 0,
         recommendationsJson: recommendations,
         aiRecommendationNarrative: narrative,
         aiClientEmailDraft: clientEmailDraft,
@@ -547,6 +553,9 @@ export const willInstructionsRouter = router({
         client1ChildrenOver18: formData.client1ChildrenOver18 ?? [],
         client2ChildrenUnder18: formData.client2ChildrenUnder18 ?? [],
         client2ChildrenOver18: formData.client2ChildrenOver18 ?? [],
+        considerLPA: formData.considerLPA ? 1 : 0,
+        considerPPT: formData.considerPPT ? 1 : 0,
+        considerAAT: formData.considerAAT ? 1 : 0,
         status: "draft" as const,
         currentStep: currentStep ?? 1,
         emailSent: 0,
@@ -679,6 +688,9 @@ export const willInstructionsRouter = router({
         bereavedMinorTrusts: formData.bereavedMinorTrusts ?? undefined,
         age18To25Trusts: formData.age18To25Trusts ?? undefined,
         businessPropertyReliefs: formData.businessPropertyReliefs ?? undefined,
+        considerLPA: formData.considerLPA ? 1 : 0,
+        considerPPT: formData.considerPPT ? 1 : 0,
+        considerAAT: formData.considerAAT ? 1 : 0,
         updatedAt: new Date(),
       });
 

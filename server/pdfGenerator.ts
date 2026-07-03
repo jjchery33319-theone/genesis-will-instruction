@@ -311,12 +311,46 @@ export async function generateWillPdf(record: WillInstruction): Promise<Buffer> 
   field("Special Notes", safe(record.specialNotes));
 
   // ── 14. AI Recommendations ───────────────────────────────────────────────
-  const needsText = (record as any).manualNeedsAssessment || record.aiRecommendationNarrative;
-  if (needsText) {
-    sectionHeading("14. Needs Assessment & Recommendations");
-    doc.font("Helvetica").fontSize(8.5).fillColor(BLACK)
-      .text(needsText, 50, doc.y, { width: pageW, align: "left" });
-    doc.moveDown(0.5);
+  {
+    const r = record as any;
+    const considerLPA = !!r.considerLPA;
+    const considerPPT = !!r.considerPPT;
+    const considerAAT = !!r.considerAAT;
+    const needsText = r.manualNeedsAssessment || record.aiRecommendationNarrative;
+    if (considerLPA || considerPPT || considerAAT || needsText) {
+      sectionHeading("14. Needs Assessment & Recommendations");
+      if (considerLPA || considerPPT || considerAAT) {
+        doc.font("Helvetica-Bold").fontSize(8.5).fillColor(BLACK)
+          .text("Client should consider:", 50, doc.y, { width: pageW });
+        doc.moveDown(0.3);
+        if (considerLPA) {
+          doc.font("Helvetica").fontSize(8.5).fillColor(BLACK)
+            .text("•  Lasting Power of Attorney (LPA) — A legal document appointing trusted people to manage health, welfare, property and finances if mental capacity is lost.", 55, doc.y, { width: pageW - 5 });
+          doc.moveDown(0.25);
+        }
+        if (considerPPT) {
+          doc.font("Helvetica").fontSize(8.5).fillColor(BLACK)
+            .text("•  Protective Property Trust (PPT) — A Will trust that ring-fences the deceased’s share of the family home, protecting it from care-home fees, remarriage or creditors while allowing the survivor to remain in the property.", 55, doc.y, { width: pageW - 5 });
+          doc.moveDown(0.25);
+        }
+        if (considerAAT) {
+          doc.font("Helvetica").fontSize(8.5).fillColor(BLACK)
+            .text("•  Asset Allocation Trust (AAT) — A flexible trust giving trustees discretion over how and when assets are distributed to beneficiaries, ideal for protecting inheritances for vulnerable or young beneficiaries.", 55, doc.y, { width: pageW - 5 });
+          doc.moveDown(0.25);
+        }
+        doc.moveDown(0.25);
+      }
+      if (needsText) {
+        if (considerLPA || considerPPT || considerAAT) {
+          doc.font("Helvetica-Bold").fontSize(8.5).fillColor(BLACK)
+            .text("Additional notes:", 50, doc.y, { width: pageW });
+          doc.moveDown(0.2);
+        }
+        doc.font("Helvetica").fontSize(8.5).fillColor(BLACK)
+          .text(needsText, 50, doc.y, { width: pageW, align: "left" });
+        doc.moveDown(0.5);
+      }
+    }
   }
 
   // ── Footer on every page ─────────────────────────────────────────────────
