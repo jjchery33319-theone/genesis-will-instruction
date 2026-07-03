@@ -1,7 +1,8 @@
 import { WillFormData, PersonEntry } from "../../../hooks/useWillForm";
 import { FormCard, SectionDivider } from "../FormCard";
 import { PersonList, QuickFillSource } from "../PersonFields";
-import { Scale, Shield, Baby, Zap, Users, Copy } from "lucide-react";
+import { Scale, Shield, Baby, Zap, Users, Copy, RotateCcw } from "lucide-react";
+import { useCopyUndo } from "../../../hooks/useCopyUndo";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -202,6 +203,9 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
   const c1Name = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ") || "Client 1";
   const c2Name = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ") || "Client 2";
 
+  const { hasSnapshot: hasExecSnapshot, saveSnapshot: saveExecSnapshot, undo: undoExec } = useCopyUndo(data, onChange);
+  const { hasSnapshot: hasGuardianSnapshot, saveSnapshot: saveGuardianSnapshot, undo: undoGuardian } = useCopyUndo(data, onChange);
+
   // Guardians are only relevant when there are minor children entered
   const hasMinorChildren =
     (data.client1ChildrenUnder18?.length ?? 0) > 0 ||
@@ -277,6 +281,7 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
             (data.client1ReservedExecutors?.length ?? 0) > 0;
 
           const copyExecutorsFromClient1 = () => {
+            saveExecSnapshot(["client2Executors", "client2ReservedExecutors"]);
             onChange({
               client2Executors: (data.client1Executors ?? []).map(e => ({ ...e })),
               client2ReservedExecutors: (data.client1ReservedExecutors ?? []).map(e => ({ ...e })),
@@ -285,11 +290,20 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
 
           return (
             <>
+              {hasExecSnapshot && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.98 0.02 85)", border: "1px solid oklch(0.78 0.12 85 / 0.5)" }}>
+                  <RotateCcw className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.55 0.12 85)" }} />
+                  <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.08 85)" }}>Executors copied from {c1Name}. Changed your mind?</span>
+                  <Button type="button" variant="outline" size="sm" className="text-xs gap-1.5" style={{ borderColor: "oklch(0.78 0.12 85 / 0.6)", color: "oklch(0.45 0.1 85)" }} onClick={undoExec}>
+                    <RotateCcw className="w-3 h-3" /> Undo Copy
+                  </Button>
+                </div>
+              )}
               {c1HasExecutors && (
                 <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
                   <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
                   <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
-                    Copy {c1Name}’s executors to {c2Name} (primary &amp; reserved)
+                    Copy {c1Name}'s executors to {c2Name} (primary &amp; reserved)
                   </span>
                   <Button
                     type="button"
@@ -364,6 +378,7 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
               (data.client1ReservedGuardians?.length ?? 0) > 0;
 
             const copyGuardiansFromClient1 = () => {
+              saveGuardianSnapshot(["client2Guardians", "client2ReservedGuardians"]);
               onChange({
                 client2Guardians: (data.client1Guardians ?? []).map(g => ({ ...g })),
                 client2ReservedGuardians: (data.client1ReservedGuardians ?? []).map(g => ({ ...g })),
@@ -372,11 +387,20 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
 
             return (
               <>
+                {hasGuardianSnapshot && (
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.98 0.02 85)", border: "1px solid oklch(0.78 0.12 85 / 0.5)" }}>
+                    <RotateCcw className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.55 0.12 85)" }} />
+                    <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.08 85)" }}>Guardians copied from {c1Name}. Changed your mind?</span>
+                    <Button type="button" variant="outline" size="sm" className="text-xs gap-1.5" style={{ borderColor: "oklch(0.78 0.12 85 / 0.6)", color: "oklch(0.45 0.1 85)" }} onClick={undoGuardian}>
+                      <RotateCcw className="w-3 h-3" /> Undo Copy
+                    </Button>
+                  </div>
+                )}
                 {c1HasGuardians && (
                   <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
                     <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
                     <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
-                      Copy {c1Name}’s guardians to {c2Name} (primary &amp; reserved)
+                      Copy {c1Name}'s guardians to {c2Name} (primary &amp; reserved)
                     </span>
                     <Button
                       type="button"
