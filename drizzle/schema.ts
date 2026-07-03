@@ -416,6 +416,7 @@ export const matterBeneficiaries = mysqlTable("matter_beneficiaries", {
   sortOrder: int("sort_order").default(0).notNull(),
   title: varchar("title", { length: 20 }),
   fullName: varchar("full_name", { length: 200 }),
+  address: text("address"),
   relationship: varchar("relationship", { length: 100 }),
   shareFraction: varchar("share_fraction", { length: 50 }),
   includeIssue: int("include_issue").default(1),
