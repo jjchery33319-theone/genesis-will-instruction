@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { CHILDREN_BENEFIT_AGES } from "../../../../../shared/willConstants";
-import { Heart, AlertTriangle, BookOpen } from "lucide-react";
+import { Heart, AlertTriangle, BookOpen, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   data: WillFormData;
@@ -226,20 +227,45 @@ export default function Step5Beneficiaries({ data, onChange }: Props) {
           quickFillSources={quickFillSources}
         />
 
-        {isMirrorWill && (
-          <ClientBeneficiarySection
-            label={c2Name}
-            beneficiariesKey="client2Beneficiaries"
-            residualEstateKey="client2ResidualEstate"
-            residualBackupKey="client2ResidualBackup"
-            childrenBenefitAgeKey="client2ChildrenBenefitAge"
-            hasVulnerableKey="client2HasVulnerableBeneficiary"
-            vulnerableDetailsKey="client2VulnerableBeneficiaryDetails"
-            data={data}
-            onChange={onChange}
-            quickFillSources={quickFillSources}
-          />
-        )}
+        {isMirrorWill && (() => {
+          const c1HasBeneficiaries = (data.client1Beneficiaries?.length ?? 0) > 0 ||
+            !!(data.client1ResidualEstate || data.client1ResidualBackup || data.client1ChildrenBenefitAge);
+          const copyBeneficiariesFromClient1 = () => {
+            onChange({
+              client2Beneficiaries: (data.client1Beneficiaries ?? []).map(b => ({ ...b })),
+              client2ResidualEstate: data.client1ResidualEstate,
+              client2ResidualBackup: data.client1ResidualBackup,
+              client2ChildrenBenefitAge: data.client1ChildrenBenefitAge,
+              client2HasVulnerableBeneficiary: data.client1HasVulnerableBeneficiary,
+              client2VulnerableBeneficiaryDetails: data.client1VulnerableBeneficiaryDetails,
+            });
+          };
+          return (
+            <>
+              {c1HasBeneficiaries && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+                  <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+                  <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>Copy beneficiaries, residual estate &amp; children benefit age from Client 1</span>
+                  <Button type="button" variant="outline" size="sm" className="text-xs gap-1.5" style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }} onClick={copyBeneficiariesFromClient1}>
+                    <Copy className="w-3 h-3" /> Copy from Client 1
+                  </Button>
+                </div>
+              )}
+              <ClientBeneficiarySection
+                label={c2Name}
+                beneficiariesKey="client2Beneficiaries"
+                residualEstateKey="client2ResidualEstate"
+                residualBackupKey="client2ResidualBackup"
+                childrenBenefitAgeKey="client2ChildrenBenefitAge"
+                hasVulnerableKey="client2HasVulnerableBeneficiary"
+                vulnerableDetailsKey="client2VulnerableBeneficiaryDetails"
+                data={data}
+                onChange={onChange}
+                quickFillSources={quickFillSources}
+              />
+            </>
+          );
+        })()}
       </FormCard>
     </div>
   );

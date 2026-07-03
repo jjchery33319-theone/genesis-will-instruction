@@ -1,7 +1,8 @@
 import { WillFormData } from "../../../hooks/useWillForm";
 import { FormCard, FieldRow, SectionDivider } from "../FormCard";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText } from "lucide-react";
+import { FileText, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   data: WillFormData;
@@ -44,22 +45,37 @@ export default function Step15DisasterClause({ data, onChange, isMirrorWill }: P
           />
         </FieldRow>
 
-        {isMirrorWill && (
-          <>
-            <SectionDivider title="Client 2 — Disaster Clause" />
-            <FieldRow
-              label="Client 2 Disaster Clause"
-              hint="Who should inherit if all primary beneficiaries predecease the client?"
-            >
-              <Textarea
-                rows={4}
-                value={data.disasterClauseClient2 ?? ""}
-                onChange={e => onChange({ disasterClauseClient2: e.target.value })}
-                placeholder="e.g. If all named beneficiaries predecease me, I wish my estate to pass equally to my siblings or, if they have also predeceased me, to Cancer Research UK…"
-              />
-            </FieldRow>
-          </>
-        )}
+        {isMirrorWill && (() => {
+          const c1HasDisaster = !!data.disasterClauseClient1;
+          const copyDisasterFromClient1 = () => {
+            onChange({ disasterClauseClient2: data.disasterClauseClient1 });
+          };
+          return (
+            <>
+              <SectionDivider title="Client 2 — Disaster Clause" />
+              {c1HasDisaster && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+                  <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+                  <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>Copy disaster clause from Client 1</span>
+                  <Button type="button" variant="outline" size="sm" className="text-xs gap-1.5" style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }} onClick={copyDisasterFromClient1}>
+                    <Copy className="w-3 h-3" /> Copy from Client 1
+                  </Button>
+                </div>
+              )}
+              <FieldRow
+                label="Client 2 Disaster Clause"
+                hint="Who should inherit if all primary beneficiaries predecease the client?"
+              >
+                <Textarea
+                  rows={4}
+                  value={data.disasterClauseClient2 ?? ""}
+                  onChange={e => onChange({ disasterClauseClient2: e.target.value })}
+                  placeholder="e.g. If all named beneficiaries predecease me, I wish my estate to pass equally to my siblings or, if they have also predeceased me, to Cancer Research UK…"
+                />
+              </FieldRow>
+            </>
+          );
+        })()}
 
         <SectionDivider title="Disaster Clause Notes" />
         <FieldRow

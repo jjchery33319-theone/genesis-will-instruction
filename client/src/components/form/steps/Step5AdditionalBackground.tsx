@@ -2,7 +2,8 @@ import { WillFormData } from "../../../hooks/useWillForm";
 import { FormCard, FieldRow, SectionDivider } from "../FormCard";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Info } from "lucide-react";
+import { Info, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   data: WillFormData;
@@ -130,14 +131,38 @@ export default function Step5AdditionalBackground({ data, onChange, isMirrorWill
           onChange={onChange}
         />
 
-        {isMirrorWill && (
-          <ClientBackgroundSection
-            label="Client 2 — Additional Background"
-            fieldPrefix="client2"
-            data={data}
-            onChange={onChange}
-          />
-        )}
+        {isMirrorWill && (() => {
+          const c1HasBackground = !!(data.client1Residency || data.client1DomiciledUK || data.client1MentalCapacity);
+          const copyBackgroundFromClient1 = () => {
+            onChange({
+              client2Residency: data.client1Residency,
+              client2DomiciledUK: data.client1DomiciledUK,
+              client2MentalCapacity: data.client1MentalCapacity,
+              client2MentalCapacityNotes: data.client1MentalCapacityNotes,
+              client2ChildrenPastRelationships: data.client1ChildrenPastRelationships,
+              client2ChildrenPastDetails: data.client1ChildrenPastDetails,
+            });
+          };
+          return (
+            <>
+              {c1HasBackground && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+                  <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+                  <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>Copy residency, domicile, mental capacity &amp; past-relationship details from Client 1</span>
+                  <Button type="button" variant="outline" size="sm" className="text-xs gap-1.5" style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }} onClick={copyBackgroundFromClient1}>
+                    <Copy className="w-3 h-3" /> Copy from Client 1
+                  </Button>
+                </div>
+              )}
+              <ClientBackgroundSection
+                label="Client 2 — Additional Background"
+                fieldPrefix="client2"
+                data={data}
+                onChange={onChange}
+              />
+            </>
+          );
+        })()}
       </FormCard>
     </div>
   );
