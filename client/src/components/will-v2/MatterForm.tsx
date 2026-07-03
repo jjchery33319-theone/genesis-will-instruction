@@ -44,6 +44,7 @@ interface PersonRowProps {
   matterId?: number;
   poolPersonId?: number;
   onPickPerson?: (p: PoolPerson | null) => void;
+  clientAddress?: string;
 }
 
 // Map title → gender for auto-detection
@@ -60,7 +61,7 @@ const TITLE_GENDER_MAP: Record<string, string> = {
   "Mx": "neutral",
 };
 
-function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeTitle, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson }: PersonRowProps) {
+function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeTitle, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson, clientAddress }: PersonRowProps) {
   function handleTitleChange(v: string) {
     onChangeTitle?.(v);
     // Auto-set gender if the title unambiguously implies one
@@ -131,7 +132,20 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeT
           </Select>
         </div>
         <div className="col-span-2 space-y-1">
-          <Label className="text-xs">Address</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Address</Label>
+            {clientAddress && (
+              <button
+                type="button"
+                onClick={() => onChangeAddress(clientAddress)}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                title="Copy client's address"
+              >
+                <Copy className="h-3 w-3" />
+                Copy client address
+              </button>
+            )}
+          </div>
           <Input value={address} onChange={e => onChangeAddress(e.target.value)} placeholder="Address" className="h-8 text-sm" />
         </div>
       </div>
@@ -689,6 +703,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
               rows={execs1}
               onChange={(v) => { setExecs1(v); markDirty(); }}
               matterId={matter.id}
+              clientAddress={t1.address || undefined}
             />
             {isMirror && (
               <>
@@ -698,6 +713,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
                   rows={execs2}
                   onChange={(v) => { setExecs2(v); markDirty(); }}
                   matterId={matter.id}
+                  clientAddress={t2.address || undefined}
                 />
               </>
             )}
@@ -708,7 +724,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             <div className="text-sm text-muted-foreground mb-2">
               Guardians are shared across both Wills for minor children.
             </div>
-            <GuardianSection rows={guardians} onChange={(v) => { setGuardians(v); markDirty(); }} matterId={matter.id} />
+            <GuardianSection rows={guardians} onChange={(v) => { setGuardians(v); markDirty(); }} matterId={matter.id} clientAddress={t1.address || undefined} />
           </TabsContent>
 
           {/* ── PROPERTY ─────────────────────────────────────────────────── */}
@@ -900,7 +916,7 @@ function ClientSection({ label, data, onChange }: { label: string; data: any; on
   );
 }
 
-function ExecutorSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string }) {
   const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", executorType: type, _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -922,7 +938,7 @@ function ExecutorSection({ label, rows, onChange, matterId }: { label: string; r
         {rows.map((r, i) => r.executorType === "primary" && (
           <PersonRow key={i} label={`Primary Executor ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
-            matterId={matterId} poolPersonId={r._poolId}
+            matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
@@ -940,7 +956,7 @@ function ExecutorSection({ label, rows, onChange, matterId }: { label: string; r
         {rows.map((r, i) => r.executorType === "substitute" && (
           <PersonRow key={i} label={`Substitute Executor ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
-            matterId={matterId} poolPersonId={r._poolId}
+            matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
@@ -951,7 +967,7 @@ function ExecutorSection({ label, rows, onChange, matterId }: { label: string; r
   );
 }
 
-function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string }) {
   const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", guardianType: type, _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -972,7 +988,7 @@ function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: 
         {rows.map((r, i) => r.guardianType === "primary" && (
           <PersonRow key={i} label={`Primary Guardian ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
-            matterId={matterId} poolPersonId={r._poolId}
+            matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
@@ -990,7 +1006,7 @@ function GuardianSection({ rows, onChange, matterId }: { rows: any[]; onChange: 
         {rows.map((r, i) => r.guardianType === "substitute" && (
           <PersonRow key={i} label={`Substitute Guardian ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
-            matterId={matterId} poolPersonId={r._poolId}
+            matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
             }}
