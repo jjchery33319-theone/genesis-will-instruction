@@ -204,7 +204,25 @@ function PersonEditor({
       {expanded && (
         <div className="p-3 space-y-3 border-t border-border">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <TextInput label="Title" value={s(person.title)} onChange={v => onChange({ ...person, title: v })} placeholder="Mr/Mrs/Dr" />
+            <div className="space-y-1">
+              <Label className="text-xs">Title</Label>
+              <Select value={s(person.title)} onValueChange={v => onChange({ ...person, title: v === "_none" ? "" : v })}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">—</SelectItem>
+                  <SelectItem value="Mr">Mr</SelectItem>
+                  <SelectItem value="Mrs">Mrs</SelectItem>
+                  <SelectItem value="Miss">Miss</SelectItem>
+                  <SelectItem value="Ms">Ms</SelectItem>
+                  <SelectItem value="Dr">Dr</SelectItem>
+                  <SelectItem value="Rev">Rev</SelectItem>
+                  <SelectItem value="Prof">Prof</SelectItem>
+                  <SelectItem value="Mx">Mx</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <TextInput label="Prefix" value={s(person.prefix)} onChange={v => onChange({ ...person, prefix: v })} placeholder="Mr/Mrs/Dr" />
             <TextInput label="First Name" value={s(person.firstName)} onChange={v => onChange({ ...person, firstName: v })} />
             <TextInput label="Middle Name" value={s(person.middleName)} onChange={v => onChange({ ...person, middleName: v })} />
