@@ -55,6 +55,9 @@ interface PersonEntry {
   dob?: string;
   email?: string;
   share?: string;
+  gender?: string;
+  fullName?: string;
+  dateOfBirth?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -87,9 +90,10 @@ function relationship(p: PersonEntry | null | undefined): string {
   return safe(p?.relationship) || "person";
 }
 
-function pronoun(gender?: string): { subj: string; poss: string; obj: string } {
-  // We don't have gender stored, so we use neutral defaults
-  return { subj: "they", poss: "their", obj: "them" };
+function pronoun(gender?: string | null): { subj: string; poss: string; obj: string; subjCap: string } {
+  if (gender === "male") return { subj: "he", poss: "his", obj: "him", subjCap: "He" };
+  if (gender === "female") return { subj: "she", poss: "her", obj: "her", subjCap: "She" };
+  return { subj: "they", poss: "their", obj: "them", subjCap: "They" };
 }
 
 function ordinal(n: number): string {
@@ -394,7 +398,7 @@ function buildDistributionClause(
     subItem(
       doc,
       "a)",
-      `Upon trust absolutely for my ${relationship(primaryBeneficiary)} ${fullName(primaryBeneficiary)} if ${safe(primaryBeneficiary.relationship) ? "he/she" : "they"} shall survive me for the period of twenty eight days but if my said ${relationship(primaryBeneficiary)} shall die in my lifetime or shall not survive me for the period aforesaid or if this gift fails or lapses for any other reason and subject thereto`
+      `Upon trust absolutely for my ${relationship(primaryBeneficiary)} ${fullName(primaryBeneficiary)} if ${pronoun(primaryBeneficiary.gender).subj} shall survive me for the period of twenty eight days but if my said ${relationship(primaryBeneficiary)} shall die in my lifetime or shall not survive me for the period aforesaid or if this gift fails or lapses for any other reason and subject thereto`
     );
   } else {
     subItem(doc, "a)", "Upon trust absolutely for [Primary Beneficiary] if they shall survive me for the period of twenty eight days but if my said beneficiary shall die in my lifetime or shall not survive me for the period aforesaid or if this gift fails or lapses for any other reason and subject thereto");

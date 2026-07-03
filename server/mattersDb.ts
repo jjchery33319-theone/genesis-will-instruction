@@ -151,14 +151,16 @@ export async function replaceExecutors(
   rows: Array<Omit<InsertMatterExecutor, "matterId" | "clientRole">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterExecutors).where(
-    and(eq(matterExecutors.matterId, matterId), eq(matterExecutors.clientRole, clientRole))
-  );
-  if (rows.length > 0) {
-    await db.insert(matterExecutors).values(
-      rows.map((r, i) => ({ ...r, matterId, clientRole, sortOrder: i }))
+  await db.transaction(async (tx) => {
+    await tx.delete(matterExecutors).where(
+      and(eq(matterExecutors.matterId, matterId), eq(matterExecutors.clientRole, clientRole))
     );
-  }
+    if (rows.length > 0) {
+      await tx.insert(matterExecutors).values(
+        rows.map((r, i) => ({ ...r, matterId, clientRole, sortOrder: i }))
+      );
+    }
+  });
 }
 
 export async function replaceGuardians(
@@ -166,12 +168,14 @@ export async function replaceGuardians(
   rows: Array<Omit<InsertMatterGuardian, "matterId">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterGuardians).where(eq(matterGuardians.matterId, matterId));
-  if (rows.length > 0) {
-    await db.insert(matterGuardians).values(
-      rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
-    );
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(matterGuardians).where(eq(matterGuardians.matterId, matterId));
+    if (rows.length > 0) {
+      await tx.insert(matterGuardians).values(
+        rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+      );
+    }
+  });
 }
 
 export async function replaceBeneficiaries(
@@ -180,14 +184,16 @@ export async function replaceBeneficiaries(
   rows: Array<Omit<InsertMatterBeneficiary, "matterId" | "clientRole">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterBeneficiaries).where(
-    and(eq(matterBeneficiaries.matterId, matterId), eq(matterBeneficiaries.clientRole, clientRole))
-  );
-  if (rows.length > 0) {
-    await db.insert(matterBeneficiaries).values(
-      rows.map((r, i) => ({ ...r, matterId, clientRole, sortOrder: i }))
+  await db.transaction(async (tx) => {
+    await tx.delete(matterBeneficiaries).where(
+      and(eq(matterBeneficiaries.matterId, matterId), eq(matterBeneficiaries.clientRole, clientRole))
     );
-  }
+    if (rows.length > 0) {
+      await tx.insert(matterBeneficiaries).values(
+        rows.map((r, i) => ({ ...r, matterId, clientRole, sortOrder: i }))
+      );
+    }
+  });
 }
 
 export async function upsertWishes(
@@ -212,14 +218,16 @@ export async function replaceGifts(
   rows: Array<Omit<InsertMatterGift, "matterId" | "clientRole">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterGifts).where(
-    and(eq(matterGifts.matterId, matterId), eq(matterGifts.clientRole, clientRole))
-  );
-  if (rows.length > 0) {
-    await db.insert(matterGifts).values(
-      rows.map((r, i) => ({ ...r, matterId, clientRole, sortOrder: i }))
+  await db.transaction(async (tx) => {
+    await tx.delete(matterGifts).where(
+      and(eq(matterGifts.matterId, matterId), eq(matterGifts.clientRole, clientRole))
     );
-  }
+    if (rows.length > 0) {
+      await tx.insert(matterGifts).values(
+        rows.map((r, i) => ({ ...r, matterId, clientRole, sortOrder: i }))
+      );
+    }
+  });
 }
 
 export async function replacePets(
@@ -227,12 +235,14 @@ export async function replacePets(
   rows: Array<Omit<InsertMatterPet, "matterId">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterPets).where(eq(matterPets.matterId, matterId));
-  if (rows.length > 0) {
-    await db.insert(matterPets).values(
-      rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
-    );
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(matterPets).where(eq(matterPets.matterId, matterId));
+    if (rows.length > 0) {
+      await tx.insert(matterPets).values(
+        rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+      );
+    }
+  });
 }
 
 export async function replaceProperty(
@@ -240,12 +250,14 @@ export async function replaceProperty(
   rows: Array<Omit<InsertMatterPropertyRecord, "matterId">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterProperty).where(eq(matterProperty.matterId, matterId));
-  if (rows.length > 0) {
-    await db.insert(matterProperty).values(
-      rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
-    );
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(matterProperty).where(eq(matterProperty.matterId, matterId));
+    if (rows.length > 0) {
+      await tx.insert(matterProperty).values(
+        rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+      );
+    }
+  });
 }
 
 export async function replaceBusiness(
@@ -253,12 +265,14 @@ export async function replaceBusiness(
   rows: Array<Omit<InsertMatterBusinessRecord, "matterId">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterBusiness).where(eq(matterBusiness.matterId, matterId));
-  if (rows.length > 0) {
-    await db.insert(matterBusiness).values(
-      rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
-    );
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(matterBusiness).where(eq(matterBusiness.matterId, matterId));
+    if (rows.length > 0) {
+      await tx.insert(matterBusiness).values(
+        rows.map((r, i) => ({ ...r, matterId, sortOrder: i }))
+      );
+    }
+  });
 }
 
 export async function replaceTrustClauses(
@@ -267,15 +281,17 @@ export async function replaceTrustClauses(
   rows: Array<Omit<NewMatterTrustClause, "matterId" | "clientRole">>
 ): Promise<void> {
   const db = await d();
-  await db.delete(matterTrustClauses).where(
-    and(eq(matterTrustClauses.matterId, matterId), eq(matterTrustClauses.clientRole, clientRole))
-  );
-  if (rows.length > 0) {
-    const now = Date.now();
-    await db.insert(matterTrustClauses).values(
-      rows.map(r => ({ ...r, matterId, clientRole, createdAt: now, updatedAt: now }))
+  await db.transaction(async (tx) => {
+    await tx.delete(matterTrustClauses).where(
+      and(eq(matterTrustClauses.matterId, matterId), eq(matterTrustClauses.clientRole, clientRole))
     );
-  }
+    if (rows.length > 0) {
+      const now = Date.now();
+      await tx.insert(matterTrustClauses).values(
+        rows.map(r => ({ ...r, matterId, clientRole, createdAt: now, updatedAt: now }))
+      );
+    }
+  });
 }
 
 export async function saveEditedWillHtml(
