@@ -478,3 +478,12 @@
 - [x] Add "Team" nav button in AdminDashboard header linking to `/admin/users`
 - [x] Server-side enforcement: only project owner (ENV.ownerOpenId) can change roles
 - [x] Prevent owner from demoting themselves
+
+## Title Field — V2 Will Drafting (Phase 26)
+- [x] Add `title varchar(20)` column to matter_executors, matter_guardians, matter_beneficiaries tables (DB schema + SQL migration)
+- [x] Add `title` to state initialisers (toExecRows, guardian state, toBenRows) in MatterForm.tsx
+- [x] Add Title dropdown with auto-gender detection to PersonRow component (executor/guardian rows)
+- [x] Add Title dropdown with auto-gender detection to BeneficiarySection (primary and fallback rows)
+- [x] Wire `title` prop and `onChangeTitle` into all 4 PersonRow usages (executor primary/substitute, guardian primary/substitute)
+- [x] Add `title: z.string().optional()` to personSchema in server/routers/matters.ts
+- [x] TypeScript: 0 errors
