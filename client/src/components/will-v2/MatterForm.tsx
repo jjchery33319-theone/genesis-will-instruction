@@ -757,6 +757,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
               wishes={wishes1}
               onWishesChange={(v) => { setWishes1(v); markDirty(); }}
               matterId={matter.id}
+              clientAddress={t1.address || undefined}
             />
             {isMirror && (
               <>
@@ -769,6 +770,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
                   wishes={wishes2}
                   onWishesChange={(v) => { setWishes2(v); markDirty(); }}
                   matterId={matter.id}
+                  clientAddress={t2.address || undefined}
                 />
               </>
             )}
@@ -1253,7 +1255,7 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
   );
 }
 
-function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange, matterId }: {
+function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange, matterId, clientAddress }: {
   label: string;
   partnerName?: string;
   rows: any[];
@@ -1261,6 +1263,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
   wishes: any;
   onWishesChange: (w: any) => void;
   matterId?: number;
+  clientAddress?: string;
 }) {
   const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
@@ -1369,7 +1372,20 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 </Select>
               </div>
               <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Address</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Address</Label>
+                  {clientAddress && (
+                    <button
+                      type="button"
+                      onClick={() => updateRow(i, "address", clientAddress)}
+                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                      title="Copy client's address"
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy client address
+                    </button>
+                  )}
+                </div>
                 <Input value={r.address ?? ""} onChange={e => updateRow(i, "address", e.target.value)} placeholder="Address" className="h-8 text-sm" />
               </div>
               <div className="flex items-end gap-2 pb-0.5">
@@ -1458,7 +1474,20 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 </Select>
               </div>
               <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Address</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Address</Label>
+                  {clientAddress && (
+                    <button
+                      type="button"
+                      onClick={() => updateRow(i, "address", clientAddress)}
+                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                      title="Copy client's address"
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy client address
+                    </button>
+                  )}
+                </div>
                 <Input value={r.address ?? ""} onChange={e => updateRow(i, "address", e.target.value)} placeholder="Address" className="h-8 text-sm" />
               </div>
             </div>
