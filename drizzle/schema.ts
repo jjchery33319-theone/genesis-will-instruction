@@ -389,6 +389,7 @@ export const matterExecutors = mysqlTable("matter_executors", {
   fullName: varchar("full_name", { length: 200 }),
   address: text("address"),
   gender: varchar("gender", { length: 20 }),
+  relationship: varchar("relationship", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type MatterExecutor = typeof matterExecutors.$inferSelect;
@@ -403,6 +404,7 @@ export const matterGuardians = mysqlTable("matter_guardians", {
   fullName: varchar("full_name", { length: 200 }),
   address: text("address"),
   gender: varchar("gender", { length: 20 }),
+  relationship: varchar("relationship", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type MatterGuardian = typeof matterGuardians.$inferSelect;

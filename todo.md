@@ -493,3 +493,17 @@
 - [x] Display title alongside name in V1 Step8Review (PersonList component)
 - [x] Display title alongside name in SubmissionDetail (formatPersons component)
 - [x] Display title alongside name in AdminSubmissionEditor (PersonEditor component header)
+
+## Relationship Dropdown — Executors & Guardians (Phase 27)
+- [x] Add `relationship varchar(50)` column to matter_executors and matter_guardians tables (DB schema + SQL migration)
+- [x] Add `relationship: z.string().optional()` to personSchema in server/routers/matters.ts
+- [x] Add `relationship` to executor state initialisers (toExecRows) in MatterForm.tsx
+- [x] Add `relationship` to guardian state initialiser in MatterForm.tsx
+- [x] Add `relationship?: string` and `onChangeRelationship?` props to PersonRowProps interface
+- [x] Add Relationship to Testator dropdown to PersonRow UI (shown only when onChangeRelationship is provided)
+- [x] Options: Spouse, Civil Partner, Partner, Child, Sibling, Parent, Friend, Colleague, Solicitor, Accountant, Other
+- [x] Wire relationship prop and onChangeRelationship into all 4 PersonRow usages (executor primary/substitute, guardian primary/substitute)
+- [x] Update addRow in ExecutorSection and GuardianSection to include relationship: ""
+- [x] Update toExecRow and toGuardianRow save helpers to include relationship field
+- [x] Update onPickPerson handlers in executor/guardian rows to copy relationship from people pool
+- [x] TypeScript: 0 errors

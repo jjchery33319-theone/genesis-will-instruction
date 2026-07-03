@@ -33,6 +33,7 @@ const personSchema = z.object({
   fullName: z.string().optional(),
   address: z.string().optional(),
   gender: z.string().optional(),
+  relationship: z.string().optional(),
 });
 
 const executorSchema = personSchema.extend({
