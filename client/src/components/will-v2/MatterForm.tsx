@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { PersonPickerField, type PoolPerson } from "./PersonPickerField";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,15 +86,18 @@ function PersonRow({ label, name, address, dateOfBirth, onChangeName, onChangeAd
 
 export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const isMirror = matter.matterType === "mirror";
-  const utils = trpc.useUtils();
   const [activeTab, setActiveTab] = useState("clients");
   const [isDirty, setIsDirty] = useState(false);
 
-  // Expose the save function to the parent so it can trigger a save before switching matters
-  const saveAllRef = useCallback(() => handleSaveAll(true), []);
+  // Expose the save function to the parent so it can trigger a save before switching matters.
+  // Use a ref so the parent always calls the LATEST handleSaveAll (avoids stale closure over state).
+  const handleSaveAllRef = useRef<(silent?: boolean) => Promise<void>>(async () => {});
+  useEffect(() => {
+    handleSaveAllRef.current = handleSaveAll;
+  }); // no deps — runs after every render to keep the ref fresh
   useEffect(() => {
     if (onSaveAll) {
-      onSaveAll(saveAllRef);
+      onSaveAll(() => handleSaveAllRef.current(true));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -513,10 +516,8 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
         await Promise.all(poolOps);
         poolUtils.matters.listPeoplePool.invalidate({ matterId: matter.id });
       }
-      utils.matters.list.invalidate();
-      utils.matters.getById.invalidate({ id: matter.id });
       setIsDirty(false);
-      onSaved();
+      onSaved(); // parent (WillDraftingV2) handles matters.list invalidation
       if (!silent) toast.success("Matter saved successfully");
     } catch (err) {
       if (!silent) toast.error("Failed to save matter");
