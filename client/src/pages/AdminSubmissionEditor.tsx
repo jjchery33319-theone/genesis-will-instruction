@@ -26,6 +26,7 @@ import { OptionalClausesEditor, type OptionalClausesData } from "@/components/Op
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PersonEntry {
+  title?: string;
   prefix?: string;
   firstName?: string;
   middleName?: string;
@@ -173,7 +174,7 @@ function PersonEditor({
   showVulnerable?: boolean;
 }) {
   const [expanded, setExpanded] = useState(index === 0);
-  const name = [person.prefix, person.firstName, person.lastName].filter(Boolean).join(" ") || `Person ${index + 1}`;
+  const name = [person.title, person.prefix, person.firstName, person.lastName].filter(Boolean).join(" ") || `Person ${index + 1}`;
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -203,6 +204,7 @@ function PersonEditor({
       {expanded && (
         <div className="p-3 space-y-3 border-t border-border">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <TextInput label="Title" value={s(person.title)} onChange={v => onChange({ ...person, title: v })} placeholder="Mr/Mrs/Dr" />
             <TextInput label="Prefix" value={s(person.prefix)} onChange={v => onChange({ ...person, prefix: v })} placeholder="Mr/Mrs/Dr" />
             <TextInput label="First Name" value={s(person.firstName)} onChange={v => onChange({ ...person, firstName: v })} />
             <TextInput label="Middle Name" value={s(person.middleName)} onChange={v => onChange({ ...person, middleName: v })} />

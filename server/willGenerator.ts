@@ -46,6 +46,7 @@ export interface WillOptions {
 }
 
 interface PersonEntry {
+  title?: string;
   prefix?: string;
   firstName?: string;
   middleName?: string;
@@ -77,7 +78,7 @@ function safeArr(v: unknown): PersonEntry[] {
 
 function fullName(p: PersonEntry | null | undefined, includeDob = true): string {
   if (!p) return "";
-  const name = [p.prefix, p.firstName, p.middleName, p.lastName].filter(Boolean).join(" ").trim();
+  const name = [p.title, p.prefix, p.firstName, p.middleName, p.lastName].filter(Boolean).join(" ").trim();
   const dobPart = includeDob && p.dob ? ` (born ${p.dob})` : "";
   return name + dobPart;
 }

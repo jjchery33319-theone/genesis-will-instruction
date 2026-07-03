@@ -53,8 +53,9 @@ function today(): string {
   return `the ${ordinal(d.getDate())} day of ${d.toLocaleDateString("en-GB", { month: "long" })} ${d.getFullYear()}`;
 }
 
-function nameAndAddress(p: { fullName?: string | null; address?: string | null }): string {
-  const parts = [p.fullName || "_______________"];
+function nameAndAddress(p: { title?: string | null; fullName?: string | null; address?: string | null }): string {
+  const displayName = [p.title, p.fullName].filter(Boolean).join(" ") || "_______________";
+  const parts = [displayName];
   if (p.address) parts.push(p.address);
   return parts.join(", ");
 }
@@ -736,14 +737,16 @@ function buildResidueClause(
     const b = primary[0];
     const share = b.shareFraction ? ` (${b.shareFraction})` : "";
     const { subj, poss } = benPronoun(b);
-    parts.push(`<p>I give the whole of my Estate${share} to <strong>${b.fullName || "_______________"}</strong>${b.relationship ? `, my ${b.relationship},` : ""} absolutely, provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days.</p>`);
+    const bDisplayName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+    parts.push(`<p>I give the whole of my Estate${share} to <strong>${bDisplayName}</strong>${b.relationship ? `, my ${b.relationship},` : ""} absolutely, provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days.</p>`);
     if (b.includeIssue) {
-      parts.push(`<p>If <strong>${b.fullName || "the above beneficiary"}</strong> does not survive me by ${survivorshipDays} days, ${poss} share shall pass to ${poss} issue in equal shares per stirpes.</p>`);
+      parts.push(`<p>If <strong>${bDisplayName}</strong> does not survive me by ${survivorshipDays} days, ${poss} share shall pass to ${poss} issue in equal shares per stirpes.</p>`);
     }
   } else {
     const shareText = primary.map(b => {
       const share = b.shareFraction ? ` (${b.shareFraction})` : "";
-      return `<strong>${b.fullName || "_______________"}</strong>${b.relationship ? `, my ${b.relationship},` : ""}${share}`;
+      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+      return `<strong>${bName}</strong>${b.relationship ? `, my ${b.relationship},` : ""}${share}`;
     }).join("; ");
     parts.push(`<p>I give the residue of my Estate to the following beneficiaries in the shares set out: ${shareText}; provided each survives me by ${survivorshipDays} days.</p>`);
     const withIssue = primary.filter(b => b.includeIssue);
@@ -753,7 +756,10 @@ function buildResidueClause(
   }
 
   if (fallback.length > 0) {
-    const fallbackText = fallback.map(b => `<strong>${b.fullName || "_______________"}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ");
+    const fallbackText = fallback.map(b => {
+      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+      return `<strong>${bName}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`;
+    }).join(" and ");
     parts.push(`<p>In the event that all of the above gifts fail, I give the residue of my Estate to ${fallbackText} in equal shares absolutely.</p>`);
   } else {
     parts.push(`<p>In the event that all of the above gifts fail, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales.</p>`);

@@ -85,7 +85,7 @@ function formatPersons(persons: unknown, showExtra = false): React.ReactNode {
     <div className="space-y-2 mt-1">
       {(persons as Record<string, string>[]).map((p, i) => (
         <div key={i} className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
-          <p className="font-medium">{[p.prefix, p.firstName, p.lastName].filter(Boolean).join(" ")}</p>
+          <p className="font-medium">{[p.prefix, p.firstName, p.lastName].filter(Boolean).join(" ") || p.fullName ? [p.title, p.prefix, p.firstName, p.lastName].filter(Boolean).join(" ") || [p.title, p.fullName].filter(Boolean).join(" ") : ""}</p>
           {p.relationship && <p className="text-xs text-muted-foreground">Relationship: {p.relationship}</p>}
           {p.address && <p className="text-xs text-muted-foreground">Address: {p.address}</p>}
           {p.phone && <p className="text-xs text-muted-foreground">Phone: {p.phone}</p>}
