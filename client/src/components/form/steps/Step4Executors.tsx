@@ -25,12 +25,34 @@ function clientToPersonEntry(data: WillFormData, clientNum: 1 | 2, relationship:
   };
 }
 
+function childToPersonEntry(child: import("../../../hooks/useWillForm").ChildEntry): Partial<PersonEntry> {
+  return {
+    firstName: child.firstName,
+    lastName: child.lastName ?? "",
+    dob: child.dob,
+    address: child.address ?? "",
+    relationship: child.relationship ?? "Child",
+  };
+}
+
 function buildQuickFillSources(data: WillFormData): QuickFillSource[] {
   const sources: QuickFillSource[] = [];
   const c1Name = [data.client1FirstName, data.client1LastName].filter(Boolean).join(" ");
   const c2Name = [data.client2FirstName, data.client2LastName].filter(Boolean).join(" ");
   if (c1Name.trim()) sources.push({ label: `Client 1 — ${c1Name}`, person: clientToPersonEntry(data, 1, "Client 1") });
   if (c2Name.trim()) sources.push({ label: `Client 2 — ${c2Name}`, person: clientToPersonEntry(data, 2, "Client 2") });
+
+  // Over-18 children from both clients
+  const over18Children = [
+    ...(data.client1ChildrenOver18 ?? []).map(c => ({ child: c, owner: "C1" })),
+    ...(data.client2ChildrenOver18 ?? []).map(c => ({ child: c, owner: "C2" })),
+  ];
+  over18Children.forEach(({ child, owner }) => {
+    const name = [child.firstName, child.lastName].filter(Boolean).join(" ");
+    if (name.trim()) {
+      sources.push({ label: `${owner} Child (18+) — ${name}`, person: childToPersonEntry(child) });
+    }
+  });
 
   const allPeople: { list: PersonEntry[]; prefix: string }[] = [
     { list: data.client1Executors ?? [], prefix: "C1 Executor" },
