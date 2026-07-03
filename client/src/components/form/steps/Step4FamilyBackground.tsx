@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Trash2, Baby, UserCheck, AlertTriangle } from "lucide-react";
+import { Users, Plus, Trash2, Baby, UserCheck, AlertTriangle, Copy } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -195,12 +195,14 @@ function ClientChildrenSection({
   data,
   onChange,
   isMirrorWill,
+  copySourcePrefix,
 }: {
   label: string;
   fieldPrefix: "client1" | "client2";
   data: WillFormData;
   onChange: (updates: Partial<WillFormData>) => void;
   isMirrorWill?: boolean;
+  copySourcePrefix?: "client1" | "client2";
 }) {
   const hasChildren = data[`${fieldPrefix}HasChildren`];
   const under18Key = `${fieldPrefix}ChildrenUnder18` as "client1ChildrenUnder18" | "client2ChildrenUnder18";
@@ -231,9 +233,46 @@ function ClientChildrenSection({
   const hasSpecialNeedsChildren =
     [...under18, ...over18].some(c => c.hasSpecialNeeds);
 
+  // Copy children from the other client (mirror wills)
+  const handleCopyFromSource = () => {
+    if (!copySourcePrefix) return;
+    const srcUnder18 = (data[`${copySourcePrefix}ChildrenUnder18` as "client1ChildrenUnder18" | "client2ChildrenUnder18"] ?? []);
+    const srcOver18 = (data[`${copySourcePrefix}ChildrenOver18` as "client1ChildrenOver18" | "client2ChildrenOver18"] ?? []);
+    onChange({
+      [`${fieldPrefix}HasChildren`]: srcUnder18.length + srcOver18.length > 0 ? "yes" : data[`${fieldPrefix}HasChildren`],
+      [under18Key]: srcUnder18.map(c => ({ ...c })),
+      [over18Key]: srcOver18.map(c => ({ ...c })),
+    } as Partial<WillFormData>);
+  };
+
+  const sourceHasChildren = copySourcePrefix
+    ? ((data[`${copySourcePrefix}ChildrenUnder18` as "client1ChildrenUnder18" | "client2ChildrenUnder18"] ?? []).length +
+       (data[`${copySourcePrefix}ChildrenOver18` as "client1ChildrenOver18" | "client2ChildrenOver18"] ?? []).length) > 0
+    : false;
+
   return (
     <div className="space-y-4">
       <SectionDivider title={label} />
+
+      {/* Copy from Client 1 banner — mirror wills only, shown when Client 1 has children */}
+      {isMirrorWill && copySourcePrefix && sourceHasChildren && (
+        <div className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+          <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+          <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
+            Copy all children from Client 1 into this section (you can edit afterwards)
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5"
+            style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }}
+            onClick={handleCopyFromSource}
+          >
+            <Copy className="w-3 h-3" /> Copy from Client 1
+          </Button>
+        </div>
+      )}
 
       {/* Marriage plans */}
       <FieldRow label="Any plans to marry or enter a civil partnership?" hint="A new marriage revokes an existing Will">
@@ -445,6 +484,7 @@ export default function Step4FamilyBackground({ data, onChange, isMirrorWill }: 
             data={data}
             onChange={onChange}
             isMirrorWill={isMirrorWill}
+            copySourcePrefix="client1"
           />
         )}
       </FormCard>
