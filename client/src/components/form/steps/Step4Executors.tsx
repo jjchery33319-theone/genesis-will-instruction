@@ -1,7 +1,7 @@
 import { WillFormData, PersonEntry } from "../../../hooks/useWillForm";
 import { FormCard, SectionDivider } from "../FormCard";
 import { PersonList, QuickFillSource } from "../PersonFields";
-import { Scale, Shield, Baby, Zap, Users } from "lucide-react";
+import { Scale, Shield, Baby, Zap, Users, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -271,18 +271,51 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
           quickFillSources={quickFillSources}
         />
 
-        {isMirrorWill && (
-          <ClientExecutorSection
-            label={`Primary Executor for ${c2Name}`}
-            primaryKey="client2Executors"
-            reservedKey="client2ReservedExecutors"
-            data={data}
-            onChange={onChange}
-            isMirrorWill={isMirrorWill}
-            mirrorClientNum={1}
-            quickFillSources={quickFillSources}
-          />
-        )}
+        {isMirrorWill && (() => {
+          const c1HasExecutors =
+            (data.client1Executors?.length ?? 0) > 0 ||
+            (data.client1ReservedExecutors?.length ?? 0) > 0;
+
+          const copyExecutorsFromClient1 = () => {
+            onChange({
+              client2Executors: (data.client1Executors ?? []).map(e => ({ ...e })),
+              client2ReservedExecutors: (data.client1ReservedExecutors ?? []).map(e => ({ ...e })),
+            });
+          };
+
+          return (
+            <>
+              {c1HasExecutors && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+                  <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+                  <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
+                    Copy {c1Name}’s executors to {c2Name} (primary &amp; reserved)
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs gap-1.5"
+                    style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }}
+                    onClick={copyExecutorsFromClient1}
+                  >
+                    <Copy className="w-3 h-3" /> Copy Executors from {c1Name}
+                  </Button>
+                </div>
+              )}
+              <ClientExecutorSection
+                label={`Primary Executor for ${c2Name}`}
+                primaryKey="client2Executors"
+                reservedKey="client2ReservedExecutors"
+                data={data}
+                onChange={onChange}
+                isMirrorWill={isMirrorWill}
+                mirrorClientNum={1}
+                quickFillSources={quickFillSources}
+              />
+            </>
+          );
+        })()}
       </FormCard>
 
       {/* ── Trustees ──────────────────────────────────────────────────────── */}
@@ -325,16 +358,49 @@ export default function Step4Executors({ data, onChange, isMirrorWill = false }:
             quickFillSources={quickFillSources}
           />
 
-          {isMirrorWill && (
-            <ClientGuardianSection
-              label={`Guardians for ${c2Name}`}
-              primaryKey="client2Guardians"
-              reservedKey="client2ReservedGuardians"
-              data={data}
-              onChange={onChange}
-              quickFillSources={quickFillSources}
-            />
-          )}
+          {isMirrorWill && (() => {
+            const c1HasGuardians =
+              (data.client1Guardians?.length ?? 0) > 0 ||
+              (data.client1ReservedGuardians?.length ?? 0) > 0;
+
+            const copyGuardiansFromClient1 = () => {
+              onChange({
+                client2Guardians: (data.client1Guardians ?? []).map(g => ({ ...g })),
+                client2ReservedGuardians: (data.client1ReservedGuardians ?? []).map(g => ({ ...g })),
+              });
+            };
+
+            return (
+              <>
+                {c1HasGuardians && (
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+                    <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+                    <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
+                      Copy {c1Name}’s guardians to {c2Name} (primary &amp; reserved)
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1.5"
+                      style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }}
+                      onClick={copyGuardiansFromClient1}
+                    >
+                      <Copy className="w-3 h-3" /> Copy Guardians from {c1Name}
+                    </Button>
+                  </div>
+                )}
+                <ClientGuardianSection
+                  label={`Guardians for ${c2Name}`}
+                  primaryKey="client2Guardians"
+                  reservedKey="client2ReservedGuardians"
+                  data={data}
+                  onChange={onChange}
+                  quickFillSources={quickFillSources}
+                />
+              </>
+            );
+          })()}
         </FormCard>
       )}
     </div>
