@@ -5,9 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Trash2, Baby, UserCheck, AlertTriangle, Copy } from "lucide-react";
+import { Users, Plus, Trash2, Baby, UserCheck, AlertTriangle, Copy, RotateCcw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useCopyUndo } from "../../../hooks/useCopyUndo";
 
 interface Props {
   data: WillFormData;
@@ -234,10 +235,13 @@ function ClientChildrenSection({
     [...under18, ...over18].some(c => c.hasSpecialNeeds);
 
   // Copy children from the other client (mirror wills)
+  const { hasSnapshot: hasCopySnapshot, saveSnapshot: saveCopySnapshot, undo: undoCopy } = useCopyUndo(data, onChange);
+
   const handleCopyFromSource = () => {
     if (!copySourcePrefix) return;
     const srcUnder18 = (data[`${copySourcePrefix}ChildrenUnder18` as "client1ChildrenUnder18" | "client2ChildrenUnder18"] ?? []);
     const srcOver18 = (data[`${copySourcePrefix}ChildrenOver18` as "client1ChildrenOver18" | "client2ChildrenOver18"] ?? []);
+    saveCopySnapshot([`${fieldPrefix}HasChildren` as keyof WillFormData, under18Key, over18Key]);
     onChange({
       [`${fieldPrefix}HasChildren`]: srcUnder18.length + srcOver18.length > 0 ? "yes" : data[`${fieldPrefix}HasChildren`],
       [under18Key]: srcUnder18.map(c => ({ ...c })),
@@ -253,6 +257,24 @@ function ClientChildrenSection({
   return (
     <div className="space-y-4">
       <SectionDivider title={label} />
+
+      {/* Undo banner — shown immediately after copy */}
+      {isMirrorWill && copySourcePrefix && hasCopySnapshot && (
+        <div className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: "oklch(0.98 0.02 85)", border: "1px solid oklch(0.78 0.12 85 / 0.5)" }}>
+          <RotateCcw className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.55 0.12 85)" }} />
+          <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.08 85)" }}>Children copied from Client 1. Changed your mind?</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5"
+            style={{ borderColor: "oklch(0.78 0.12 85 / 0.6)", color: "oklch(0.45 0.1 85)" }}
+            onClick={undoCopy}
+          >
+            <RotateCcw className="w-3 h-3" /> Undo Copy
+          </Button>
+        </div>
+      )}
 
       {/* Copy from Client 1 banner — mirror wills only, shown when Client 1 has children */}
       {isMirrorWill && copySourcePrefix && sourceHasChildren && (

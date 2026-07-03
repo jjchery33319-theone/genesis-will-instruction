@@ -1,8 +1,9 @@
 import { WillFormData } from "../../../hooks/useWillForm";
 import { FormCard } from "../FormCard";
 import { ClientFields } from "../PersonFields";
-import { Users, Info, Copy } from "lucide-react";
+import { Users, Info, Copy, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCopyUndo } from "../../../hooks/useCopyUndo";
 
 interface Props {
   data: WillFormData;
@@ -14,6 +15,8 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
   const handleFieldChange = (field: string, value: string) => {
     onChange({ [field]: value } as Partial<WillFormData>);
   };
+
+  const { hasSnapshot, saveSnapshot, undo } = useCopyUndo(data, onChange);
 
   if (!isMirrorWill) {
     return (
@@ -45,6 +48,7 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
   const client1HasAny = client1HasAddress || client1HasContact || client1HasChildren;
 
   const copyAddressFromClient1 = () => {
+    saveSnapshot(["client2AddressLine1", "client2City", "client2Postcode"]);
     onChange({
       client2AddressLine1: data.client1AddressLine1,
       client2City: data.client1City,
@@ -53,6 +57,7 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
   };
 
   const copyContactFromClient1 = () => {
+    saveSnapshot(["client2DaytimePhone", "client2Mobile", "client2Email"]);
     onChange({
       client2DaytimePhone: data.client1DaytimePhone,
       client2Mobile: data.client1Mobile,
@@ -61,18 +66,20 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
   };
 
   const copyAllFromClient1 = () => {
+    saveSnapshot([
+      "client2AddressLine1", "client2City", "client2Postcode",
+      "client2DaytimePhone", "client2Mobile", "client2Email",
+      "client2HasChildren", "client2ChildrenUnder18", "client2ChildrenOver18",
+    ]);
     const srcUnder18 = data.client1ChildrenUnder18 ?? [];
     const srcOver18 = data.client1ChildrenOver18 ?? [];
     onChange({
-      // Address
       client2AddressLine1: data.client1AddressLine1,
       client2City: data.client1City,
       client2Postcode: data.client1Postcode,
-      // Contact
       client2DaytimePhone: data.client1DaytimePhone,
       client2Mobile: data.client1Mobile,
       client2Email: data.client1Email,
-      // Children
       ...(client1HasChildren ? {
         client2HasChildren: "yes",
         client2ChildrenUnder18: srcUnder18.map(c => ({ ...c })),
@@ -88,7 +95,25 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
         subtitle="Second client's full personal information (for Mirror Wills)"
         icon={<Users className="w-4 h-4" />}
       >
-        {/* Copy ALL banner — shown when Client 1 has any data to copy */}
+        {/* Undo banner — shown immediately after any copy */}
+        {hasSnapshot && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.98 0.02 85)", border: "1px solid oklch(0.78 0.12 85 / 0.5)" }}>
+            <RotateCcw className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.55 0.12 85)" }} />
+            <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.08 85)" }}>Details copied from Client 1. Changed your mind?</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              style={{ borderColor: "oklch(0.78 0.12 85 / 0.6)", color: "oklch(0.45 0.1 85)" }}
+              onClick={undo}
+            >
+              <RotateCcw className="w-3 h-3" /> Undo Copy
+            </Button>
+          </div>
+        )}
+
+        {/* Copy ALL banner */}
         {client1HasAny && (
           <div className="flex items-center gap-2 p-3 rounded-lg mb-3" style={{ background: "oklch(0.95 0.025 155)", border: "1px solid oklch(0.55 0.1 155 / 0.4)" }}>
             <Copy className="w-4 h-4 flex-shrink-0" style={{ color: "oklch(0.28 0.07 155)" }} />
@@ -114,9 +139,7 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
         {client1HasAddress && (
           <div className="flex items-center gap-2 p-2.5 rounded-lg mb-2" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
             <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
-            <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
-              Same home address as Client 1?
-            </span>
+            <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>Same home address as Client 1?</span>
             <Button
               type="button"
               variant="outline"
@@ -134,9 +157,7 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
         {client1HasContact && (
           <div className="flex items-center gap-2 p-2.5 rounded-lg mb-4" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
             <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
-            <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
-              Same contact details as Client 1?
-            </span>
+            <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>Same contact details as Client 1?</span>
             <Button
               type="button"
               variant="outline"
