@@ -5,7 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { FUNERAL_TYPES } from "../../../../../shared/willConstants";
-import { Flower2 } from "lucide-react";
+import { Flower2, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   data: WillFormData;
@@ -93,14 +94,35 @@ export default function Step14Wishes({ data, onChange }: Props) {
           onChange={onChange}
         />
 
-        {isMirrorWill && (
-          <ClientFuneralSection
-            label={c2Name}
-            fieldPrefix="client2"
-            data={data}
-            onChange={onChange}
-          />
-        )}
+        {isMirrorWill && (() => {
+          const c1HasWishes = !!(data.client1FuneralType || data.client1FuneralWishes || data.client1OrganDonation);
+          const copyWishesFromClient1 = () => {
+            onChange({
+              client2FuneralType: data.client1FuneralType,
+              client2FuneralWishes: data.client1FuneralWishes,
+              client2OrganDonation: data.client1OrganDonation,
+            });
+          };
+          return (
+            <>
+              {c1HasWishes && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+                  <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+                  <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>Copy funeral type, wishes &amp; organ donation preference from Client 1</span>
+                  <Button type="button" variant="outline" size="sm" className="text-xs gap-1.5" style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }} onClick={copyWishesFromClient1}>
+                    <Copy className="w-3 h-3" /> Copy from Client 1
+                  </Button>
+                </div>
+              )}
+              <ClientFuneralSection
+                label={c2Name}
+                fieldPrefix="client2"
+                data={data}
+                onChange={onChange}
+              />
+            </>
+          );
+        })()}
       </FormCard>
     </div>
   );

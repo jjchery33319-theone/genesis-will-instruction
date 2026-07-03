@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Gift, Plus, Trash2, Heart } from "lucide-react";
+import { Gift, Plus, Trash2, Heart, Copy } from "lucide-react";
 
 interface Props {
   data: WillFormData;
@@ -158,13 +158,30 @@ export default function Step12Gifts({ data, onChange }: Props) {
           label={c1Name}
         />
 
-        {isMirrorWill && (
-          <GiftList
-            gifts={data.client2SpecificGifts ?? []}
-            onChange={gifts => onChange({ client2SpecificGifts: gifts })}
-            label={c2Name}
-          />
-        )}
+        {isMirrorWill && (() => {
+          const c1HasGifts = (data.client1SpecificGifts?.length ?? 0) > 0;
+          const copyGiftsFromClient1 = () => {
+            onChange({ client2SpecificGifts: (data.client1SpecificGifts ?? []).map(g => ({ ...g })) });
+          };
+          return (
+            <>
+              {c1HasGifts && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg mb-3" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+                  <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+                  <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>Copy all gifts &amp; legacies from Client 1</span>
+                  <Button type="button" variant="outline" size="sm" className="text-xs gap-1.5" style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }} onClick={copyGiftsFromClient1}>
+                    <Copy className="w-3 h-3" /> Copy from Client 1
+                  </Button>
+                </div>
+              )}
+              <GiftList
+                gifts={data.client2SpecificGifts ?? []}
+                onChange={gifts => onChange({ client2SpecificGifts: gifts })}
+                label={c2Name}
+              />
+            </>
+          );
+        })()}
       </FormCard>
     </div>
   );
