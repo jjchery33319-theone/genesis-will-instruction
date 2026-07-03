@@ -22,7 +22,7 @@ function buildConsiderHtml(record: any): string {
   );
   if (considerAAT) bullets.push(
     `<li style="margin:0 0 8px;font-size:13px;color:#374151;line-height:1.6;">` +
-    `<strong>Asset Allocation Trust (AAT)</strong> &mdash; A flexible trust giving trustees discretion over how and when assets are distributed to beneficiaries, ideal for protecting inheritances for vulnerable or young beneficiaries.</li>`
+    `<strong>Asset Allocation Trust (AAT)</strong> &mdash; An Asset Allocation Trust (AAT) is a flexible discretionary trust that helps you manage inheritance tax, reduce probate delays on trust&#8209;owned assets, and protect family inheritances from the impact of future care fees.</li>`
   );
 
   let html = `<div style="background:#f0f7f3;border-left:4px solid #1a4d35;border-radius:4px;padding:18px 20px;">
@@ -57,7 +57,7 @@ function buildConsiderText(record: any): string {
     lines.push("Client should consider:");
     if (considerLPA) lines.push("  • Lasting Power of Attorney (LPA) — A legal document appointing trusted people to manage health, welfare, property and finances if mental capacity is lost.");
     if (considerPPT) lines.push("  • Protective Property Trust (PPT) — A Will trust that ring-fences the deceased's share of the family home, protecting it from care-home fees, remarriage or creditors while allowing the survivor to remain in the property.");
-    if (considerAAT) lines.push("  • Asset Allocation Trust (AAT) — A flexible trust giving trustees discretion over how and when assets are distributed to beneficiaries, ideal for protecting inheritances for vulnerable or young beneficiaries.");
+    if (considerAAT) lines.push("  • Asset Allocation Trust (AAT) — An Asset Allocation Trust (AAT) is a flexible discretionary trust that helps you manage inheritance tax, reduce probate delays on trust‑owned assets, and protect family inheritances from the impact of future care fees.");
   }
   if (manualNeeds) {
     if (lines.length) lines.push("");
