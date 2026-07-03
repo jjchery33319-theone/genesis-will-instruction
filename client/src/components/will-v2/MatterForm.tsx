@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { PersonPickerField, type PoolPerson } from "./PersonPickerField";
+import { SingleLineAddressField } from "../PostcodeAddressField";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -175,7 +176,11 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, relations
               </button>
             )}
           </div>
-          <Input value={address} onChange={e => onChangeAddress(e.target.value)} placeholder="Address" className="h-8 text-sm" />
+          <SingleLineAddressField
+            value={address}
+            onChange={onChangeAddress}
+            compact
+          />
         </div>
       </div>
       {extraFields}
@@ -932,7 +937,11 @@ function ClientSection({ label, data, onChange }: { label: string; data: any; on
         </div>
         <div className="col-span-2 space-y-1">
           <Label className="text-xs">Full Address</Label>
-          <Textarea value={data.address} onChange={e => onChange({ ...data, address: e.target.value })} placeholder="Full residential address" rows={2} className="text-sm resize-none" />
+          <SingleLineAddressField
+            value={data.address}
+            onChange={v => onChange({ ...data, address: v })}
+            compact
+          />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Email</Label>
@@ -1230,7 +1239,11 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
             </div>
             <div className="col-span-2 space-y-1">
               <Label className="text-xs">Recipient Address (optional)</Label>
-              <Input value={r.recipientAddress} onChange={e => updateRow(i, "recipientAddress", e.target.value)} placeholder="Recipient's address" className="h-8 text-sm" />
+              <SingleLineAddressField
+                value={r.recipientAddress}
+                onChange={v => updateRow(i, "recipientAddress", v)}
+                compact
+              />
             </div>
           </div>
         </div>

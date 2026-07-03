@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FieldRow } from "./FormCard";
 import { PREFIXES, MARITAL_STATUSES } from "../../../../shared/willConstants";
+import { PostcodeAddressField, SingleLineAddressField } from "../PostcodeAddressField";
 
 interface ClientFieldsProps {
   prefix?: string;
@@ -73,16 +74,15 @@ export function ClientFields({
         </FieldRow>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <FieldRow label="Address Line 1" className="sm:col-span-1">
-          <Input value={addressLine1 ?? ""} onChange={e => onChange(f("addressLine1"), e.target.value)} placeholder="Street address" />
-        </FieldRow>
-        <FieldRow label="City / Town">
-          <Input value={city ?? ""} onChange={e => onChange(f("city"), e.target.value)} placeholder="City" />
-        </FieldRow>
-        <FieldRow label="Postcode">
-          <Input value={postcode ?? ""} onChange={e => onChange(f("postcode"), e.target.value)} placeholder="e.g. SW1A 1AA" className="uppercase" />
-        </FieldRow>
+      <div>
+        <PostcodeAddressField
+          addressLine1={addressLine1 ?? ""}
+          city={city ?? ""}
+          postcode={postcode ?? ""}
+          onChangeAddressLine1={v => onChange(f("addressLine1"), v)}
+          onChangeCity={v => onChange(f("city"), v)}
+          onChangePostcode={v => onChange(f("postcode"), v)}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -256,9 +256,14 @@ export function PersonList({
             </FieldRow>
           </div>
 
-          <FieldRow label="Address">
-            <Input className="h-8 text-sm" value={person.address ?? ""} onChange={e => update(index, "address", e.target.value)} placeholder="Full address" />
-          </FieldRow>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Address</label>
+            <SingleLineAddressField
+              value={person.address ?? ""}
+              onChange={v => update(index, "address", v)}
+              compact
+            />
+          </div>
 
           {showShare && (
             <FieldRow label="Share / Percentage" hint="e.g. 50% or Equal share">
