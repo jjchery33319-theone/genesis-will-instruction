@@ -146,17 +146,93 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
           </h3>
           <span className="ml-auto text-xs text-muted-foreground">Optional</span>
         </div>
-        <div className="p-4">
-          <p className="text-xs text-muted-foreground mb-2">
-            Enter any needs, recommendations, or notes for this instruction. If left blank, no recommendations will be included.
-          </p>
-          <Textarea
-            value={data.manualNeedsAssessment ?? ""}
-            onChange={e => onChange({ manualNeedsAssessment: e.target.value })}
-            placeholder="e.g. Client should consider an LPA as they have no existing power of attorney. A PPT is recommended to protect the property share..."
-            rows={6}
-            className="text-sm resize-y"
-          />
+        <div className="p-4 space-y-4">
+          {/* Multi-select: Client Should Consider */}
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "oklch(0.28 0.07 155)" }}>Client should consider:</p>
+            <div className="space-y-2">
+              {/* LPA */}
+              <label
+                className="flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                style={{
+                  background: data.considerLPA ? "oklch(0.95 0.03 155)" : "oklch(0.98 0.005 155)",
+                  border: `1.5px solid ${data.considerLPA ? "oklch(0.55 0.1 155)" : "oklch(0.85 0.02 155)"}`,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-green-700"
+                  checked={!!data.considerLPA}
+                  onChange={e => onChange({ considerLPA: e.target.checked })}
+                />
+                <div className="min-w-0">
+                  <span className="text-sm font-medium" style={{ color: "oklch(0.28 0.07 155)" }}>Lasting Power of Attorney (LPA)</span>
+                  <p className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.05 155)" }}>
+                    A legal document that lets you appoint one or more people to make decisions about your health, welfare, property and finances if you lose mental capacity or can no longer manage your own affairs.
+                  </p>
+                </div>
+              </label>
+
+              {/* PPT */}
+              <label
+                className="flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                style={{
+                  background: data.considerPPT ? "oklch(0.95 0.03 155)" : "oklch(0.98 0.005 155)",
+                  border: `1.5px solid ${data.considerPPT ? "oklch(0.55 0.1 155)" : "oklch(0.85 0.02 155)"}`,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-green-700"
+                  checked={!!data.considerPPT}
+                  onChange={e => onChange({ considerPPT: e.target.checked })}
+                />
+                <div className="min-w-0">
+                  <span className="text-sm font-medium" style={{ color: "oklch(0.28 0.07 155)" }}>Protective Property Trust (PPT)</span>
+                  <p className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.05 155)" }}>
+                    A trust written into a Will that ring-fences your share of the family home on first death, protecting it from care-home fees, remarriage, or creditors — while allowing the surviving partner to continue living in the property.
+                  </p>
+                </div>
+              </label>
+
+              {/* AAT */}
+              <label
+                className="flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors"
+                style={{
+                  background: data.considerAAT ? "oklch(0.95 0.03 155)" : "oklch(0.98 0.005 155)",
+                  border: `1.5px solid ${data.considerAAT ? "oklch(0.55 0.1 155)" : "oklch(0.85 0.02 155)"}`,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-green-700"
+                  checked={!!data.considerAAT}
+                  onChange={e => onChange({ considerAAT: e.target.checked })}
+                />
+                <div className="min-w-0">
+                  <span className="text-sm font-medium" style={{ color: "oklch(0.28 0.07 155)" }}>Asset Allocation Trust (AAT)</span>
+                  <p className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.05 155)" }}>
+                    A flexible trust that holds and manages assets for named beneficiaries, giving trustees discretion over how and when assets are distributed — useful for protecting inheritances for vulnerable, young, or financially inexperienced beneficiaries.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Free-text notes */}
+          <div>
+            <p className="text-xs font-semibold mb-1" style={{ color: "oklch(0.28 0.07 155)" }}>Additional notes <span className="font-normal text-muted-foreground">(optional)</span></p>
+            <p className="text-xs text-muted-foreground mb-2">
+              Any further needs, recommendations, or context for this instruction.
+            </p>
+            <Textarea
+              value={data.manualNeedsAssessment ?? ""}
+              onChange={e => onChange({ manualNeedsAssessment: e.target.value })}
+              placeholder="e.g. Client has no existing power of attorney and should be advised to arrange one. A PPT is recommended given the property ownership situation..."
+              rows={4}
+              className="text-sm resize-y"
+            />
+          </div>
         </div>
       </div>
 
