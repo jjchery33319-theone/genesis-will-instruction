@@ -1,7 +1,8 @@
 import { WillFormData } from "../../../hooks/useWillForm";
 import { FormCard } from "../FormCard";
 import { ClientFields } from "../PersonFields";
-import { Users, Info } from "lucide-react";
+import { Users, Info, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   data: WillFormData;
@@ -37,6 +38,25 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
     );
   }
 
+  const client1HasAddress = !!(data.client1AddressLine1 || data.client1City || data.client1Postcode);
+  const client1HasContact = !!(data.client1DaytimePhone || data.client1Mobile || data.client1Email);
+
+  const copyAddressFromClient1 = () => {
+    onChange({
+      client2AddressLine1: data.client1AddressLine1,
+      client2City: data.client1City,
+      client2Postcode: data.client1Postcode,
+    });
+  };
+
+  const copyContactFromClient1 = () => {
+    onChange({
+      client2DaytimePhone: data.client1DaytimePhone,
+      client2Mobile: data.client1Mobile,
+      client2Email: data.client1Email,
+    });
+  };
+
   return (
     <div className="space-y-5">
       <FormCard
@@ -44,6 +64,46 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
         subtitle="Second client's full personal information (for Mirror Wills)"
         icon={<Users className="w-4 h-4" />}
       >
+        {/* Copy address banner */}
+        {client1HasAddress && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg mb-2" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+            <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+            <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
+              Same home address as Client 1?
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }}
+              onClick={copyAddressFromClient1}
+            >
+              <Copy className="w-3 h-3" /> Copy Address from Client 1
+            </Button>
+          </div>
+        )}
+
+        {/* Copy contact banner */}
+        {client1HasContact && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg mb-4" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
+            <Copy className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(0.35 0.1 155)" }} />
+            <span className="text-xs flex-1" style={{ color: "oklch(0.35 0.1 155)" }}>
+              Same contact details as Client 1?
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              style={{ borderColor: "oklch(0.65 0.08 155 / 0.6)", color: "oklch(0.28 0.07 155)" }}
+              onClick={copyContactFromClient1}
+            >
+              <Copy className="w-3 h-3" /> Copy Contact from Client 1
+            </Button>
+          </div>
+        )}
+
         <ClientFields
           fieldPrefix="client2"
           prefix={data.client2Prefix}
