@@ -40,6 +40,9 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
 
   const client1HasAddress = !!(data.client1AddressLine1 || data.client1City || data.client1Postcode);
   const client1HasContact = !!(data.client1DaytimePhone || data.client1Mobile || data.client1Email);
+  const client1HasChildren =
+    (data.client1ChildrenUnder18?.length ?? 0) + (data.client1ChildrenOver18?.length ?? 0) > 0;
+  const client1HasAny = client1HasAddress || client1HasContact || client1HasChildren;
 
   const copyAddressFromClient1 = () => {
     onChange({
@@ -57,6 +60,27 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
     });
   };
 
+  const copyAllFromClient1 = () => {
+    const srcUnder18 = data.client1ChildrenUnder18 ?? [];
+    const srcOver18 = data.client1ChildrenOver18 ?? [];
+    onChange({
+      // Address
+      client2AddressLine1: data.client1AddressLine1,
+      client2City: data.client1City,
+      client2Postcode: data.client1Postcode,
+      // Contact
+      client2DaytimePhone: data.client1DaytimePhone,
+      client2Mobile: data.client1Mobile,
+      client2Email: data.client1Email,
+      // Children
+      ...(client1HasChildren ? {
+        client2HasChildren: "yes",
+        client2ChildrenUnder18: srcUnder18.map(c => ({ ...c })),
+        client2ChildrenOver18: srcOver18.map(c => ({ ...c })),
+      } : {}),
+    });
+  };
+
   return (
     <div className="space-y-5">
       <FormCard
@@ -64,6 +88,28 @@ export default function Step3Client2({ data, onChange, isMirrorWill }: Props) {
         subtitle="Second client's full personal information (for Mirror Wills)"
         icon={<Users className="w-4 h-4" />}
       >
+        {/* Copy ALL banner — shown when Client 1 has any data to copy */}
+        {client1HasAny && (
+          <div className="flex items-center gap-2 p-3 rounded-lg mb-3" style={{ background: "oklch(0.95 0.025 155)", border: "1px solid oklch(0.55 0.1 155 / 0.4)" }}>
+            <Copy className="w-4 h-4 flex-shrink-0" style={{ color: "oklch(0.28 0.07 155)" }} />
+            <div className="flex-1">
+              <p className="text-xs font-semibold" style={{ color: "oklch(0.28 0.07 155)" }}>Copy all shared details from Client 1</p>
+              <p className="text-xs mt-0.5" style={{ color: "oklch(0.45 0.08 155)" }}>
+                Copies address{client1HasContact ? ", contact info" : ""}{client1HasChildren ? ", and children" : ""} in one click
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="text-xs gap-1.5 font-semibold"
+              style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
+              onClick={copyAllFromClient1}
+            >
+              <Copy className="w-3.5 h-3.5" /> Copy All Details
+            </Button>
+          </div>
+        )}
+
         {/* Copy address banner */}
         {client1HasAddress && (
           <div className="flex items-center gap-2 p-2.5 rounded-lg mb-2" style={{ background: "oklch(0.97 0.015 155)", border: "1px solid oklch(0.65 0.08 155 / 0.3)" }}>
