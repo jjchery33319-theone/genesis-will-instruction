@@ -380,9 +380,12 @@ export const willInstructionsRouter = router({
         narrative = "No needs assessment or recommendations were recorded for this instruction.";
       }
 
+      // Strip UI-only fields that have no DB column before inserting
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { client2SameAddressAsClient1: _sameAddr, ...insertInput } = input;
       const insertData = nullify({
         referenceNumber,
-        ...input,
+        ...insertInput,
         productsOrdered: input.productsOrdered ?? [],
 
         executors: input.executors ?? [],
@@ -525,8 +528,8 @@ export const willInstructionsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const { draftId, currentStep, ...formData } = input;
-
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { draftId, currentStep, client2SameAddressAsClient1: _sameAddrDraft, ...formData } = input;
       const draftData = nullify({
         ...formData,
         productsOrdered: formData.productsOrdered ?? [],
