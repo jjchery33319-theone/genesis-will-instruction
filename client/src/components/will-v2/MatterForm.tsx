@@ -38,6 +38,8 @@ interface PersonRowProps {
   onChangeAddress: (v: string) => void;
   onChangeDateOfBirth?: (v: string) => void;
   onChangeGender?: (v: string) => void;
+  /** Called with both title and gender in one update to avoid stale-closure overwrite */
+  onChangeTitleAndGender?: (title: string, gender: string) => void;
   onRemove: () => void;
   showRemove?: boolean;
   extraFields?: React.ReactNode;
@@ -61,13 +63,18 @@ const TITLE_GENDER_MAP: Record<string, string> = {
   "Mx": "neutral",
 };
 
-function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeTitle, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson, clientAddress }: PersonRowProps) {
+function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeTitle, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onChangeTitleAndGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson, clientAddress }: PersonRowProps) {
   function handleTitleChange(v: string) {
-    onChangeTitle?.(v);
     // Auto-set gender if the title unambiguously implies one
     const autoGender = TITLE_GENDER_MAP[v];
-    if (autoGender !== undefined) {
-      onChangeGender?.(autoGender);
+    if (onChangeTitleAndGender && autoGender !== undefined) {
+      // Single atomic update avoids stale-closure overwrite when two setStates fire in sequence
+      onChangeTitleAndGender(v, autoGender);
+    } else {
+      onChangeTitle?.(v);
+      if (autoGender !== undefined) {
+        onChangeGender?.(autoGender);
+      }
     }
   }
   return (
@@ -917,9 +924,10 @@ function ClientSection({ label, data, onChange }: { label: string; data: any; on
 }
 
 function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string }) {
-  const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", executorType: type, _poolId: undefined }]);
+  const addRow = (type: "primary" | "substitute") => onChange([...rows, { title: "", fullName: "", address: "", dateOfBirth: "", executorType: type, gender: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+  const updateTitleAndGender = (i: number, title: string, gender: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, title, gender } : r));
 
   const primary = rows.filter(r => r.executorType === "primary");
   const substitute = rows.filter(r => r.executorType === "substitute");
@@ -937,7 +945,7 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary executors added.</p>}
         {rows.map((r, i) => r.executorType === "primary" && (
           <PersonRow key={i} label={`Primary Executor ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
@@ -955,7 +963,7 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute executors added.</p>}
         {rows.map((r, i) => r.executorType === "substitute" && (
           <PersonRow key={i} label={`Substitute Executor ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
@@ -968,9 +976,10 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
 }
 
 function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string }) {
-  const addRow = (type: "primary" | "substitute") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", guardianType: type, _poolId: undefined }]);
+  const addRow = (type: "primary" | "substitute") => onChange([...rows, { title: "", fullName: "", address: "", dateOfBirth: "", guardianType: type, gender: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
+  const updateTitleAndGender = (i: number, title: string, gender: string) => onChange(rows.map((r, idx) => idx === i ? { ...r, title, gender } : r));
 
   const primary = rows.filter(r => r.guardianType === "primary");
   const substitute = rows.filter(r => r.guardianType === "substitute");
@@ -987,7 +996,7 @@ function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: an
         {primary.length === 0 && <p className="text-xs text-muted-foreground italic">No primary guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "primary" && (
           <PersonRow key={i} label={`Primary Guardian ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
@@ -1005,7 +1014,7 @@ function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: an
         {substitute.length === 0 && <p className="text-xs text-muted-foreground italic">No substitute guardians added.</p>}
         {rows.map((r, i) => r.guardianType === "substitute" && (
           <PersonRow key={i} label={`Substitute Guardian ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender}
-            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onRemove={() => removeRow(i)}
+            onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
               onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "" }));
