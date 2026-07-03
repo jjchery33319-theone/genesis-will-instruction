@@ -3,6 +3,70 @@ import type { WillInstruction } from "../drizzle/schema";
 import { PRODUCTS } from "../shared/willConstants";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function buildConsiderHtml(record: any): string {
+  const considerLPA = !!record.considerLPA;
+  const considerPPT = !!record.considerPPT;
+  const considerAAT = !!record.considerAAT;
+  const manualNeeds = (record.manualNeedsAssessment as string | null | undefined)?.trim();
+  if (!considerLPA && !considerPPT && !considerAAT && !manualNeeds) return "";
+
+  const bullets: string[] = [];
+  if (considerLPA) bullets.push(
+    `<li style="margin:0 0 8px;font-size:13px;color:#374151;line-height:1.6;">` +
+    `<strong>Lasting Power of Attorney (LPA)</strong> &mdash; A legal document appointing trusted people to manage health, welfare, property and finances if mental capacity is lost.</li>`
+  );
+  if (considerPPT) bullets.push(
+    `<li style="margin:0 0 8px;font-size:13px;color:#374151;line-height:1.6;">` +
+    `<strong>Protective Property Trust (PPT)</strong> &mdash; A Will trust that ring-fences the deceased&rsquo;s share of the family home, protecting it from care-home fees, remarriage or creditors while allowing the survivor to remain in the property.</li>`
+  );
+  if (considerAAT) bullets.push(
+    `<li style="margin:0 0 8px;font-size:13px;color:#374151;line-height:1.6;">` +
+    `<strong>Asset Allocation Trust (AAT)</strong> &mdash; A flexible trust giving trustees discretion over how and when assets are distributed to beneficiaries, ideal for protecting inheritances for vulnerable or young beneficiaries.</li>`
+  );
+
+  let html = `<div style="background:#f0f7f3;border-left:4px solid #1a4d35;border-radius:4px;padding:18px 20px;">
+    <p style="margin:0 0 12px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">
+      Needs Assessment &amp; Recommendations
+    </p>`;
+
+  if (bullets.length) {
+    html += `<p style="margin:0 0 8px;font-size:13px;font-weight:bold;color:#1a4d35;">Client should consider:</p>
+    <ul style="margin:0 0 12px;padding-left:18px;">${bullets.join("")}</ul>`;
+  }
+  if (manualNeeds) {
+    if (bullets.length) {
+      html += `<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#1a4d35;">Additional notes:</p>`;
+    }
+    html += `<p style="margin:0;font-size:13px;color:#374151;line-height:1.6;white-space:pre-line;">${manualNeeds}</p>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function buildConsiderText(record: any): string {
+  const considerLPA = !!record.considerLPA;
+  const considerPPT = !!record.considerPPT;
+  const considerAAT = !!record.considerAAT;
+  const manualNeeds = (record.manualNeedsAssessment as string | null | undefined)?.trim();
+  if (!considerLPA && !considerPPT && !considerAAT && !manualNeeds) {
+    return "No needs assessment or recommendations were recorded for this instruction.";
+  }
+  const lines: string[] = [];
+  if (considerLPA || considerPPT || considerAAT) {
+    lines.push("Client should consider:");
+    if (considerLPA) lines.push("  • Lasting Power of Attorney (LPA) — A legal document appointing trusted people to manage health, welfare, property and finances if mental capacity is lost.");
+    if (considerPPT) lines.push("  • Protective Property Trust (PPT) — A Will trust that ring-fences the deceased's share of the family home, protecting it from care-home fees, remarriage or creditors while allowing the survivor to remain in the property.");
+    if (considerAAT) lines.push("  • Asset Allocation Trust (AAT) — A flexible trust giving trustees discretion over how and when assets are distributed to beneficiaries, ideal for protecting inheritances for vulnerable or young beneficiaries.");
+  }
+  if (manualNeeds) {
+    if (lines.length) lines.push("");
+    lines.push("Additional notes:");
+    lines.push(manualNeeds);
+  }
+  return lines.join("\n");
+}
+
 function safe(v: string | null | undefined): string {
   return v?.trim() || "—";
 }
@@ -46,34 +110,14 @@ function buildClientEmailHtml(record: WillInstruction): string {
     : "—";
   const consultantName = safe(record.consultantName);
 
-    // Use manual needs assessment if present
-  const manualNeeds = (record as any).manualNeedsAssessment as string | null | undefined;
-
-  const recsHtml = manualNeeds?.trim()
-    ? `
-      <tr>
-        <td style="padding:0 32px 24px;">
+  const _recsInner1 = buildConsiderHtml(record as any);
+  const recsHtml = _recsInner1
+    ? `<tr><td style="padding:0 32px 24px;">${_recsInner1}</td></tr>`
+    : `<tr><td style="padding:0 32px 24px;">
           <div style="background:#f0f7f3;border-left:4px solid #1a4d35;border-radius:4px;padding:18px 20px;">
-            <p style="margin:0 0 12px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">
-              Needs Assessment &amp; Recommendations
-            </p>
-            <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;white-space:pre-line;">${manualNeeds.trim()}</p>
-          </div>
-        </td>
-      </tr>`
-    : `
-      <tr>
-        <td style="padding:0 32px 24px;">
-          <div style="background:#f0f7f3;border-left:4px solid #1a4d35;border-radius:4px;padding:18px 20px;">
-            <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">
-              Your Recommendations
-            </p>
-            <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">
-              You will receive a follow-up email containing the full details of the recommendations discussed during your appointment.
-            </p>
-          </div>
-        </td>
-      </tr>`;
+            <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">Your Recommendations</p>
+            <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">You will receive a follow-up email containing the full details of the recommendations discussed during your appointment.</p>
+          </div></td></tr>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -317,29 +361,14 @@ function buildAdviserEmailHtml(record: WillInstruction): string {
   const appointmentDate = record.appointmentDate
     ? new Date(record.appointmentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
     : "—";
-  const manualNeeds = (record as any).manualNeedsAssessment as string | null | undefined;
   const consultantName = safe(record.consultantName);
-
-  const needsSection = manualNeeds?.trim()
-    ? `
-      <tr>
-        <td style="padding:0 32px 24px;">
-          <div style="background:#f0f7f3;border-left:4px solid #1a4d35;border-radius:4px;padding:18px 20px;">
-            <p style="margin:0 0 10px;font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#1a4d35;">
-              Needs Assessment &amp; Recommendations
-            </p>
-            <p style="margin:0;font-size:13px;color:#374151;line-height:1.7;white-space:pre-line;">${manualNeeds.trim()}</p>
-          </div>
-        </td>
-      </tr>`
-    : `
-      <tr>
-        <td style="padding:0 32px 24px;">
+  const _recsInner2 = buildConsiderHtml(record as any);
+  const needsSection = _recsInner2
+    ? `<tr><td style="padding:0 32px 24px;">${_recsInner2}</td></tr>`
+    : `<tr><td style="padding:0 32px 24px;">
           <div style="background:#f9fafb;border-left:4px solid #d1d5db;border-radius:4px;padding:14px 18px;">
             <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.6;">No needs assessment or recommendations were recorded for this instruction.</p>
-          </div>
-        </td>
-      </tr>`;
+          </div></td></tr>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -442,7 +471,6 @@ function buildAdviserEmailText(record: WillInstruction): string {
   const appointmentDate = record.appointmentDate
     ? new Date(record.appointmentDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
     : "—";
-  const manualNeeds = (record as any).manualNeedsAssessment as string | null | undefined;
   const consultantName = safe(record.consultantName);
 
   return `Genesis Wills and Estate Planning — Adviser Instruction Confirmation
@@ -457,7 +485,7 @@ Client(s): ${clientDisplay}
 Products Ordered: ${products}
 
 NEEDS ASSESSMENT & RECOMMENDATIONS
-${manualNeeds?.trim() || "No needs assessment or recommendations were recorded for this instruction."}
+${buildConsiderText(record as any)}
 
 ---
 Genesis Wills and Estate Planning | This email is for adviser reference only
