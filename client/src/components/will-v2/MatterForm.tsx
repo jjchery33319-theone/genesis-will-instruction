@@ -92,21 +92,21 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeT
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">Title</Label>
-          <select
-            value={title ?? ""}
-            onChange={e => handleTitleChange(e.target.value)}
-            className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
-          >
-            <option value="">Select…</option>
-            <option value="Mr">Mr</option>
-            <option value="Mrs">Mrs</option>
-            <option value="Miss">Miss</option>
-            <option value="Ms">Ms</option>
-            <option value="Dr">Dr</option>
-            <option value="Rev">Rev</option>
-            <option value="Prof">Prof</option>
-            <option value="Mx">Mx</option>
-          </select>
+          <Select value={title ?? ""} onValueChange={handleTitleChange}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Select…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Mr">Mr</SelectItem>
+              <SelectItem value="Mrs">Mrs</SelectItem>
+              <SelectItem value="Miss">Miss</SelectItem>
+              <SelectItem value="Ms">Ms</SelectItem>
+              <SelectItem value="Dr">Dr</SelectItem>
+              <SelectItem value="Rev">Rev</SelectItem>
+              <SelectItem value="Prof">Prof</SelectItem>
+              <SelectItem value="Mx">Mx</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Full Name</Label>
@@ -118,16 +118,17 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, onChangeT
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Gender</Label>
-          <select
-            value={gender ?? ""}
-            onChange={e => onChangeGender?.(e.target.value)}
-            className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
-          >
-            <option value="">Not specified</option>
-            <option value="male">Male (he/him)</option>
-            <option value="female">Female (she/her)</option>
-            <option value="neutral">Neutral (they/them)</option>
-          </select>
+          <Select value={gender ?? ""} onValueChange={v => onChangeGender?.(v)}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Not specified" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="not_specified">Not specified</SelectItem>
+              <SelectItem value="male">Male (he/him)</SelectItem>
+              <SelectItem value="female">Female (she/her)</SelectItem>
+              <SelectItem value="neutral">Neutral (they/them)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="col-span-2 space-y-1">
           <Label className="text-xs">Address</Label>
@@ -1318,25 +1319,24 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">Title</Label>
-                <select
-                  value={r.title ?? ""}
-                  onChange={e => {
-                    const t = e.target.value;
-                    const autoGender = ["mr","rev","dr"].includes(t.toLowerCase()) ? "male" : ["mrs","miss","ms","dame","lady"].includes(t.toLowerCase()) ? "female" : "";
-                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, title: t, ...(autoGender ? { gender: autoGender } : {}) }));
-                  }}
-                  className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
-                >
-                  <option value="">Select title</option>
-                  <option value="Mr">Mr</option>
-                  <option value="Mrs">Mrs</option>
-                  <option value="Miss">Miss</option>
-                  <option value="Ms">Ms</option>
-                  <option value="Dr">Dr</option>
-                  <option value="Rev">Rev</option>
-                  <option value="Prof">Prof</option>
-                  <option value="Mx">Mx</option>
-                </select>
+                <Select value={r.title ?? ""} onValueChange={t => {
+                  const autoGender = ["mr","rev","dr"].includes(t.toLowerCase()) ? "male" : ["mrs","miss","ms","dame","lady"].includes(t.toLowerCase()) ? "female" : "";
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, title: t, ...(autoGender ? { gender: autoGender } : {}) }));
+                }}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Select title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mr">Mr</SelectItem>
+                    <SelectItem value="Mrs">Mrs</SelectItem>
+                    <SelectItem value="Miss">Miss</SelectItem>
+                    <SelectItem value="Ms">Ms</SelectItem>
+                    <SelectItem value="Dr">Dr</SelectItem>
+                    <SelectItem value="Rev">Rev</SelectItem>
+                    <SelectItem value="Prof">Prof</SelectItem>
+                    <SelectItem value="Mx">Mx</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Full Name</Label>
@@ -1356,16 +1356,17 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Gender</Label>
-                <select
-                  value={r.gender ?? ""}
-                  onChange={e => updateRow(i, "gender", e.target.value)}
-                  className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
-                >
-                  <option value="">Not specified</option>
-                  <option value="male">Male (he/him)</option>
-                  <option value="female">Female (she/her)</option>
-                  <option value="neutral">Neutral (they/them)</option>
-                </select>
+                <Select value={r.gender ?? ""} onValueChange={v => updateRow(i, "gender", v)}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Not specified" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not_specified">Not specified</SelectItem>
+                    <SelectItem value="male">Male (he/him)</SelectItem>
+                    <SelectItem value="female">Female (she/her)</SelectItem>
+                    <SelectItem value="neutral">Neutral (they/them)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Address</Label>
@@ -1411,25 +1412,24 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">Title</Label>
-                <select
-                  value={r.title ?? ""}
-                  onChange={e => {
-                    const t = e.target.value;
-                    const autoGender = ["mr","rev","dr"].includes(t.toLowerCase()) ? "male" : ["mrs","miss","ms","dame","lady"].includes(t.toLowerCase()) ? "female" : "";
-                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, title: t, ...(autoGender ? { gender: autoGender } : {}) }));
-                  }}
-                  className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
-                >
-                  <option value="">Select title</option>
-                  <option value="Mr">Mr</option>
-                  <option value="Mrs">Mrs</option>
-                  <option value="Miss">Miss</option>
-                  <option value="Ms">Ms</option>
-                  <option value="Dr">Dr</option>
-                  <option value="Rev">Rev</option>
-                  <option value="Prof">Prof</option>
-                  <option value="Mx">Mx</option>
-                </select>
+                <Select value={r.title ?? ""} onValueChange={t => {
+                  const autoGender = ["mr","rev","dr"].includes(t.toLowerCase()) ? "male" : ["mrs","miss","ms","dame","lady"].includes(t.toLowerCase()) ? "female" : "";
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, title: t, ...(autoGender ? { gender: autoGender } : {}) }));
+                }}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Select title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mr">Mr</SelectItem>
+                    <SelectItem value="Mrs">Mrs</SelectItem>
+                    <SelectItem value="Miss">Miss</SelectItem>
+                    <SelectItem value="Ms">Ms</SelectItem>
+                    <SelectItem value="Dr">Dr</SelectItem>
+                    <SelectItem value="Rev">Rev</SelectItem>
+                    <SelectItem value="Prof">Prof</SelectItem>
+                    <SelectItem value="Mx">Mx</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Full Name</Label>
@@ -1445,16 +1445,17 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Gender</Label>
-                <select
-                  value={r.gender ?? ""}
-                  onChange={e => updateRow(i, "gender", e.target.value)}
-                  className="h-8 text-sm w-full rounded-md border border-input bg-background px-2 py-1"
-                >
-                  <option value="">Not specified</option>
-                  <option value="male">Male (he/him)</option>
-                  <option value="female">Female (she/her)</option>
-                  <option value="neutral">Neutral (they/them)</option>
-                </select>
+                <Select value={r.gender ?? ""} onValueChange={v => updateRow(i, "gender", v)}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Not specified" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not_specified">Not specified</SelectItem>
+                    <SelectItem value="male">Male (he/him)</SelectItem>
+                    <SelectItem value="female">Female (she/her)</SelectItem>
+                    <SelectItem value="neutral">Neutral (they/them)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Address</Label>
