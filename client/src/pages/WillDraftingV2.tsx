@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,53 @@ export default function WillDraftingV2() {
   const [newFileRef, setNewFileRef] = useState("");
   const [lpaDialog, setLpaDialog] = useState<LpaOrderDialogState>({ open: false, createPF: true, createHW: true, useExecutorsAsAttorneys: true });
 
+  // ── Unsaved-changes guard ─────────────────────────────────────────────────
+  const [isDirty, setIsDirty] = useState(false);
+  const [pendingMatterId, setPendingMatterId] = useState<number | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  // Ref to the MatterForm's save function, registered via onSaveAll callback
+  const formSaveRef = useRef<(() => Promise<void>) | null>(null);
+  const [isSavingSwitch, setIsSavingSwitch] = useState(false);
+
+  const handleMatterClick = (matterId: number) => {
+    if (matterId === selectedMatterId) return;
+    if (isDirty && viewMode === "form") {
+      setPendingMatterId(matterId);
+      setShowUnsavedDialog(true);
+    } else {
+      setSelectedMatterId(matterId);
+      setViewMode("form");
+      setIsDirty(false);
+    }
+  };
+
+  const handleSaveAndSwitch = async () => {
+    if (!pendingMatterId) return;
+    setIsSavingSwitch(true);
+    try {
+      if (formSaveRef.current) await formSaveRef.current();
+    } catch {
+      toast.error("Failed to save — please try again");
+      setIsSavingSwitch(false);
+      return;
+    }
+    setIsSavingSwitch(false);
+    setShowUnsavedDialog(false);
+    setSelectedMatterId(pendingMatterId);
+    setViewMode("form");
+    setIsDirty(false);
+    setPendingMatterId(null);
+  };
+
+  const handleDiscardAndSwitch = () => {
+    if (!pendingMatterId) return;
+    setShowUnsavedDialog(false);
+    setSelectedMatterId(pendingMatterId);
+    setViewMode("form");
+    setIsDirty(false);
+    setPendingMatterId(null);
+  };
+
   const utils = trpc.useUtils();
   const { data: matters = [], isLoading } = trpc.matters.list.useQuery();
 
@@ -45,6 +92,8 @@ export default function WillDraftingV2() {
       setViewMode("form");
       setShowNewDialog(false);
       setNewFileRef("");
+      setIsDirty(false);
+      formSaveRef.current = null;
       toast.success("Matter created");
     },
     onError: () => toast.error("Failed to create matter"),
@@ -132,7 +181,7 @@ export default function WillDraftingV2() {
           {matters.map((matter) => (
             <div
               key={matter.id}
-              onClick={() => { setSelectedMatterId(matter.id); setViewMode("form"); }}
+              onClick={() => handleMatterClick(matter.id)}
               className={`group flex items-start gap-2 p-3 cursor-pointer border-b border-border/50 hover:bg-accent/50 transition-colors ${selectedMatterId === matter.id ? "bg-accent" : ""}`}
             >
               <div className="flex-1 min-w-0">
@@ -228,7 +277,13 @@ export default function WillDraftingV2() {
             {/* Content */}
             <div className="flex-1 overflow-hidden">
               {viewMode === "form" ? (
-                <MatterForm key={selectedMatter.id} matter={selectedMatter} onSaved={() => utils.matters.list.invalidate()} />
+                <MatterForm
+                  key={selectedMatter.id}
+                  matter={selectedMatter}
+                  onSaved={() => { utils.matters.list.invalidate(); setIsDirty(false); }}
+                  onDirty={() => setIsDirty(true)}
+                  onSaveAll={(fn) => { formSaveRef.current = fn; }}
+                />
               ) : (
                 <MatterPreview key={selectedMatter.id} matter={selectedMatter} />
               )}
@@ -364,6 +419,35 @@ export default function WillDraftingV2() {
             >
               Delete
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ══ Unsaved Changes Warning ═════════════════════════════════════════════════════════ */}
+      <AlertDialog open={showUnsavedDialog} onOpenChange={(open) => { if (!open && !isSavingSwitch) { setShowUnsavedDialog(false); setPendingMatterId(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>You have unsaved changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You’ve made changes to this matter that haven’t been saved yet. What would you like to do before switching to the other matter?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel disabled={isSavingSwitch}>Stay &amp; Keep Editing</AlertDialogCancel>
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10"
+              onClick={handleDiscardAndSwitch}
+              disabled={isSavingSwitch}
+            >
+              Discard &amp; Switch
+            </Button>
+            <Button
+              onClick={handleSaveAndSwitch}
+              disabled={isSavingSwitch}
+            >
+              {isSavingSwitch ? "Saving…" : "Save &amp; Switch"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

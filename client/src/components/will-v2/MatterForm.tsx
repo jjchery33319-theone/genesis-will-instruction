@@ -20,6 +20,8 @@ type FullMatter = any;
 interface Props {
   matter: FullMatter;
   onSaved: () => void;
+  onDirty?: () => void;
+  onSaveAll?: (fn: () => Promise<void>) => void;
 }
 
 // ── Small reusable person-row component ──────────────────────────────────────
@@ -82,10 +84,27 @@ function PersonRow({ label, name, address, dateOfBirth, onChangeName, onChangeAd
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 
-export function MatterForm({ matter, onSaved }: Props) {
+export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const isMirror = matter.matterType === "mirror";
   const utils = trpc.useUtils();
   const [activeTab, setActiveTab] = useState("clients");
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Expose the save function to the parent so it can trigger a save before switching matters
+  const saveAllRef = useCallback(() => handleSaveAll(true), []);
+  useEffect(() => {
+    if (onSaveAll) {
+      onSaveAll(saveAllRef);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const markDirty = useCallback(() => {
+    if (!isDirty) {
+      setIsDirty(true);
+      onDirty?.();
+    }
+  }, [isDirty, onDirty]);
 
   // ── Client state ──────────────────────────────────────────────────────────
   const [t1, setT1] = useState({
@@ -496,6 +515,7 @@ export function MatterForm({ matter, onSaved }: Props) {
       }
       utils.matters.list.invalidate();
       utils.matters.getById.invalidate({ id: matter.id });
+      setIsDirty(false);
       onSaved();
       if (!silent) toast.success("Matter saved successfully");
     } catch (err) {
@@ -558,7 +578,7 @@ export function MatterForm({ matter, onSaved }: Props) {
 
           {/* ── CLIENTS ─────────────────────────────────────────────────── */}
           <TabsContent value="clients" className="space-y-4">
-            <ClientSection label={isMirror ? "Testator 1" : "Testator"} data={t1} onChange={setT1} />
+            <ClientSection label={isMirror ? "Testator 1" : "Testator"} data={t1} onChange={(v) => { setT1(v); markDirty(); }} />
             {isMirror && (
               <>
                 <Separator />
@@ -581,7 +601,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                     <Copy className="h-3 w-3" /> Mirror from Client 1
                   </Button>
                 </div>
-                <ClientSection label="" data={t2} onChange={setT2} />
+                <ClientSection label="" data={t2} onChange={(v) => { setT2(v); markDirty(); }} />
               </>
             )}
           </TabsContent>
@@ -591,7 +611,7 @@ export function MatterForm({ matter, onSaved }: Props) {
             <ExecutorSection
               label={isMirror ? `Executors for ${t1.fullName || "Testator 1"}` : "Executors"}
               rows={execs1}
-              onChange={setExecs1}
+              onChange={(v) => { setExecs1(v); markDirty(); }}
               matterId={matter.id}
             />
             {isMirror && (
@@ -600,7 +620,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                 <ExecutorSection
                   label={`Executors for ${t2.fullName || "Testator 2"}`}
                   rows={execs2}
-                  onChange={setExecs2}
+                  onChange={(v) => { setExecs2(v); markDirty(); }}
                   matterId={matter.id}
                 />
               </>
@@ -612,17 +632,17 @@ export function MatterForm({ matter, onSaved }: Props) {
             <div className="text-sm text-muted-foreground mb-2">
               Guardians are shared across both Wills for minor children.
             </div>
-            <GuardianSection rows={guardians} onChange={setGuardians} matterId={matter.id} />
+            <GuardianSection rows={guardians} onChange={(v) => { setGuardians(v); markDirty(); }} matterId={matter.id} />
           </TabsContent>
 
           {/* ── PROPERTY ─────────────────────────────────────────────────── */}
           <TabsContent value="property" className="space-y-4">
-            <PropertySection rows={properties} onChange={setProperties} />
+            <PropertySection rows={properties} onChange={(v) => { setProperties(v); markDirty(); }} />
           </TabsContent>
 
           {/* ── BUSINESS ─────────────────────────────────────────────────── */}
           <TabsContent value="business" className="space-y-4">
-            <BusinessSection rows={businesses} onChange={setBusinesses} />
+            <BusinessSection rows={businesses} onChange={(v) => { setBusinesses(v); markDirty(); }} />
           </TabsContent>
 
           {/* ── GIFTS ────────────────────────────────────────────────────── */}
@@ -630,7 +650,7 @@ export function MatterForm({ matter, onSaved }: Props) {
             <GiftsSection
               label={isMirror ? `Specific Gifts from ${t1.fullName || "Testator 1"}` : "Specific Gifts"}
               rows={gifts1}
-              onChange={setGifts1}
+              onChange={(v) => { setGifts1(v); markDirty(); }}
               matterId={matter.id}
             />
             {isMirror && (
@@ -639,7 +659,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                 <GiftsSection
                   label={`Specific Gifts from ${t2.fullName || "Testator 2"}`}
                   rows={gifts2}
-                  onChange={setGifts2}
+                  onChange={(v) => { setGifts2(v); markDirty(); }}
                   matterId={matter.id}
                 />
               </>
@@ -648,7 +668,7 @@ export function MatterForm({ matter, onSaved }: Props) {
 
           {/* ── PETS ─────────────────────────────────────────────────────── */}
           <TabsContent value="pets" className="space-y-4">
-            <PetsSection rows={pets} onChange={setPets} matterId={matter.id} />
+            <PetsSection rows={pets} onChange={(v) => { setPets(v); markDirty(); }} matterId={matter.id} />
           </TabsContent>
 
           {/* ── BENEFICIARIES ─────────────────────────────────────────────── */}
@@ -657,9 +677,9 @@ export function MatterForm({ matter, onSaved }: Props) {
               label={isMirror ? `Beneficiaries for ${t1.fullName || "Testator 1"}` : "Beneficiaries"}
               partnerName={isMirror ? t2.fullName : undefined}
               rows={bens1}
-              onChange={setBens1}
+              onChange={(v) => { setBens1(v); markDirty(); }}
               wishes={wishes1}
-              onWishesChange={setWishes1}
+              onWishesChange={(v) => { setWishes1(v); markDirty(); }}
               matterId={matter.id}
             />
             {isMirror && (
@@ -669,9 +689,9 @@ export function MatterForm({ matter, onSaved }: Props) {
                   label={`Beneficiaries for ${t2.fullName || "Testator 2"}`}
                   partnerName={t1.fullName}
                   rows={bens2}
-                  onChange={setBens2}
+                  onChange={(v) => { setBens2(v); markDirty(); }}
                   wishes={wishes2}
-                  onWishesChange={setWishes2}
+                  onWishesChange={(v) => { setWishes2(v); markDirty(); }}
                   matterId={matter.id}
                 />
               </>
@@ -683,7 +703,7 @@ export function MatterForm({ matter, onSaved }: Props) {
             <WishesSection
               label={isMirror ? `Wishes for ${t1.fullName || "Testator 1"}` : "Wishes & Preferences"}
               data={wishes1}
-              onChange={setWishes1}
+              onChange={(v) => { setWishes1(v); markDirty(); }}
             />
             {isMirror && (
               <>
@@ -691,7 +711,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                 <WishesSection
                   label={`Wishes for ${t2.fullName || "Testator 2"}`}
                   data={wishes2}
-                  onChange={setWishes2}
+                  onChange={(v) => { setWishes2(v); markDirty(); }}
                 />
               </>
             )}
@@ -702,7 +722,7 @@ export function MatterForm({ matter, onSaved }: Props) {
             <ExclusionsSection
               label={isMirror ? `Exclusions for ${t1.fullName || "Testator 1"}` : "Exclusions"}
               rows={exclusions1}
-              onChange={setExclusions1}
+              onChange={(v) => { setExclusions1(v); markDirty(); }}
               matterId={matter.id}
             />
             {isMirror && (
@@ -711,7 +731,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                 <ExclusionsSection
                   label={`Exclusions for ${t2.fullName || "Testator 2"}`}
                   rows={exclusions2}
-                  onChange={setExclusions2}
+                  onChange={(v) => { setExclusions2(v); markDirty(); }}
                   matterId={matter.id}
                 />
               </>
@@ -723,7 +743,7 @@ export function MatterForm({ matter, onSaved }: Props) {
             <LetterOfWishesSection
               label={isMirror ? `Letter of Wishes — ${t1.fullName || "Testator 1"}` : "Letter of Wishes"}
               content={low1}
-              onChange={setLow1}
+              onChange={(v) => { setLow1(v); markDirty(); }}
             />
             {isMirror && (
               <>
@@ -731,7 +751,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                 <LetterOfWishesSection
                   label={`Letter of Wishes — ${t2.fullName || "Testator 2"}`}
                   content={low2}
-                  onChange={setLow2}
+                  onChange={(v) => { setLow2(v); markDirty(); }}
                 />
               </>
             )}
@@ -741,7 +761,7 @@ export function MatterForm({ matter, onSaved }: Props) {
             <TrustClausesSection
               label={isMirror ? `Trust Clauses for ${t1.fullName || "Testator 1"}` : "Trust Clauses"}
               clauses={trusts1}
-              onChange={setTrusts1}
+              onChange={(v) => { setTrusts1(v); markDirty(); }}
               allTrustTypes={ALL_TRUST_TYPES}
             />
             {isMirror && (
@@ -750,7 +770,7 @@ export function MatterForm({ matter, onSaved }: Props) {
                 <TrustClausesSection
                   label={`Trust Clauses for ${t2.fullName || "Testator 2"}`}
                   clauses={trusts2}
-                  onChange={setTrusts2}
+                  onChange={(v) => { setTrusts2(v); markDirty(); }}
                   allTrustTypes={ALL_TRUST_TYPES}
                 />
               </>
