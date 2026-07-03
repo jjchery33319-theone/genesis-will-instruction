@@ -487,3 +487,9 @@
 - [x] Wire `title` prop and `onChangeTitle` into all 4 PersonRow usages (executor primary/substitute, guardian primary/substitute)
 - [x] Add `title: z.string().optional()` to personSchema in server/routers/matters.ts
 - [x] TypeScript: 0 errors
+- [x] Display title alongside name in V2 will generator (nameAndAddress helper, beneficiary clauses)
+- [x] Display title alongside name in V1 will PDF generator (fullName helper in willGenerator.ts)
+- [x] Display title alongside name in V1 will Word generator (personFullName helper in willDocxGenerator.ts)
+- [x] Display title alongside name in V1 Step8Review (PersonList component)
+- [x] Display title alongside name in SubmissionDetail (formatPersons component)
+- [x] Display title alongside name in AdminSubmissionEditor (PersonEditor component header)

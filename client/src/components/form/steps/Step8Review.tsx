@@ -79,7 +79,7 @@ function SubHeading({ label }: { label: string }) {
   );
 }
 
-function PersonList({ persons, label }: { persons?: Array<{ prefix?: string; firstName: string; lastName: string; relationship?: string; address?: string; phone?: string; email?: string; dob?: string; share?: string; notes?: string }>; label: string }) {
+function PersonList({ persons, label }: { persons?: Array<{ title?: string; prefix?: string; firstName: string; lastName: string; relationship?: string; address?: string; phone?: string; email?: string; dob?: string; share?: string; notes?: string }>; label: string }) {
   if (!persons?.length) return null;
   return (
     <div className="space-y-2">
@@ -87,7 +87,7 @@ function PersonList({ persons, label }: { persons?: Array<{ prefix?: string; fir
       {persons.map((p, i) => (
         <div key={i} className="ml-3 pl-3 border-l-2 border-border space-y-0.5">
           <p className="text-sm font-medium text-foreground">
-            {[p.prefix, p.firstName, p.lastName].filter(Boolean).join(" ")}
+            {[p.title, p.prefix, p.firstName, p.lastName].filter(Boolean).join(" ")}
             {p.relationship ? <span className="text-muted-foreground font-normal"> — {p.relationship}</span> : null}
           </p>
           {p.address && <p className="text-xs text-muted-foreground">{p.address}</p>}
