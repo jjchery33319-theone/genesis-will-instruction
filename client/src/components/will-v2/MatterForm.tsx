@@ -421,44 +421,41 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       if (isMirror) ops.push(saveClient.mutateAsync({ matterId: matter.id, clientRole: "testator2", ...t2 }));
 
       // Executors
+      // Helper: pick only the fields the server schema accepts (avoids Drizzle errors from extra client-side fields like _poolId, dateOfBirth)
+      const toExecRow = (e: any) => ({ title: e.title || undefined, fullName: e.fullName || undefined, address: e.address || undefined, gender: e.gender || undefined, executorType: e.executorType as "primary" | "substitute" });
+      const toGuardianRow = (g: any) => ({ title: g.title || undefined, fullName: g.fullName || undefined, address: g.address || undefined, gender: g.gender || undefined, guardianType: g.guardianType as "primary" | "substitute" });
+      const toBenRow = (b: any) => ({ title: b.title || undefined, fullName: b.fullName || undefined, address: b.address || undefined, gender: b.gender || undefined, relationship: b.relationship || undefined, shareFraction: b.shareFraction || undefined, beneficiaryType: b.beneficiaryType as "primary" | "fallback", includeIssue: (b.includeIssue ?? 1) as 0 | 1 });
+
       ops.push(saveExecutors.mutateAsync({
         matterId: matter.id,
         clientRole: isMirror ? "testator1" : "shared",
-        executors: execs1.map(e => ({ ...e, executorType: e.executorType as "primary" | "substitute" })),
+        executors: execs1.map(toExecRow),
       }));
       if (isMirror) {
         ops.push(saveExecutors.mutateAsync({
           matterId: matter.id,
           clientRole: "testator2",
-          executors: execs2.map(e => ({ ...e, executorType: e.executorType as "primary" | "substitute" })),
+          executors: execs2.map(toExecRow),
         }));
       }
 
       // Guardians
       ops.push(saveGuardians.mutateAsync({
         matterId: matter.id,
-        guardians: guardians.map(g => ({ ...g, guardianType: g.guardianType as "primary" | "substitute" })),
+        guardians: guardians.map(toGuardianRow),
       }));
 
       // Beneficiaries
       ops.push(saveBeneficiaries.mutateAsync({
         matterId: matter.id,
         clientRole: isMirror ? "testator1" : "shared",
-        beneficiaries: bens1.map((b: any) => ({
-          ...b,
-          beneficiaryType: b.beneficiaryType as "primary" | "fallback",
-          includeIssue: b.includeIssue as 0 | 1,
-        })),
+        beneficiaries: bens1.map(toBenRow),
       }));
       if (isMirror) {
         ops.push(saveBeneficiaries.mutateAsync({
           matterId: matter.id,
           clientRole: "testator2",
-          beneficiaries: bens2.map((b: any) => ({
-            ...b,
-            beneficiaryType: b.beneficiaryType as "primary" | "fallback",
-            includeIssue: b.includeIssue as 0 | 1,
-          })),
+          beneficiaries: bens2.map(toBenRow),
         }));
       }
 
