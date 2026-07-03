@@ -85,7 +85,14 @@ function PersonRow({ label, name, address, dateOfBirth, onChangeName, onChangeAd
 // ── Main form ─────────────────────────────────────────────────────────────────
 
 export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
-  const isMirror = matter.matterType === "mirror";
+  // ── Stable initial snapshot — NEVER changes after mount ─────────────────
+  // All useState initialisers read from this ref so that React Query refetches
+  // (triggered by onSaved → matters.list.invalidate) can never re-initialise
+  // local state and cause duplication.
+  const initialMatterRef = useRef(matter);
+  const m = initialMatterRef.current; // alias used by all initialisers below
+
+  const isMirror = m.matterType === "mirror";
   const [activeTab, setActiveTab] = useState("clients");
   const [isDirty, setIsDirty] = useState(false);
 
@@ -111,23 +118,23 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 
   // ── Client state ──────────────────────────────────────────────────────────
   const [t1, setT1] = useState({
-    fullName: matter.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "",
-    address: matter.clients?.find((c: any) => c.clientRole === "testator1")?.address || "",
-    dateOfBirth: matter.clients?.find((c: any) => c.clientRole === "testator1")?.dateOfBirth || "",
-    email: matter.clients?.find((c: any) => c.clientRole === "testator1")?.email || "",
-    phone: matter.clients?.find((c: any) => c.clientRole === "testator1")?.phone || "",
+    fullName: m.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "",
+    address: m.clients?.find((c: any) => c.clientRole === "testator1")?.address || "",
+    dateOfBirth: m.clients?.find((c: any) => c.clientRole === "testator1")?.dateOfBirth || "",
+    email: m.clients?.find((c: any) => c.clientRole === "testator1")?.email || "",
+    phone: m.clients?.find((c: any) => c.clientRole === "testator1")?.phone || "",
   });
   const [t2, setT2] = useState({
-    fullName: matter.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "",
-    address: matter.clients?.find((c: any) => c.clientRole === "testator2")?.address || "",
-    dateOfBirth: matter.clients?.find((c: any) => c.clientRole === "testator2")?.dateOfBirth || "",
-    email: matter.clients?.find((c: any) => c.clientRole === "testator2")?.email || "",
-    phone: matter.clients?.find((c: any) => c.clientRole === "testator2")?.phone || "",
+    fullName: m.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "",
+    address: m.clients?.find((c: any) => c.clientRole === "testator2")?.address || "",
+    dateOfBirth: m.clients?.find((c: any) => c.clientRole === "testator2")?.dateOfBirth || "",
+    email: m.clients?.find((c: any) => c.clientRole === "testator2")?.email || "",
+    phone: m.clients?.find((c: any) => c.clientRole === "testator2")?.phone || "",
   });
 
   // ── Executor state ────────────────────────────────────────────────────────
   const toExecRows = (role: string) =>
-        (matter.executors || []).filter((e: any) => e.clientRole === role).map((e: any) => ({
+        (m.executors || []).filter((e: any) => e.clientRole === role).map((e: any) => ({
       fullName: e.fullName || "",
       address: e.address || "",
       dateOfBirth: e.dateOfBirth || "",
@@ -142,7 +149,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 
   // ── Guardian state ────────────────────────────────────────────────────────
   const [guardians, setGuardians] = useState<Array<{ fullName: string; address: string; dateOfBirth: string; guardianType: string; _poolId?: number }>>(
-    (matter.guardians || []).map((g: any) => ({
+    (m.guardians || []).map((g: any) => ({
       fullName: g.fullName || "",
       address: g.address || "",
       dateOfBirth: g.dateOfBirth || "",
@@ -152,7 +159,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 
   // ── Beneficiary state ─────────────────────────────────────────────────────
   const toBenRows = (role: string) =>
-    (matter.beneficiaries || []).filter((b: any) => b.clientRole === role).map((b: any): {
+    (m.beneficiaries || []).filter((b: any) => b.clientRole === role).map((b: any): {
       fullName: string; address: string; dateOfBirth: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number;
     } => ({
       fullName: b.fullName || "",
@@ -169,7 +176,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 
   // ── Wishes state ──────────────────────────────────────────────────────────
   const getWishes = (role: string) => {
-    const w = (matter.wishes || []).find((w: any) => w.clientRole === role) || (matter.wishes || [])[0] || {};
+    const w = (m.wishes || []).find((w: any) => w.clientRole === role) || (m.wishes || [])[0] || {};
     return {
       ageCondition: w.ageCondition ?? 18,
       survivorshipDays: w.survivorshipDays ?? 28,
@@ -189,7 +196,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 
   // ── Gifts state ───────────────────────────────────────────────────────────
   const toGiftRows = (role: string) =>
-    (matter.gifts || []).filter((g: any) => g.clientRole === role).map((g: any) => ({
+    (m.gifts || []).filter((g: any) => g.clientRole === role).map((g: any) => ({
       recipientName: g.recipientName || "",
       recipientAddress: g.recipientAddress || "",
       giftDescription: g.giftDescription || "",
@@ -203,7 +210,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const [pets, setPets] = useState<Array<{
     petName: string; petType: string; carerName: string; carerAddress: string; careNotes: string; _carerPoolId?: number;
   }>>(
-    (matter.pets || []).map((p: any) => ({
+    (m.pets || []).map((p: any) => ({
       petName: p.petName || "",
       petType: p.petType || "",
       carerName: p.carerName || "",
@@ -216,7 +223,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const [properties, setProperties] = useState<Array<{
     address: string; ownershipType: string; mortgageOutstanding: number; mortgageLender: string; propertyNotes: string;
   }>>(
-    (matter.properties || []).map((p: any) => ({
+    (m.properties || []).map((p: any) => ({
       address: p.address || "",
       ownershipType: p.ownershipType || "sole",
       mortgageOutstanding: p.mortgageOutstanding ?? 0,
@@ -256,7 +263,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   ];
 
   const toTrustRows = (role: string): TrustClause[] => {
-    const existing = (matter.trustClauses || []).filter((tc: any) => tc.clientRole === role);
+    const existing = (m.trustClauses || []).filter((tc: any) => tc.clientRole === role);
     return ALL_TRUST_TYPES.map(tt => {
       const found = existing.find((tc: any) => tc.trustType === tt.value);
       return {
@@ -284,7 +291,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   // ── Exclusions state ──────────────────────────────────────────────────────
   type ExclusionRow = { id?: number; clientRole: string; fullName: string; relationship: string; reasonPreset: string; reasonCustom: string };
   const toExclusionRows = (role: string): ExclusionRow[] =>
-    (matter.exclusions || []).filter((e: any) => e.clientRole === role).map((e: any) => ({
+    (m.exclusions || []).filter((e: any) => e.clientRole === role).map((e: any) => ({
       id: e.id,
       clientRole: e.clientRole || role,
       fullName: e.fullName || "",
@@ -310,8 +317,8 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const [businesses, setBusinesses] = useState<Array<{
     businessName: string; businessType: string; sharePercentage: string; businessNotes: string;
   }>>(
-    (matter.businesses || []).length > 0
-      ? (matter.businesses || []).map((b: any) => ({
+    (m.businesses || []).length > 0
+      ? (m.businesses || []).map((b: any) => ({
           businessName: b.businessName || "",
           businessType: b.businessType || "",
           sharePercentage: b.sharePercentage || "",
@@ -534,8 +541,8 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4">
         <Tabs value={activeTab} onValueChange={async (tab) => {
-            // Auto-save current tab data before switching
-            try { await handleSaveAll(true); } catch { /* silent */ }
+            // Auto-save current tab data before switching — use ref to avoid stale closure
+            try { await handleSaveAllRef.current(true); } catch { /* silent */ }
             setActiveTab(tab);
           }}>
           <TabsList className="mb-4 flex-wrap h-auto gap-1">
