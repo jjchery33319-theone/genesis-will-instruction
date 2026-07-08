@@ -253,6 +253,9 @@ export const willInstructions = mysqlTable("will_instructions", {
   editedWillHtmlClient1: text("editedWillHtmlClient1"),
   editedWillHtmlClient2: text("editedWillHtmlClient2"),
 
+  // ── Edited Welcome Pack HTML (manual back-office edits) ──────────────────────
+  editedWelcomePackHtml: text("editedWelcomePackHtml"),
+
   // ── Meta ───────────────────────────────────────────────────────────────────
   status: mysqlEnum("status", ["draft", "submitted", "processing", "complete", "cancelled"]).default("submitted").notNull(),
   currentStep: int("currentStep").notNull().default(1),
