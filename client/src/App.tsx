@@ -14,6 +14,7 @@ import AdminSubmissionEditor from "./pages/AdminSubmissionEditor";
 import LpaManager from "./pages/LpaManager";
 import WillDraftingV2 from "./pages/WillDraftingV2";
 import UserManagement from "./pages/UserManagement";
+import WelcomePackPreview from "./pages/WelcomePackPreview";
 
 function Router() {
   return (
@@ -34,6 +35,9 @@ function Router() {
       </Route>
       <Route path={"/admin/submission/:id/lpa"}>
         <AdminGuard><LpaManager /></AdminGuard>
+      </Route>
+      <Route path={"/admin/submission/:id/welcome-pack"}>
+        <AdminGuard><WelcomePackPreview /></AdminGuard>
       </Route>
       <Route path={"/admin/wills"}>
         <AdminGuard><WillDraftingV2 /></AdminGuard>
