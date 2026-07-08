@@ -507,3 +507,12 @@
 - [x] Update toExecRow and toGuardianRow save helpers to include relationship field
 - [x] Update onPickPerson handlers in executor/guardian rows to copy relationship from people pool
 - [x] TypeScript: 0 errors
+
+## Welcome Pack Generator (Phase 28)
+- [x] Analysed example Welcome Pack PDF (Wendy & Bryan Budd) — 4 pages: cover, welcome letter, client details, assets/funeral/next steps
+- [x] Created server/welcomePackGenerator.ts — full branded HTML template with: cover page (dark green + gold tree illustration), welcome letter with support team table, client detail cards, executor/guardian sections, beneficiary list, gift cards, property/assets info cards, funeral wishes, services grid, timeline widget
+- [x] Created server/welcomePackDocxGenerator.ts — editable Word document using docx library with matching content, styled tables, headers/footers with Genesis branding
+- [x] Added GET /api/submissions/:id/welcome-pack-pdf endpoint (Puppeteer HTML→PDF)
+- [x] Added GET /api/submissions/:id/welcome-pack-docx endpoint (docx library)
+- [x] Added gold-accented "Welcome Pack PDF" and "Welcome Pack Word" download buttons to SubmissionDetail admin header
+- [x] TypeScript: 0 errors
