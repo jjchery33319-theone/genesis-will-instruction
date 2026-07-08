@@ -24,6 +24,8 @@ import { generateLetterOfWishesHtml } from "../willV2LetterOfWishes";
 import { generateTestimoniumHtml } from "../willV2Testimonium";
 import { getMatterById } from "../mattersDb";
 import { htmlToPdf } from "../htmlToPdf";
+import { generateWelcomePackHtml } from "../welcomePackGenerator";
+import { generateWelcomePackDocx } from "../welcomePackDocxGenerator";
 import { createRequire } from "module";
 const _require = createRequire(import.meta.url);
 
@@ -71,6 +73,51 @@ async function startServer() {
     } catch (err) {
       console.error("[PDF] Error generating PDF:", err);
       res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+
+  // Welcome Pack PDF endpoint
+  app.get("/api/submissions/:id/welcome-pack-pdf", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
+      if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const record = rows[0] as Record<string, unknown>;
+      const html = generateWelcomePackHtml(record);
+      const pdfBuffer = await htmlToPdf(html);
+      const clientName = [record.client1FirstName, record.client1LastName].filter(Boolean).join("_") || String(id);
+      const filename = `WelcomePack_${clientName}_${record.referenceNumber ?? id}.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (err) {
+      console.error("[WelcomePack PDF] Error:", err);
+      res.status(500).json({ error: "Failed to generate Welcome Pack PDF" });
+    }
+  });
+
+  // Welcome Pack DOCX endpoint
+  app.get("/api/submissions/:id/welcome-pack-docx", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
+      if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const record = rows[0] as Record<string, unknown>;
+      const docxBuffer = await generateWelcomePackDocx(record);
+      const clientName = [record.client1FirstName, record.client1LastName].filter(Boolean).join("_") || String(id);
+      const filename = `WelcomePack_${clientName}_${record.referenceNumber ?? id}.docx`;
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(docxBuffer);
+    } catch (err) {
+      console.error("[WelcomePack DOCX] Error:", err);
+      res.status(500).json({ error: "Failed to generate Welcome Pack Word document" });
     }
   });
 

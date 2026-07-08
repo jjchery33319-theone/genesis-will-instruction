@@ -283,8 +283,22 @@ export default function SubmissionDetail() {
               <a href={`/api/submissions/${id}/pdf`} download>
                 <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3">
                   <FileDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Download PDF</span>
+                  <span className="hidden sm:inline">Summary PDF</span>
                   <span className="sm:hidden">PDF</span>
+                </Button>
+              </a>
+              <a href={`/api/submissions/${id}/welcome-pack-pdf`} download>
+                <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3" style={{ background: "rgba(201,168,76,0.15)", borderColor: "rgba(201,168,76,0.5)" }}>
+                  <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: "#C9A84C" }} />
+                  <span className="hidden sm:inline" style={{ color: "#C9A84C" }}>Welcome Pack PDF</span>
+                  <span className="sm:hidden" style={{ color: "#C9A84C" }}>Pack PDF</span>
+                </Button>
+              </a>
+              <a href={`/api/submissions/${id}/welcome-pack-docx`} download>
+                <Button variant="outline" size="sm" className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs px-2 sm:px-3" style={{ background: "rgba(201,168,76,0.15)", borderColor: "rgba(201,168,76,0.5)" }}>
+                  <FileDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: "#C9A84C" }} />
+                  <span className="hidden sm:inline" style={{ color: "#C9A84C" }}>Welcome Pack Word</span>
+                  <span className="sm:hidden" style={{ color: "#C9A84C" }}>Pack Word</span>
                 </Button>
               </a>
               <Link href={`/admin/submission/${id}/lpa`}>
