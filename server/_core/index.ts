@@ -99,6 +99,26 @@ async function startServer() {
     }
   });
 
+  // Welcome Pack HTML preview endpoint (for iframe preview in admin)
+  app.get("/api/submissions/:id/welcome-pack-preview", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
+      if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+      const record = rows[0] as Record<string, unknown>;
+      const html = generateWelcomePackHtml(record);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.send(html);
+    } catch (err) {
+      console.error("[WelcomePack Preview] Error:", err);
+      res.status(500).json({ error: "Failed to generate Welcome Pack preview" });
+    }
+  });
+
   // Welcome Pack DOCX endpoint
   app.get("/api/submissions/:id/welcome-pack-docx", async (req, res) => {
     try {
