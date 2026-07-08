@@ -86,10 +86,13 @@ async function startServer() {
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
       const record = rows[0] as Record<string, unknown>;
-      const html = generateWelcomePackHtml(record);
+      // Use saved edited HTML if present, otherwise regenerate
+      const savedHtml = record.editedWelcomePackHtml as string | null;
+      const html = savedHtml || generateWelcomePackHtml(record);
       const pdfBuffer = await htmlToPdf(html);
       const clientName = [record.client1FirstName, record.client1LastName].filter(Boolean).join("_") || String(id);
-      const filename = `WelcomePack_${clientName}_${record.referenceNumber ?? id}.pdf`;
+      const editedSuffix = savedHtml ? "_edited" : "";
+      const filename = `WelcomePack_${clientName}_${record.referenceNumber ?? id}${editedSuffix}.pdf`;
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.send(pdfBuffer);
@@ -99,7 +102,7 @@ async function startServer() {
     }
   });
 
-  // Welcome Pack HTML preview endpoint (for iframe preview in admin)
+  // Welcome Pack HTML preview endpoint (returns saved edit if present, else regenerates)
   app.get("/api/submissions/:id/welcome-pack-preview", async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
@@ -109,13 +112,51 @@ async function startServer() {
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
       const record = rows[0] as Record<string, unknown>;
-      const html = generateWelcomePackHtml(record);
+      const savedHtml = record.editedWelcomePackHtml as string | null;
+      const html = savedHtml || generateWelcomePackHtml(record);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.setHeader("X-Welcome-Pack-Edited", savedHtml ? "true" : "false");
       res.send(html);
     } catch (err) {
       console.error("[WelcomePack Preview] Error:", err);
       res.status(500).json({ error: "Failed to generate Welcome Pack preview" });
+    }
+  });
+
+  // Save edited Welcome Pack HTML
+  app.post("/api/submissions/:id/welcome-pack-html", express.json({ limit: "10mb" }), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      const { html } = req.body as { html: string };
+      if (!html || typeof html !== "string") { res.status(400).json({ error: "html required" }); return; }
+      await db.update(willInstructions)
+        .set({ editedWelcomePackHtml: html } as Partial<typeof willInstructions.$inferInsert>)
+        .where(eq(willInstructions.id, id));
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[WelcomePack Save] Error:", err);
+      res.status(500).json({ error: "Failed to save Welcome Pack HTML" });
+    }
+  });
+
+  // Reset edited Welcome Pack HTML (clear saved version)
+  app.delete("/api/submissions/:id/welcome-pack-html", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const db = await getDb();
+      if (!db) { res.status(503).json({ error: "Database unavailable" }); return; }
+      await db.update(willInstructions)
+        .set({ editedWelcomePackHtml: null } as Partial<typeof willInstructions.$inferInsert>)
+        .where(eq(willInstructions.id, id));
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[WelcomePack Reset] Error:", err);
+      res.status(500).json({ error: "Failed to reset Welcome Pack HTML" });
     }
   });
 
@@ -129,8 +170,25 @@ async function startServer() {
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, id)).limit(1);
       if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
       const record = rows[0] as Record<string, unknown>;
-      const docxBuffer = await generateWelcomePackDocx(record);
       const clientName = [record.client1FirstName, record.client1LastName].filter(Boolean).join("_") || String(id);
+      const savedHtml = record.editedWelcomePackHtml as string | null;
+      if (savedHtml) {
+        // Convert saved edited HTML to DOCX
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const HTMLtoDOCX = require("html-to-docx");
+        const docxBuffer = await HTMLtoDOCX(savedHtml, null, {
+          title: `Welcome Pack - ${clientName || record.referenceNumber}`,
+          font: "Calibri",
+          fontSize: 22,
+          margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+        });
+        const filename = `WelcomePack_${clientName}_${record.referenceNumber ?? id}_edited.docx`;
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.send(Buffer.from(docxBuffer));
+        return;
+      }
+      const docxBuffer = await generateWelcomePackDocx(record);
       const filename = `WelcomePack_${clientName}_${record.referenceNumber ?? id}.docx`;
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
