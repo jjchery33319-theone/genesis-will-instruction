@@ -252,12 +252,10 @@ export function generateWelcomePackHtml(record: WillRecord): string {
   }
 
   const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
-    
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
       font-size: 10.5pt;
       color: #1a1a1a;
       background: #fff;
@@ -304,7 +302,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     .cover-tree { margin-bottom: 28px; filter: drop-shadow(0 8px 24px rgba(201,168,76,0.3)); }
 
     .cover-company {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 13pt;
       color: #C9A84C;
       letter-spacing: 3px;
@@ -314,7 +312,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .cover-title {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 28pt;
       font-weight: 700;
       color: #ffffff;
@@ -324,7 +322,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .cover-subtitle {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 14pt;
       color: rgba(255,255,255,0.7);
       margin-bottom: 36px;
@@ -357,7 +355,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .cover-client-name {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 18pt;
       color: #ffffff;
       font-weight: 600;
@@ -423,7 +421,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .page-header-company {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 10pt;
       color: #C9A84C;
       letter-spacing: 1px;
@@ -440,7 +438,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .page-title {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 18pt;
       font-weight: 700;
       color: #1B4332;
@@ -468,7 +466,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     .section-icon { display: flex; align-items: center; }
 
     .section-title {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 12pt;
       font-weight: 600;
       color: #1B4332;
@@ -535,7 +533,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .client-full-name {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 13pt;
       font-weight: 600;
       color: #1B4332;
@@ -748,7 +746,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
       border-radius: 50%;
       background: linear-gradient(135deg, #1B4332, #2D6A4F);
       color: #C9A84C;
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 13pt;
       font-weight: 700;
       display: flex;
@@ -832,7 +830,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .salutation {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 12pt;
       font-weight: 600;
       color: #1B4332;
@@ -860,7 +858,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .signoff-name {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 12pt;
       font-weight: 600;
       color: #1B4332;
@@ -911,7 +909,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
     }
 
     .highlight-box-title {
-      font-family: 'Playfair Display', serif;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 11pt;
       color: #C9A84C;
       margin-bottom: 6px;
