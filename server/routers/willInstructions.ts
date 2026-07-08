@@ -355,9 +355,9 @@ const willInstructionInputSchema = z.object({
 
   // Manual Needs Assessment / Recommendations
   manualNeedsAssessment: z.string().optional(),
-  considerLPA: z.boolean().optional(),
-  considerPPT: z.boolean().optional(),
-  considerAAT: z.boolean().optional(),
+  considerLPA: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
+  considerPPT: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
+  considerAAT: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
 });
 
 export const willInstructionsRouter = router({
