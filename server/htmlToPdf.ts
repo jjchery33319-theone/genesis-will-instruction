@@ -74,7 +74,7 @@ export async function htmlToPdf(html: string): Promise<Buffer> {
   try {
     const page = await browser.newPage();
     try {
-      await page.setContent(html, { waitUntil: "load", timeout: 60000 });
+      await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 60000 });
       const pdf = await page.pdf({
         format: "A4",
         printBackground: true,
