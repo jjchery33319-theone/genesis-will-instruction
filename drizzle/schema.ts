@@ -464,6 +464,8 @@ export const matterGifts = mysqlTable("matter_gifts", {
   giftDescription: text("gift_description"),
   giftType: mysqlEnum("gift_type", ["monetary", "asset", "residue", "property"]).default("asset").notNull(),
   onSecondDeath: tinyint("on_second_death").default(0).notNull(),
+  divisionType: varchar("division_type", { length: 20 }).default("equally"),
+  divisionNotes: text("division_notes"),
 });
 export type MatterGift = typeof matterGifts.$inferSelect;
 export type InsertMatterGift = typeof matterGifts.$inferInsert;

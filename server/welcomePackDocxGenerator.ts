@@ -299,8 +299,25 @@ function giftParas(gifts: any[], label: string): Paragraph[] {
       : group;
     const giftTypeLabel = g.giftType === "monetary" ? " (Monetary)" : g.giftType === "property" ? " (Property)" : "";
     const onSecondDeath = g.onSecondDeath === 1 || g.onSecondDeath === true;
+    const divType = g.divisionType || "equally";
+    const divNotes = g.divisionNotes || "";
+    const isGroupGift = !!(group && group !== "__named" && group !== "named" && group !== "Named individual");
     if (!item && !recipient) return;
     paras.push(bulletPara([`${item}${giftTypeLabel}`, recipient ? `\u2192 ${recipient}` : ""].filter(Boolean).join("  ")));
+    if (isGroupGift) {
+      const divLabel = divType === "equally" ? "Divided equally between all members"
+        : divType === "per_stirpes" ? "Per stirpes (equally, passing to their children if predeceased)"
+        : divType === "eldest" ? "To the eldest surviving member only"
+        : divType === "youngest" ? "To the youngest surviving member only"
+        : divType === "percentage" ? `Specific percentages: ${divNotes || "(see notes)"}`
+        : divType === "custom" ? `Custom: ${divNotes || "(see notes)"}`
+        : divType;
+      paras.push(new Paragraph({
+        children: [new TextRun({ text: `Division: ${divLabel}`, size: 17, color: LIGHT_GREEN, italics: true })],
+        indent: { left: 360 },
+        spacing: { after: 40 },
+      }));
+    }
     if (onSecondDeath) {
       paras.push(new Paragraph({
         children: [

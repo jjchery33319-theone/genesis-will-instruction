@@ -72,6 +72,8 @@ const giftSchema = z.object({
   giftDescription: z.string().optional(),
   giftType: z.enum(["monetary", "asset", "residue", "property"]).default("asset"),
   onSecondDeath: z.union([z.boolean(), z.number()]).transform(v => v ? 1 : 0).optional(),
+  divisionType: z.string().optional(),
+  divisionNotes: z.string().optional(),
 });
 
 const petSchema = z.object({
@@ -524,6 +526,8 @@ export const mattersRouter = router({
             ?? (typeof g.type === "string" ? g.type : "asset")
           ) as "monetary" | "asset" | "residue",
           onSecondDeath: (g.onSecondDeath ? 1 : 0) as 0 | 1,
+          divisionType: typeof g.divisionType === "string" ? g.divisionType : "equally",
+          divisionNotes: typeof g.divisionNotes === "string" ? g.divisionNotes : null,
         }));
 
       if (isMirror) {
