@@ -319,10 +319,11 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       recipientAddress: g.recipientAddress || "",
       giftDescription: g.giftDescription || "",
       giftType: g.giftType || "asset",
+      onSecondDeath: !!g.onSecondDeath,
     }));
 
-  const [gifts1, setGifts1] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
-  const [gifts2, setGifts2] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows("testator2"));
+  const [gifts1, setGifts1] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
+  const [gifts2, setGifts2] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; _poolId?: number }>>(toGiftRows("testator2"));
 
   // ── Pets state ────────────────────────────────────────────────────────────
   const [pets, setPets] = useState<Array<{

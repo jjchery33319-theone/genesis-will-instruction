@@ -254,8 +254,15 @@ export function generateWelcomePackHtml(record: WillRecord): string {
       const item = g.description || g.giftDescription || g.item || "";
       const recipient = recipientLabel(g);
       const giftTypeLabel = g.giftType === "monetary" ? " (Monetary)" : g.giftType === "property" ? " (Property)" : "";
+      const onSecondDeath = g.onSecondDeath === 1 || g.onSecondDeath === true;
       if (!item && !recipient) return;
-      html += `<div class="gift-card"><div class="gift-item">${item}${giftTypeLabel}</div><div class="gift-to">→ ${recipient}</div></div>`;
+      html += `<div class="gift-card">`;
+      html += `<div class="gift-item">${item}${giftTypeLabel}</div>`;
+      html += `<div class="gift-to">→ ${recipient}</div>`;
+      if (onSecondDeath) {
+        html += `<div style="margin-top:5px;display:inline-block;background:#FFF3CD;border:1px solid #C9A84C;border-radius:4px;padding:2px 8px;font-size:8pt;color:#7D5A00;font-weight:600">⌛ Gift on 2nd death only</div>`;
+      }
+      html += `</div>`;
     });
     html += `</div></div>`;
     return html;

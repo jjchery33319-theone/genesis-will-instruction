@@ -298,8 +298,18 @@ function giftParas(gifts: any[], label: string): Paragraph[] {
       ? (g.recipient || g.recipientName || personName(g) || "")
       : group;
     const giftTypeLabel = g.giftType === "monetary" ? " (Monetary)" : g.giftType === "property" ? " (Property)" : "";
+    const onSecondDeath = g.onSecondDeath === 1 || g.onSecondDeath === true;
     if (!item && !recipient) return;
-    paras.push(bulletPara([`${item}${giftTypeLabel}`, recipient ? `→ ${recipient}` : ""].filter(Boolean).join("  ")));
+    paras.push(bulletPara([`${item}${giftTypeLabel}`, recipient ? `\u2192 ${recipient}` : ""].filter(Boolean).join("  ")));
+    if (onSecondDeath) {
+      paras.push(new Paragraph({
+        children: [
+          new TextRun({ text: "\u231b Gift on 2nd death only", bold: true, size: 17, color: "7D5A00", italics: true }),
+        ],
+        indent: { left: 360 },
+        spacing: { after: 40 },
+      }));
+    }
   });
   paras.push(spacerPara());
   return paras;
