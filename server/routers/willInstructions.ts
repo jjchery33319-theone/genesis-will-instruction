@@ -654,7 +654,9 @@ export const willInstructionsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const { id, ...formData } = input;
+      // Strip UI-only fields that have no DB column before updating
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, client2SameAddressAsClient1: _sameAddr, ...formData } = input;
 
       const updateData = nullify({
         ...formData,
