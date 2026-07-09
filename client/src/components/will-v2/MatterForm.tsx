@@ -1317,7 +1317,7 @@ const GIFT_RECIPIENT_GROUPS = [
 ];
 
 function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
-  const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", _poolId: undefined }]);
+  const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", onSecondDeath: false, _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1424,6 +1424,17 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
               <Input value={r.giftDescription} onChange={e => updateRow(i, "giftDescription", e.target.value)}
                 placeholder={r.giftType === "monetary" ? "e.g. £5,000" : r.giftType === "property" ? "e.g. my property at 12 Oak Lane, London" : "e.g. my gold watch, my car registration AB12 CDE"}
                 className="h-8 text-sm" />
+            </div>
+            <div className="flex items-center gap-2 pt-1 border-t border-border/50 mt-1">
+              <Switch
+                id={`second-death-${i}`}
+                checked={!!r.onSecondDeath}
+                onCheckedChange={v => updateRow(i, "onSecondDeath", v)}
+              />
+              <Label htmlFor={`second-death-${i}`} className="text-xs cursor-pointer">
+                Gift on 2nd death only
+                <span className="ml-1 text-muted-foreground font-normal">(only takes effect if partner predeceases)</span>
+              </Label>
             </div>
           </div>
         );
