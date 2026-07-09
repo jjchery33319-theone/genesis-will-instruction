@@ -274,7 +274,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   // ── Beneficiary state ─────────────────────────────────────────────────────
   const toBenRows = (role: string) =>
     (m.beneficiaries || []).filter((b: any) => b.clientRole === role).map((b: any): {
-      title: string; fullName: string; address: string; dateOfBirth: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number; gender: string;
+      title: string; fullName: string; address: string; dateOfBirth: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number; gender: string; recipientGroup: string; _poolId?: number;
     } => ({
       title: b.title || "",
       fullName: b.fullName || "",
@@ -285,6 +285,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       beneficiaryType: b.beneficiaryType || "primary",
       includeIssue: b.includeIssue ?? 1,
       gender: b.gender || "",
+      recipientGroup: b.recipientGroup || "__named",
     }));
 
   const [bens1, setBens1] = useState(toBenRows(isMirror ? "testator1" : "shared"));
@@ -483,7 +484,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       // Helper: pick only the fields the server schema accepts (avoids Drizzle errors from extra client-side fields like _poolId, dateOfBirth)
       const toExecRow = (e: any) => ({ title: e.title || undefined, fullName: e.fullName || undefined, address: e.address || undefined, gender: e.gender || undefined, relationship: e.relationship || undefined, executorType: e.executorType as "primary" | "substitute" });
       const toGuardianRow = (g: any) => ({ title: g.title || undefined, fullName: g.fullName || undefined, address: g.address || undefined, gender: g.gender || undefined, relationship: g.relationship || undefined, guardianType: g.guardianType as "primary" | "substitute" });
-      const toBenRow = (b: any) => ({ title: b.title || undefined, fullName: b.fullName || undefined, address: b.address || undefined, gender: b.gender || undefined, relationship: b.relationship || undefined, shareFraction: b.shareFraction || undefined, beneficiaryType: b.beneficiaryType as "primary" | "fallback", includeIssue: (b.includeIssue ?? 1) as 0 | 1 });
+      const toBenRow = (b: any) => ({ title: b.title || undefined, fullName: b.fullName || undefined, address: b.address || undefined, gender: b.gender || undefined, relationship: b.relationship || undefined, shareFraction: b.shareFraction || undefined, beneficiaryType: b.beneficiaryType as "primary" | "fallback", includeIssue: (b.includeIssue ?? 1) as 0 | 1, recipientGroup: (b.recipientGroup && b.recipientGroup !== "__named") ? b.recipientGroup : undefined });
 
       ops.push(saveExecutors.mutateAsync({
         matterId: matter.id,
@@ -1320,12 +1321,11 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                 <Select
                   value={r.recipientGroup || "__named"}
                   onValueChange={v => {
-                    updateRow(i, "recipientGroup", v);
-                    if (v !== "__named") {
-                      updateRow(i, "recipientName", "");
-                      updateRow(i, "recipientAddress", "");
-                      updateRow(i, "_poolId", undefined);
-                    }
+                    onChange(rows.map((row, idx) => idx !== i ? row : {
+                      ...row,
+                      recipientGroup: v,
+                      ...(v !== "__named" ? { recipientName: "", recipientAddress: "", _poolId: undefined } : {}),
+                    }));
                   }}
                 >
                   <SelectTrigger className="h-8 text-sm">
@@ -1465,7 +1465,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
   matterId?: number;
   clientAddress?: string;
 }) {
-  const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, _poolId: undefined }]);
+  const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, recipientGroup: "__named", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1507,9 +1507,40 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            {/* Group / Individual picker */}
+            <div className="space-y-1">
+              <Label className="text-xs">Beneficiary Type</Label>
+              <Select
+                value={r.recipientGroup || "__named"}
+                onValueChange={v => {
+                  onChange(rows.map((row, idx) => idx !== i ? row : {
+                    ...row,
+                    recipientGroup: v,
+                    ...(v !== "__named" ? { fullName: "", address: "", dateOfBirth: "", _poolId: undefined } : {}),
+                  }));
+                }}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select beneficiary type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GIFT_RECIPIENT_GROUPS.map(g => (
+                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {r.recipientGroup === "other" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Specify Group</Label>
+                <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="e.g. my step-grandchildren" className="h-8 text-sm" />
+              </div>
+            )}
+            {(!r.recipientGroup || r.recipientGroup === "__named") && (
+              <>
             {matterId !== undefined && (
               <div className="grid grid-cols-2 gap-2">
-                                <PersonPickerField
+                <PersonPickerField
                   matterId={matterId}
                   selectedId={r._poolId}
                   onSelect={p => {
@@ -1593,6 +1624,16 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Label htmlFor={`issue-${i}`} className="text-xs cursor-pointer">Pass to their children if they predecease</Label>
               </div>
             </div>
+              </>
+            )}
+            {r.recipientGroup && r.recipientGroup !== "__named" && r.recipientGroup !== "other" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Share / Fraction</Label>
+                  <Input value={r.shareFraction} onChange={e => updateRow(i, "shareFraction", e.target.value)} placeholder="e.g. equal share" className="h-8 text-sm" />
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -1613,6 +1654,37 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            {/* Group / Individual picker */}
+            <div className="space-y-1">
+              <Label className="text-xs">Beneficiary Type</Label>
+              <Select
+                value={r.recipientGroup || "__named"}
+                onValueChange={v => {
+                  onChange(rows.map((row, idx) => idx !== i ? row : {
+                    ...row,
+                    recipientGroup: v,
+                    ...(v !== "__named" ? { fullName: "", address: "", dateOfBirth: "", _poolId: undefined } : {}),
+                  }));
+                }}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select beneficiary type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GIFT_RECIPIENT_GROUPS.map(g => (
+                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {r.recipientGroup === "other" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Specify Group</Label>
+                <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="e.g. my step-grandchildren" className="h-8 text-sm" />
+              </div>
+            )}
+            {(!r.recipientGroup || r.recipientGroup === "__named") && (
+              <>
             {matterId !== undefined && (
               <div className="grid grid-cols-2 gap-2">
                 <PersonPickerField
@@ -1691,6 +1763,16 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Input value={r.address ?? ""} onChange={e => updateRow(i, "address", e.target.value)} placeholder="Address" className="h-8 text-sm" />
               </div>
             </div>
+              </>
+            )}
+            {r.recipientGroup && r.recipientGroup !== "__named" && r.recipientGroup !== "other" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Share / Fraction</Label>
+                  <Input value={r.shareFraction} onChange={e => updateRow(i, "shareFraction", e.target.value)} placeholder="e.g. equal share" className="h-8 text-sm" />
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
