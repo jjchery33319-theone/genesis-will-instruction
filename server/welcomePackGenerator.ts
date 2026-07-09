@@ -237,17 +237,50 @@ export function generateWelcomePackHtml(record: WillRecord): string {
   }
 
   // Helper: gift list
+  // Resolve recipient label: prefer group label over named individual
+  function recipientLabel(g: any): string {
+    const group = g.recipientGroup || "";
+    if (group && group !== "__named" && group !== "named" && group !== "Named individual") {
+      return group;
+    }
+    return g.recipient || g.recipientName || personName(g) || "";
+  }
+
   function giftList(gifts: any[], clientLabel: string): string {
     if (!gifts.length) return "";
     let html = `<div class="gift-section"><div class="gift-client-label">${clientLabel}</div>`;
     html += `<div class="gift-grid">`;
     gifts.forEach(g => {
       const item = g.description || g.giftDescription || g.item || "";
-      const recipient = g.recipient || g.recipientName || personName(g) || "";
+      const recipient = recipientLabel(g);
+      const giftTypeLabel = g.giftType === "monetary" ? " (Monetary)" : g.giftType === "property" ? " (Property)" : "";
       if (!item && !recipient) return;
-      html += `<div class="gift-card"><div class="gift-item">${item}</div><div class="gift-to">→ ${recipient}</div></div>`;
+      html += `<div class="gift-card"><div class="gift-item">${item}${giftTypeLabel}</div><div class="gift-to">→ ${recipient}</div></div>`;
     });
     html += `</div></div>`;
+    return html;
+  }
+
+  // Gift of Property clause helper (for V2 property data passed in)
+  function giftOfPropertySection(properties: any[]): string {
+    const withGift = properties.filter((p: any) => p.giftOfProperty === 1 || p.giftOfProperty === true);
+    if (!withGift.length) return "";
+    let html = `<div style="margin-top:14px">`;
+    html += `<div style="font-weight:700;color:#1B4332;font-size:9.5pt;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Gift of Property Clause</div>`;
+    withGift.forEach((p: any) => {
+      const addr = fmt(p.address) || "Property";
+      const group = p.giftRecipientGroup;
+      const isNamed = !group || group === "__named" || group === "named" || group === "Named individual";
+      const recipientDisplay = isNamed ? (fmt(p.giftRecipientName) || "Named individual") : group;
+      html += `<div style="background:#f8faf9;border:1px solid #e0e8e4;border-left:3px solid #C9A84C;border-radius:6px;padding:10px 14px;margin-bottom:8px">`;
+      html += `<div style="font-weight:600;color:#1B4332;font-size:9pt">${addr}</div>`;
+      html += `<div style="color:#444;font-size:9pt;margin-top:4px">Gift to: <strong>${recipientDisplay}</strong></div>`;
+      if (isNamed && fmt(p.giftRecipientAddress)) html += `<div style="color:#666;font-size:8.5pt;margin-top:2px">Address: ${fmt(p.giftRecipientAddress)}</div>`;
+      if (fmt(p.giftCondition)) html += `<div style="color:#555;font-size:8.5pt;margin-top:4px;font-style:italic">Condition: ${fmt(p.giftCondition)}</div>`;
+      if (fmt(p.giftNotes)) html += `<div style="color:#555;font-size:8.5pt;margin-top:4px">Notes: ${fmt(p.giftNotes)}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
     return html;
   }
 
@@ -1198,6 +1231,7 @@ export function generateWelcomePackHtml(record: WillRecord): string {
           ${lifeInsurance === "yes" && lifeInsurancePolicies.length > 0 ? infoCard("Life Insurance", lifeInsurancePolicies.map((p: any) => p.provider || "").filter(Boolean).join(", ") || "Yes") : lifeInsurance === "yes" ? infoCard("Life Insurance", "Yes") : infoCard("Life Insurance", "None confirmed")}
           ${assetsOutsideUK === "yes" ? infoCard("Assets Outside UK", "Yes") : ""}
         </div>
+        ${giftOfPropertySection(Array.isArray(record.properties) ? record.properties : [])}
       ` : ""}
 
       ${hasGifts ? `
