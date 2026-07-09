@@ -753,8 +753,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             {isMirror && (
               <>
                 <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`Executors for ${t2.fullName || "Testator 2"}`}</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => { setExecs2(execs1.map(e => ({ ...e }))); markDirty(); }}>
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
                 <ExecutorSection
-                  label={`Executors for ${t2.fullName || "Testator 2"}`}
+                  label=""
                   rows={execs2}
                   onChange={(v) => { setExecs2(v); markDirty(); }}
                   matterId={matter.id}
@@ -793,8 +799,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             {isMirror && (
               <>
                 <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`Specific Gifts from ${t2.fullName || "Testator 2"}`}</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => { setGifts2(gifts1.map(g => ({ ...g }))); markDirty(); }}>
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
                 <GiftsSection
-                  label={`Specific Gifts from ${t2.fullName || "Testator 2"}`}
+                  label=""
                   rows={gifts2}
                   onChange={(v) => { setGifts2(v); markDirty(); }}
                   matterId={matter.id}
@@ -823,8 +835,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             {isMirror && (
               <>
                 <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`Beneficiaries for ${t2.fullName || "Testator 2"}`}</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => { setBens2(bens1.map((b: typeof bens1[0]) => ({ ...b }))); setWishes2({ ...wishes1 }); markDirty(); }}>
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
                 <BeneficiarySection
-                  label={`Beneficiaries for ${t2.fullName || "Testator 2"}`}
+                  label=""
                   partnerName={t1.fullName}
                   rows={bens2}
                   onChange={(v) => { setBens2(v); markDirty(); }}
@@ -847,8 +865,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             {isMirror && (
               <>
                 <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`Wishes for ${t2.fullName || "Testator 2"}`}</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => { setWishes2({ ...wishes1 }); markDirty(); }}>
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
                 <WishesSection
-                  label={`Wishes for ${t2.fullName || "Testator 2"}`}
+                  label=""
                   data={wishes2}
                   onChange={(v) => { setWishes2(v); markDirty(); }}
                 />
@@ -867,8 +891,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             {isMirror && (
               <>
                 <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`Exclusions for ${t2.fullName || "Testator 2"}`}</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => { setExclusions2(exclusions1.map(e => ({ ...e, id: undefined }))); markDirty(); }}>
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
                 <ExclusionsSection
-                  label={`Exclusions for ${t2.fullName || "Testator 2"}`}
+                  label=""
                   rows={exclusions2}
                   onChange={(v) => { setExclusions2(v); markDirty(); }}
                   matterId={matter.id}
@@ -887,8 +917,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             {isMirror && (
               <>
                 <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`Letter of Wishes — ${t2.fullName || "Testator 2"}`}</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => { setLow2(low1); markDirty(); }}>
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
                 <LetterOfWishesSection
-                  label={`Letter of Wishes — ${t2.fullName || "Testator 2"}`}
+                  label=""
                   content={low2}
                   onChange={(v) => { setLow2(v); markDirty(); }}
                 />
@@ -906,8 +942,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             {isMirror && (
               <>
                 <Separator />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`Trust Clauses for ${t2.fullName || "Testator 2"}`}</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => { setTrusts2(trusts1.map(t => ({ ...t }))); markDirty(); }}>
+                    <Copy className="h-3 w-3" /> Mirror from Client 1
+                  </Button>
+                </div>
                 <TrustClausesSection
-                  label={`Trust Clauses for ${t2.fullName || "Testator 2"}`}
+                  label=""
                   clauses={trusts2}
                   onChange={(v) => { setTrusts2(v); markDirty(); }}
                   allTrustTypes={ALL_TRUST_TYPES}
