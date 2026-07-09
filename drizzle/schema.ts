@@ -457,10 +457,11 @@ export const matterGifts = mysqlTable("matter_gifts", {
   matterId: int("matter_id").notNull(),
   clientRole: mysqlEnum("client_role", ["testator1", "testator2", "shared"]).default("shared").notNull(),
   sortOrder: int("sort_order").default(1).notNull(),
+  recipientGroup: varchar("recipient_group", { length: 100 }),
   recipientName: varchar("recipient_name", { length: 255 }),
   recipientAddress: text("recipient_address"),
   giftDescription: text("gift_description"),
-  giftType: mysqlEnum("gift_type", ["monetary", "asset", "residue"]).default("asset").notNull(),
+  giftType: mysqlEnum("gift_type", ["monetary", "asset", "residue", "property"]).default("asset").notNull(),
 });
 export type MatterGift = typeof matterGifts.$inferSelect;
 export type InsertMatterGift = typeof matterGifts.$inferInsert;
@@ -489,6 +490,12 @@ export const matterProperty = mysqlTable("matter_property", {
   mortgageOutstanding: int("mortgage_outstanding").default(0),
   mortgageLender: varchar("mortgage_lender", { length: 255 }),
   propertyNotes: text("property_notes"),
+  giftOfProperty: int("gift_of_property").default(0),
+  giftRecipientGroup: varchar("gift_recipient_group", { length: 100 }),
+  giftRecipientName: varchar("gift_recipient_name", { length: 255 }),
+  giftRecipientAddress: text("gift_recipient_address"),
+  giftCondition: varchar("gift_condition", { length: 500 }),
+  giftNotes: text("gift_notes"),
 });
 export type MatterPropertyRecord = typeof matterProperty.$inferSelect;
 export type InsertMatterPropertyRecord = typeof matterProperty.$inferInsert;

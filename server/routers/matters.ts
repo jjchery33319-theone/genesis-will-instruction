@@ -65,10 +65,11 @@ const wishesSchema = z.object({
 });
 
 const giftSchema = z.object({
+  recipientGroup: z.string().optional(),
   recipientName: z.string().optional(),
   recipientAddress: z.string().optional(),
   giftDescription: z.string().optional(),
-  giftType: z.enum(["monetary", "asset", "residue"]).default("asset"),
+  giftType: z.enum(["monetary", "asset", "residue", "property"]).default("asset"),
 });
 
 const petSchema = z.object({
@@ -85,6 +86,12 @@ const propertySchema = z.object({
   mortgageOutstanding: z.number().int().min(0).max(1).default(0),
   mortgageLender: z.string().optional(),
   propertyNotes: z.string().optional(),
+  giftOfProperty: z.number().int().min(0).max(1).default(0),
+  giftRecipientGroup: z.string().optional(),
+  giftRecipientName: z.string().optional(),
+  giftRecipientAddress: z.string().optional(),
+  giftCondition: z.string().optional(),
+  giftNotes: z.string().optional(),
 });
 
 const businessSchema = z.object({
