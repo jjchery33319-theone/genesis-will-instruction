@@ -428,7 +428,14 @@ export const willInstructionsRouter = router({
         emailSent: 0,
       });
 
-      await db.insert(willInstructions).values(insertData);
+      try {
+        await db.insert(willInstructions).values(insertData);
+      } catch (insertErr: unknown) {
+        const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
+        console.error("[Submit] DB insert failed. Keys in insertData:", Object.keys(insertData).join(", "));
+        console.error("[Submit] DB insert error:", msg);
+        throw new Error(`Failed query: ${msg}`);
+      }
 
       // Fetch the newly inserted record
       const [record] = await db
@@ -564,23 +571,30 @@ export const willInstructionsRouter = router({
         emailSent: 0,
       });
 
-      if (draftId) {
-        // Update existing draft
-        await db
-          .update(willInstructions)
-          .set({ ...draftData, updatedAt: new Date() })
-          .where(eq(willInstructions.id, draftId));
-        return { success: true, draftId };
-      } else {
-        // Create new draft with a reference number
-        const referenceNumber = `GEP-DRAFT-${Date.now().toString(36).toUpperCase()}`;
-        await db.insert(willInstructions).values({ ...draftData, referenceNumber });
-        const [record] = await db
-          .select({ id: willInstructions.id })
-          .from(willInstructions)
-          .where(eq(willInstructions.referenceNumber, referenceNumber))
-          .limit(1);
-        return { success: true, draftId: record?.id };
+      try {
+        if (draftId) {
+          // Update existing draft
+          await db
+            .update(willInstructions)
+            .set({ ...draftData, updatedAt: new Date() })
+            .where(eq(willInstructions.id, draftId));
+          return { success: true, draftId };
+        } else {
+          // Create new draft with a reference number
+          const referenceNumber = `GEP-DRAFT-${Date.now().toString(36).toUpperCase()}`;
+          await db.insert(willInstructions).values({ ...draftData, referenceNumber });
+          const [record] = await db
+            .select({ id: willInstructions.id })
+            .from(willInstructions)
+            .where(eq(willInstructions.referenceNumber, referenceNumber))
+            .limit(1);
+          return { success: true, draftId: record?.id };
+        }
+      } catch (draftErr: unknown) {
+        const msg = draftErr instanceof Error ? draftErr.message : String(draftErr);
+        console.error("[SaveDraft] DB operation failed. Keys in draftData:", Object.keys(draftData).join(", "));
+        console.error("[SaveDraft] DB error:", msg);
+        throw new Error(`Failed query: ${msg}`);
       }
     }),
 
@@ -699,10 +713,17 @@ export const willInstructionsRouter = router({
         updatedAt: new Date(),
       });
 
-      await db
-        .update(willInstructions)
-        .set(updateData)
-        .where(eq(willInstructions.id, id));
+      try {
+        await db
+          .update(willInstructions)
+          .set(updateData)
+          .where(eq(willInstructions.id, id));
+      } catch (updateErr: unknown) {
+        const msg = updateErr instanceof Error ? updateErr.message : String(updateErr);
+        console.error("[UpdateSubmission] DB update failed. Keys in updateData:", Object.keys(updateData).join(", "));
+        console.error("[UpdateSubmission] DB update error:", msg);
+        throw new Error(`Failed query: ${msg}`);
+      }
 
       return { success: true };
     }),

@@ -67,7 +67,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   client2Nationality: varchar("client2Nationality", { length: 64 }),
 
   // ── Family Background ──────────────────────────────────────────────────────
-  client1MarriagePlans: varchar("client1MarriagePlans", { length: 8 }),        // yes/no
+  client1MarriagePlans: varchar("client1MarriagePlans", { length: 32 }),       // yes/no/not_applicable
   client1MarriagePlanDetails: text("client1MarriagePlanDetails"),
   client1HasChildren: varchar("client1HasChildren", { length: 8 }),
   client1TotalChildren: varchar("client1TotalChildren", { length: 20 }),
@@ -77,7 +77,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   client1ChildrenOver18: json("client1ChildrenOver18"),
   client1ChildrenDetails: text("client1ChildrenDetails"),
   client1FamilyCircumstances: text("client1FamilyCircumstances"),
-  client2MarriagePlans: varchar("client2MarriagePlans", { length: 8 }),
+  client2MarriagePlans: varchar("client2MarriagePlans", { length: 32 }),
   client2MarriagePlanDetails: text("client2MarriagePlanDetails"),
   client2HasChildren: varchar("client2HasChildren", { length: 8 }),
   client2TotalChildren: varchar("client2TotalChildren", { length: 20 }),
