@@ -274,7 +274,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   // ── Beneficiary state ─────────────────────────────────────────────────────
   const toBenRows = (role: string) =>
     (m.beneficiaries || []).filter((b: any) => b.clientRole === role).map((b: any): {
-      title: string; fullName: string; address: string; dateOfBirth: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number; gender: string; recipientGroup: string; _poolId?: number;
+      title: string; fullName: string; address: string; dateOfBirth: string; relationship: string; shareFraction: string; beneficiaryType: string; includeIssue: number; gender: string; recipientGroup: string; divisionType: string; divisionNotes: string; _poolId?: number;
     } => ({
       title: b.title || "",
       fullName: b.fullName || "",
@@ -286,6 +286,8 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       includeIssue: b.includeIssue ?? 1,
       gender: b.gender || "",
       recipientGroup: b.recipientGroup || "__named",
+      divisionType: b.divisionType || "equally",
+      divisionNotes: b.divisionNotes || "",
     }));
 
   const [bens1, setBens1] = useState(toBenRows(isMirror ? "testator1" : "shared"));
@@ -487,7 +489,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       // Helper: pick only the fields the server schema accepts (avoids Drizzle errors from extra client-side fields like _poolId, dateOfBirth)
       const toExecRow = (e: any) => ({ title: e.title || undefined, fullName: e.fullName || undefined, address: e.address || undefined, gender: e.gender || undefined, relationship: e.relationship || undefined, executorType: e.executorType as "primary" | "substitute" });
       const toGuardianRow = (g: any) => ({ title: g.title || undefined, fullName: g.fullName || undefined, address: g.address || undefined, gender: g.gender || undefined, relationship: g.relationship || undefined, guardianType: g.guardianType as "primary" | "substitute" });
-      const toBenRow = (b: any) => ({ title: b.title || undefined, fullName: b.fullName || undefined, address: b.address || undefined, gender: b.gender || undefined, relationship: b.relationship || undefined, shareFraction: b.shareFraction || undefined, beneficiaryType: b.beneficiaryType as "primary" | "fallback", includeIssue: (b.includeIssue ?? 1) as 0 | 1, recipientGroup: (b.recipientGroup && b.recipientGroup !== "__named") ? b.recipientGroup : undefined });
+      const toBenRow = (b: any) => ({ title: b.title || undefined, fullName: b.fullName || undefined, address: b.address || undefined, gender: b.gender || undefined, relationship: b.relationship || undefined, shareFraction: b.shareFraction || undefined, beneficiaryType: b.beneficiaryType as "primary" | "fallback", includeIssue: (b.includeIssue ?? 1) as 0 | 1, recipientGroup: (b.recipientGroup && b.recipientGroup !== "__named") ? b.recipientGroup : undefined, divisionType: b.divisionType || undefined, divisionNotes: b.divisionNotes || undefined });
 
       ops.push(saveExecutors.mutateAsync({
         matterId: matter.id,
@@ -1557,7 +1559,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
   matterId?: number;
   clientAddress?: string;
 }) {
-  const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, recipientGroup: "__named", _poolId: undefined }]);
+  const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, recipientGroup: "__named", divisionType: "equally", divisionNotes: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1719,10 +1721,36 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
               </>
             )}
             {r.recipientGroup && r.recipientGroup !== "__named" && r.recipientGroup !== "other" && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Share / Fraction</Label>
-                  <Input value={r.shareFraction} onChange={e => updateRow(i, "shareFraction", e.target.value)} placeholder="e.g. equal share" className="h-8 text-sm" />
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Share / Fraction</Label>
+                    <Input value={r.shareFraction} onChange={e => updateRow(i, "shareFraction", e.target.value)} placeholder="e.g. equal share" className="h-8 text-sm" />
+                  </div>
+                </div>
+                <div className="space-y-2 pt-1 border-t border-border/50">
+                  <div className="space-y-1">
+                    <Label className="text-xs">How is this share divided?</Label>
+                    <Select value={r.divisionType || "equally"} onValueChange={v => updateRow(i, "divisionType", v)}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="equally">Equally between all members</SelectItem>
+                        <SelectItem value="per_stirpes">Per stirpes (equally, passing to their children if predeceased)</SelectItem>
+                        <SelectItem value="percentage">Specific percentages (specify below)</SelectItem>
+                        <SelectItem value="eldest">To the eldest surviving member only</SelectItem>
+                        <SelectItem value="youngest">To the youngest surviving member only</SelectItem>
+                        <SelectItem value="custom">Custom arrangement (specify below)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(r.divisionType === "percentage" || r.divisionType === "custom") && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">{r.divisionType === "percentage" ? "Percentage breakdown" : "Custom division details"}</Label>
+                      <Textarea value={r.divisionNotes || ""} onChange={e => updateRow(i, "divisionNotes", e.target.value)}
+                        placeholder={r.divisionType === "percentage" ? "e.g. 50% to my eldest child, 25% each to my other two" : "e.g. to be divided at the discretion of my executors"}
+                        className="text-sm min-h-[60px] resize-none" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1858,10 +1886,36 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
               </>
             )}
             {r.recipientGroup && r.recipientGroup !== "__named" && r.recipientGroup !== "other" && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Share / Fraction</Label>
-                  <Input value={r.shareFraction} onChange={e => updateRow(i, "shareFraction", e.target.value)} placeholder="e.g. equal share" className="h-8 text-sm" />
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Share / Fraction</Label>
+                    <Input value={r.shareFraction} onChange={e => updateRow(i, "shareFraction", e.target.value)} placeholder="e.g. equal share" className="h-8 text-sm" />
+                  </div>
+                </div>
+                <div className="space-y-2 pt-1 border-t border-border/50">
+                  <div className="space-y-1">
+                    <Label className="text-xs">How is this share divided?</Label>
+                    <Select value={r.divisionType || "equally"} onValueChange={v => updateRow(i, "divisionType", v)}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="equally">Equally between all members</SelectItem>
+                        <SelectItem value="per_stirpes">Per stirpes (equally, passing to their children if predeceased)</SelectItem>
+                        <SelectItem value="percentage">Specific percentages (specify below)</SelectItem>
+                        <SelectItem value="eldest">To the eldest surviving member only</SelectItem>
+                        <SelectItem value="youngest">To the youngest surviving member only</SelectItem>
+                        <SelectItem value="custom">Custom arrangement (specify below)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(r.divisionType === "percentage" || r.divisionType === "custom") && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">{r.divisionType === "percentage" ? "Percentage breakdown" : "Custom division details"}</Label>
+                      <Textarea value={r.divisionNotes || ""} onChange={e => updateRow(i, "divisionNotes", e.target.value)}
+                        placeholder={r.divisionType === "percentage" ? "e.g. 50% to my eldest child, 25% each to my other two" : "e.g. to be divided at the discretion of my executors"}
+                        className="text-sm min-h-[60px] resize-none" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

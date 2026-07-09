@@ -50,6 +50,8 @@ const beneficiarySchema = personSchema.extend({
   shareFraction: z.string().optional(),
   includeIssue: z.number().int().min(0).max(1).default(1),
   recipientGroup: z.string().optional(),
+  divisionType: z.string().optional(),
+  divisionNotes: z.string().optional(),
 });
 
 const wishesSchema = z.object({

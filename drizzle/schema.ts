@@ -427,6 +427,8 @@ export const matterBeneficiaries = mysqlTable("matter_beneficiaries", {
   includeIssue: int("include_issue").default(1),
   gender: varchar("gender", { length: 20 }),
   recipientGroup: varchar("recipient_group", { length: 100 }),
+  divisionType: varchar("division_type", { length: 50 }),
+  divisionNotes: text("division_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type MatterBeneficiary = typeof matterBeneficiaries.$inferSelect;

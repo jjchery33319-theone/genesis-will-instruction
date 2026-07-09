@@ -516,3 +516,14 @@
 - [x] Added GET /api/submissions/:id/welcome-pack-docx endpoint (docx library)
 - [x] Added gold-accented "Welcome Pack PDF" and "Welcome Pack Word" download buttons to SubmissionDetail admin header
 - [x] TypeScript: 0 errors
+
+## Division Options for Beneficiaries (Phase 29)
+- [x] Add `division_type` and `division_notes` columns to `matter_beneficiaries` table in DB
+- [x] Add `divisionType` and `divisionNotes` to Drizzle schema (`matterBeneficiaries` table)
+- [x] Add `divisionType` and `divisionNotes` to `beneficiarySchema` in `server/routers/matters.ts`
+- [x] Add `divisionType` and `divisionNotes` to `toBenRows` initialiser and state type in `MatterForm.tsx`
+- [x] Add `divisionType: "equally"` and `divisionNotes: ""` to `addRow` templates in `BeneficiarySection`
+- [x] Add `divisionType` and `divisionNotes` to `toBenRow` save mapper in `MatterForm.tsx`
+- [x] Add division options UI (dropdown + notes textarea) to both primary and fallback beneficiary rows when a recipient group is selected
+- [x] Mirror button for gifts already copies `divisionType`/`divisionNotes` via spread (`{ ...g }`)
+- [x] TypeScript: 0 errors
