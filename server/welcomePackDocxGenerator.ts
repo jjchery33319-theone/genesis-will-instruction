@@ -292,9 +292,14 @@ function giftParas(gifts: any[], label: string): Paragraph[] {
   if (label) paras.push(new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20, color: LIGHT_GREEN })], spacing: { after: 60 } }));
   gifts.forEach(g => {
     const item = g.description || g.giftDescription || g.item || "";
-    const recipient = g.recipient || g.recipientName || personName(g) || "";
+    const group = g.recipientGroup || "";
+    const isNamed = !group || group === "__named" || group === "named" || group === "Named individual";
+    const recipient = isNamed
+      ? (g.recipient || g.recipientName || personName(g) || "")
+      : group;
+    const giftTypeLabel = g.giftType === "monetary" ? " (Monetary)" : g.giftType === "property" ? " (Property)" : "";
     if (!item && !recipient) return;
-    paras.push(bulletPara([item, recipient ? `→ ${recipient}` : ""].filter(Boolean).join("  ")));
+    paras.push(bulletPara([`${item}${giftTypeLabel}`, recipient ? `→ ${recipient}` : ""].filter(Boolean).join("  ")));
   });
   paras.push(spacerPara());
   return paras;
@@ -549,6 +554,23 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
       children.push(labelValuePara("Life Insurance", provider || "Yes"));
     }
     if (assetsOutsideUK === "yes") children.push(labelValuePara("Assets Outside UK", "Yes"));
+    // Gift of Property Clause (V2 data)
+    const propertiesWithGift = (Array.isArray(record.properties) ? record.properties : []).filter((p: any) => p.giftOfProperty === 1 || p.giftOfProperty === true);
+    if (propertiesWithGift.length > 0) {
+      children.push(new Paragraph({ children: [new TextRun({ text: "Gift of Property Clause", bold: true, size: 20, color: LIGHT_GREEN })], spacing: { before: 160, after: 80 } }));
+      propertiesWithGift.forEach((p: any) => {
+        const addr = fmt(p.address) || "Property";
+        const group = p.giftRecipientGroup;
+        const isNamed = !group || group === "__named" || group === "named" || group === "Named individual";
+        const recipientDisplay = isNamed ? (fmt(p.giftRecipientName) || "Named individual") : group;
+        children.push(new Paragraph({ children: [new TextRun({ text: addr, bold: true, size: 20 })], spacing: { after: 40 } }));
+        children.push(labelValuePara("Gift to", recipientDisplay));
+        if (isNamed && fmt(p.giftRecipientAddress)) children.push(labelValuePara("Recipient Address", fmt(p.giftRecipientAddress)));
+        if (fmt(p.giftCondition)) children.push(labelValuePara("Condition", fmt(p.giftCondition)));
+        if (fmt(p.giftNotes)) children.push(labelValuePara("Notes", fmt(p.giftNotes)));
+        children.push(spacerPara());
+      });
+    }
     children.push(spacerPara());
   }
 
