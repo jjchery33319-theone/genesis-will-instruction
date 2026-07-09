@@ -320,10 +320,12 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       giftDescription: g.giftDescription || "",
       giftType: g.giftType || "asset",
       onSecondDeath: !!g.onSecondDeath,
+      divisionType: g.divisionType || "equally",
+      divisionNotes: g.divisionNotes || "",
     }));
 
-  const [gifts1, setGifts1] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
-  const [gifts2, setGifts2] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; _poolId?: number }>>(toGiftRows("testator2"));
+  const [gifts1, setGifts1] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; divisionType: string; divisionNotes: string; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
+  const [gifts2, setGifts2] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; divisionType: string; divisionNotes: string; _poolId?: number }>>(toGiftRows("testator2"));
 
   // ── Pets state ────────────────────────────────────────────────────────────
   const [pets, setPets] = useState<Array<{
@@ -1318,7 +1320,7 @@ const GIFT_RECIPIENT_GROUPS = [
 ];
 
 function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
-  const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", onSecondDeath: false, _poolId: undefined }]);
+  const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", onSecondDeath: false, divisionType: "equally", divisionNotes: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1426,6 +1428,42 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                 placeholder={r.giftType === "monetary" ? "e.g. £5,000" : r.giftType === "property" ? "e.g. my property at 12 Oak Lane, London" : "e.g. my gold watch, my car registration AB12 CDE"}
                 className="h-8 text-sm" />
             </div>
+            {/* Division options — only shown when a recipient group is selected */}
+            {isGroup && (
+              <div className="space-y-2 pt-1 border-t border-border/50 mt-1">
+                <div className="space-y-1">
+                  <Label className="text-xs">How is this gift divided?</Label>
+                  <Select value={r.divisionType || "equally"} onValueChange={v => updateRow(i, "divisionType", v)}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="equally">Equally between all members</SelectItem>
+                      <SelectItem value="per_stirpes">Per stirpes (equally, passing to their children if predeceased)</SelectItem>
+                      <SelectItem value="percentage">Specific percentages (specify below)</SelectItem>
+                      <SelectItem value="eldest">To the eldest surviving member only</SelectItem>
+                      <SelectItem value="youngest">To the youngest surviving member only</SelectItem>
+                      <SelectItem value="custom">Custom arrangement (specify below)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(r.divisionType === "percentage" || r.divisionType === "custom") && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      {r.divisionType === "percentage" ? "Percentage breakdown" : "Custom division details"}
+                    </Label>
+                    <Textarea
+                      value={r.divisionNotes || ""}
+                      onChange={e => updateRow(i, "divisionNotes", e.target.value)}
+                      placeholder={r.divisionType === "percentage"
+                        ? "e.g. 50% to my eldest child, 25% each to my other two children"
+                        : "e.g. to be divided at the discretion of my executors"}
+                      className="text-sm min-h-[60px] resize-none"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-2 pt-1 border-t border-border/50 mt-1">
               <Switch
                 id={`second-death-${i}`}

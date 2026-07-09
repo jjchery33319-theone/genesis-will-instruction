@@ -259,6 +259,19 @@ export function generateWelcomePackHtml(record: WillRecord): string {
       html += `<div class="gift-card">`;
       html += `<div class="gift-item">${item}${giftTypeLabel}</div>`;
       html += `<div class="gift-to">→ ${recipient}</div>`;
+      const divType = g.divisionType || "equally";
+      const divNotes = g.divisionNotes || "";
+      const isGroupGift = !!(g.recipientGroup && g.recipientGroup !== "__named" && g.recipientGroup !== "named" && g.recipientGroup !== "Named individual");
+      if (isGroupGift) {
+        const divLabel = divType === "equally" ? "Divided equally between all members"
+          : divType === "per_stirpes" ? "Per stirpes (equally, passing to their children if predeceased)"
+          : divType === "eldest" ? "To the eldest surviving member only"
+          : divType === "youngest" ? "To the youngest surviving member only"
+          : divType === "percentage" ? `Specific percentages: ${divNotes || "(see notes)"}`
+          : divType === "custom" ? `Custom: ${divNotes || "(see notes)"}`
+          : divType;
+        html += `<div style="margin-top:4px;font-size:8pt;color:#2D5016;font-style:italic">⚗️ ${divLabel}</div>`;
+      }
       if (onSecondDeath) {
         html += `<div style="margin-top:5px;display:inline-block;background:#FFF3CD;border:1px solid #C9A84C;border-radius:4px;padding:2px 8px;font-size:8pt;color:#7D5A00;font-weight:600">⌛ Gift on 2nd death only</div>`;
       }
