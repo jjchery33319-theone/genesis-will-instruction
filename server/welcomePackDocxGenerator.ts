@@ -1,12 +1,16 @@
 /**
  * welcomePackDocxGenerator.ts
- * Generates an editable Word (.docx) Welcome Pack using the `docx` library.
- * Mirrors the content of the HTML/PDF version but in a fully editable format.
+ * Generates a fully editable Word (.docx) Welcome Pack.
+ *
+ * Design philosophy: ZERO paragraph borders, ZERO table cell shading that can't
+ * be deleted. Every visual separator is a plain paragraph (a row of dashes or a
+ * blank line) that the user can select and delete with a single keypress.
+ * Colour, bold, and font size are used for hierarchy instead of borders/rules.
  */
 import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType,
-  PageBreak, Header, Footer, NumberFormat,
+  AlignmentType, BorderStyle, WidthType, ShadingType,
+  PageBreak, Header, Footer,
   convertMillimetersToTwip,
 } from "docx";
 
@@ -58,70 +62,85 @@ function willTypeLabel(wt: string): string {
   return map[wt] || wt || "Will";
 }
 
-// Colour constants
+// ── Colour constants ──────────────────────────────────────────────────────────
 const GREEN = "1B4332";
 const GOLD = "C9A84C";
 const LIGHT_GREEN = "2D6A4F";
 const LIGHT_BG = "F0F7F3";
 const WHITE = "FFFFFF";
 
-// Shared text run helpers
-const goldRun = (text: string) => new TextRun({ text, color: GOLD, bold: true });
-const greenRun = (text: string) => new TextRun({ text, color: GREEN, bold: true });
-const boldRun = (text: string) => new TextRun({ text, bold: true });
-const normalRun = (text: string) => new TextRun({ text });
-const italicRun = (text: string) => new TextRun({ text, italics: true });
+// ── Paragraph helpers (NO borders anywhere) ───────────────────────────────────
 
+/** Large page title */
+function titlePara(text: string): Paragraph {
+  return new Paragraph({
+    children: [new TextRun({ text, bold: true, size: 52, color: GREEN, font: "Georgia" })],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 600, after: 200 },
+  });
+}
+
+/** Subtitle / company name */
+function subtitlePara(text: string): Paragraph {
+  return new Paragraph({
+    children: [new TextRun({ text, size: 26, color: GOLD })],
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 120 },
+  });
+}
+
+/**
+ * Section heading — bold, coloured, slightly larger.
+ * NO border. A plain dash-line divider paragraph is added before it instead.
+ */
 function heading1(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, color: GREEN, bold: true, size: 28, font: "Georgia" })],
-    spacing: { before: 240, after: 120 },
-    border: { bottom: { color: GOLD, size: 6, space: 4, style: BorderStyle.SINGLE } },
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 30, color: GREEN, font: "Georgia" })],
+    spacing: { before: 320, after: 160 },
   });
 }
 
-function heading2(text: string): Paragraph {
+/** Sub-section heading */
+function sectionHeading(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, color: LIGHT_GREEN, bold: true, size: 22, font: "Georgia" })],
-    spacing: { before: 200, after: 80 },
+    children: [new TextRun({ text, bold: true, size: 24, color: LIGHT_GREEN, font: "Georgia" })],
+    spacing: { before: 240, after: 100 },
   });
 }
 
-function bodyPara(text: string, spacing = 120): Paragraph {
-  return new Paragraph({
-    children: [normalRun(text)],
-    spacing: { after: spacing },
-  });
-}
-
-function boldBodyPara(label: string, value: string): Paragraph {
-  return new Paragraph({
-    children: [boldRun(label + ": "), normalRun(value)],
-    spacing: { after: 60 },
-  });
-}
-
+/**
+ * Visual divider — a plain paragraph containing a row of dashes.
+ * The user can click on this line and press Delete to remove it.
+ */
 function dividerPara(): Paragraph {
   return new Paragraph({
-    children: [],
-    border: { bottom: { color: GOLD, size: 4, space: 2, style: BorderStyle.SINGLE } },
-    spacing: { before: 160, after: 160 },
+    children: [new TextRun({ text: "─────────────────────────────────────────────────────────────────", color: GOLD, size: 16 })],
+    spacing: { before: 120, after: 120 },
   });
 }
 
 function spacerPara(): Paragraph {
-  return new Paragraph({ children: [], spacing: { after: 120 } });
+  return new Paragraph({ children: [new TextRun({ text: "" })], spacing: { after: 120 } });
 }
 
 function pageBreakPara(): Paragraph {
   return new Paragraph({ children: [new PageBreak()] });
 }
 
-function sectionHeading(text: string): Paragraph {
+function bodyPara(text: string, spacing = 120): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text: `◆  ${text}`, color: GREEN, bold: true, size: 22, font: "Georgia" })],
-    spacing: { before: 240, after: 100 },
-    border: { bottom: { color: GOLD, size: 4, space: 3, style: BorderStyle.SINGLE } },
+    children: [new TextRun({ text, size: 20 })],
+    spacing: { after: spacing },
+  });
+}
+
+function boldBodyPara(label: string, value: string): Paragraph {
+  return new Paragraph({
+    children: [
+      new TextRun({ text: label + ": ", bold: true, size: 20 }),
+      new TextRun({ text: value, size: 20 }),
+    ],
+    spacing: { after: 60 },
   });
 }
 
@@ -129,74 +148,81 @@ function labelValuePara(label: string, value: string): Paragraph {
   if (!value) return new Paragraph({ children: [] });
   return new Paragraph({
     children: [
-      new TextRun({ text: label + ": ", bold: true, color: "374151", size: 20 }),
+      new TextRun({ text: label + ": ", bold: true, size: 20 }),
       new TextRun({ text: value, size: 20 }),
     ],
     spacing: { after: 60 },
   });
 }
 
+function bulletPara(text: string): Paragraph {
+  return new Paragraph({
+    children: [new TextRun({ text: `•  ${text}`, size: 20 })],
+    spacing: { after: 60 },
+    indent: { left: convertMillimetersToTwip(5) },
+  });
+}
+
 function personPara(p: any): Paragraph[] {
   const name = personName(p);
   if (!name) return [];
-  const dob = p.dob || p.dateOfBirth ? fmtDateShort(p.dob || p.dateOfBirth) : "";
+  const dob = (p.dob || p.dateOfBirth) ? fmtDateShort(p.dob || p.dateOfBirth) : "";
   const addr = p.address || "";
   const paras: Paragraph[] = [
     new Paragraph({
-      children: [new TextRun({ text: name, bold: true, color: GREEN, size: 21 })],
+      children: [new TextRun({ text: name, bold: true, size: 21, color: GREEN })],
       spacing: { after: 40 },
     }),
   ];
-  if (dob) paras.push(new Paragraph({ children: [new TextRun({ text: `Date of Birth: ${dob}`, size: 20, color: "4B5563" })], spacing: { after: 40 } }));
-  if (addr) paras.push(new Paragraph({ children: [new TextRun({ text: `Address: ${addr}`, size: 20, color: "4B5563" })], spacing: { after: 40 } }));
+  if (dob) paras.push(new Paragraph({ children: [new TextRun({ text: `Date of Birth: ${dob}`, size: 20 })], spacing: { after: 40 } }));
+  if (addr) paras.push(new Paragraph({ children: [new TextRun({ text: `Address: ${addr}`, size: 20 })], spacing: { after: 40 } }));
   paras.push(spacerPara());
   return paras;
 }
 
+/**
+ * Support team table — uses plain borders (no shading on header cells).
+ * The user can click inside any cell and edit or delete the content.
+ * The table itself can be deleted by selecting all rows and pressing Delete.
+ */
 function supportTable(consultant: any, coordinator: any): Table {
+  const plainBorder = { style: BorderStyle.SINGLE, size: 4, color: "D1D5DB" };
+  const borders = { top: plainBorder, bottom: plainBorder, left: plainBorder, right: plainBorder };
+
   const headerCell = (text: string) => new TableCell({
-    children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: GOLD, size: 18 })] })],
-    shading: { type: ShadingType.SOLID, color: GREEN },
+    children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 18, color: GREEN })] })],
     margins: { top: 80, bottom: 80, left: 100, right: 100 },
+    borders,
   });
 
   const dataCell = (text: string, bold = false) => new TableCell({
     children: [new Paragraph({ children: [new TextRun({ text, bold, size: 19 })] })],
     margins: { top: 80, bottom: 80, left: 100, right: 100 },
+    borders,
   });
 
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: { top: plainBorder, bottom: plainBorder, left: plainBorder, right: plainBorder },
     rows: [
       new TableRow({
-        children: [
-          headerCell("Role"),
-          headerCell("Name"),
-          headerCell("Contact Email"),
-          headerCell("Contact Phone"),
-        ],
+        children: [headerCell("Role"), headerCell("Name"), headerCell("Email"), headerCell("Phone")],
         tableHeader: true,
       }),
       new TableRow({
-        children: [
-          dataCell("Your Consultant", true),
-          dataCell(consultant.name),
-          dataCell(consultant.email),
-          dataCell(consultant.phone),
-        ],
+        children: [dataCell("Your Consultant", true), dataCell(consultant.name), dataCell(consultant.email), dataCell(consultant.phone)],
       }),
       new TableRow({
-        children: [
-          dataCell("Case Coordinator", true),
-          dataCell(coordinator.name),
-          dataCell(coordinator.email),
-          dataCell(coordinator.phone),
-        ],
+        children: [dataCell("Case Coordinator", true), dataCell(coordinator.name), dataCell(coordinator.email), dataCell(coordinator.phone)],
       }),
     ],
   });
 }
 
+/**
+ * Client details table — plain borders, no background shading.
+ * Every cell is fully editable and deletable.
+ */
 function clientTable(record: WillRecord, num: 1 | 2): (Paragraph | Table)[] {
   const p = num === 1 ? "client1" : "client2";
   const name = fullName(record[`${p}Prefix`], record[`${p}FirstName`], record[`${p}MiddleName`], record[`${p}LastName`]);
@@ -210,41 +236,39 @@ function clientTable(record: WillRecord, num: 1 | 2): (Paragraph | Table)[] {
   const nationality = fmt(record[`${p}Nationality`]);
 
   const rows: [string, string][] = [
-    ["Full Name", name],
-    ["Date of Birth", dob],
-    ["Marital Status", marital],
-    ["Occupation", job],
-    ["Nationality", nationality],
-    ["Address", addr],
-    ["Telephone", phone],
-    ["Email", email],
+    ["Full Name", name], ["Date of Birth", dob], ["Marital Status", marital],
+    ["Occupation", job], ["Nationality", nationality], ["Address", addr],
+    ["Telephone", phone], ["Email", email],
   ].filter(([, v]) => v) as [string, string][];
+
+  const plainBorder = { style: BorderStyle.SINGLE, size: 4, color: "D1D5DB" };
+  const borders = { top: plainBorder, bottom: plainBorder, left: plainBorder, right: plainBorder };
 
   const tableRows = rows.map(([label, value]) => new TableRow({
     children: [
       new TableCell({
-        children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19, color: "374151" })] })],
+        children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 19 })] })],
         width: { size: 30, type: WidthType.PERCENTAGE },
-        shading: { type: ShadingType.SOLID, color: LIGHT_BG },
         margins: { top: 60, bottom: 60, left: 100, right: 100 },
+        borders,
       }),
       new TableCell({
         children: [new Paragraph({ children: [new TextRun({ text: value, size: 19 })] })],
         width: { size: 70, type: WidthType.PERCENTAGE },
         margins: { top: 60, bottom: 60, left: 100, right: 100 },
+        borders,
       }),
     ],
   }));
 
   return [
     new Paragraph({
-      children: [new TextRun({ text: `Client ${num}`, bold: true, color: WHITE, size: 20 })],
-      shading: { type: ShadingType.SOLID, color: GREEN },
-      spacing: { before: 160, after: 0 },
-      indent: { left: 100 },
+      children: [new TextRun({ text: `Client ${num}`, bold: true, size: 22, color: LIGHT_GREEN })],
+      spacing: { before: 160, after: 80 },
     }),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: { top: plainBorder, bottom: plainBorder, left: plainBorder, right: plainBorder },
       rows: tableRows,
     }),
     spacerPara(),
@@ -258,31 +282,25 @@ function benListParas(bens: any[]): Paragraph[] {
     const share = b.share || b.shareFraction || b.sharePercentage || "";
     const rel = b.relationship || "";
     const parts = [name, rel ? `(${rel})` : "", share ? `— ${share}` : ""].filter(Boolean).join("  ");
-    return new Paragraph({
-      children: [new TextRun({ text: `•  ${parts}`, size: 20 })],
-      spacing: { after: 60 },
-      indent: { left: convertMillimetersToTwip(5) },
-    });
+    return bulletPara(parts);
   });
 }
 
 function giftParas(gifts: any[], label: string): Paragraph[] {
   if (!gifts.length) return [];
   const paras: Paragraph[] = [];
-  if (label) paras.push(new Paragraph({ children: [new TextRun({ text: label, bold: true, color: LIGHT_GREEN, size: 20 })], spacing: { after: 60 } }));
+  if (label) paras.push(new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20, color: LIGHT_GREEN })], spacing: { after: 60 } }));
   gifts.forEach(g => {
     const item = g.description || g.giftDescription || g.item || "";
     const recipient = g.recipient || g.recipientName || personName(g) || "";
     if (!item && !recipient) return;
-    paras.push(new Paragraph({
-      children: [boldRun(item), normalRun(recipient ? ` → ${recipient}` : "")],
-      spacing: { after: 60 },
-      indent: { left: convertMillimetersToTwip(5) },
-    }));
+    paras.push(bulletPara([item, recipient ? `→ ${recipient}` : ""].filter(Boolean).join("  ")));
   });
   paras.push(spacerPara());
   return paras;
 }
+
+// ── Main generator ─────────────────────────────────────────────────────────────
 
 export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffer> {
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -342,23 +360,24 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   const c2FuneralWishes = fmt(record.client2FuneralWishes);
   const c2OrganDonation = fmt(record.client2OrganDonation);
 
-  // ── Build document sections ──────────────────────────────────────────────
+  const propAddress = fmt(record.propertyAddress);
+  const propOwnership = fmt(record.propertyOwnership);
+  const propValue = fmt(record.propertyValue);
+  const mortgage = fmt(record.mortgageOutstanding);
+  const lifeInsurance = fmt(record.hasLifeInsurance);
+  const lifeInsurancePolicies: any[] = Array.isArray(record.lifeInsurancePolicies) ? record.lifeInsurancePolicies : [];
+  const assetsOutsideUK = fmt(record.assetsOutsideUK);
+
+  // ── Build document body ────────────────────────────────────────────────────
   const children: (Paragraph | Table)[] = [];
 
-  // Cover / Title
+  // ── COVER ──────────────────────────────────────────────────────────────────
   children.push(
+    titlePara("WELCOME PACK"),
+    subtitlePara("Genesis Wills and Estate Planning"),
+    spacerPara(),
     new Paragraph({
-      children: [new TextRun({ text: "WELCOME PACK", bold: true, size: 48, color: GREEN, font: "Georgia" })],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 800, after: 200 },
-    }),
-    new Paragraph({
-      children: [new TextRun({ text: "Genesis Wills and Estate Planning", size: 28, color: GOLD })],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 400 },
-    }),
-    new Paragraph({
-      children: [new TextRun({ text: c1Name + (isMirror && c2Name ? ` & ${c2Name}` : ""), bold: true, size: 32, color: GREEN, font: "Georgia" })],
+      children: [new TextRun({ text: c1Name + (isMirror && c2Name ? ` & ${c2Name}` : ""), bold: true, size: 36, color: GREEN, font: "Georgia" })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 120 },
     }),
@@ -371,32 +390,25 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
       children: [new TextRun({ text: `Reference: ${refNum}`, size: 22, color: "6B7280" })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 120 },
-    }) : new Paragraph({ children: [] }),
+    }) : spacerPara(),
     record.willType ? new Paragraph({
       children: [new TextRun({ text: willTypeLabel(record.willType), size: 22, color: "6B7280", italics: true })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 },
-    }) : new Paragraph({ children: [] }),
+    }) : spacerPara(),
     dividerPara(),
     pageBreakPara(),
   );
 
-  // Welcome Letter
+  // ── WELCOME LETTER ─────────────────────────────────────────────────────────
   children.push(
     heading1("Welcome Letter"),
+    boldBodyPara("Date", today),
     new Paragraph({
-      children: [boldRun("WELCOME PACK")],
-      spacing: { after: 60 },
-    }),
-    new Paragraph({
-      children: [boldRun("Date: "), normalRun(today)],
+      children: [new TextRun({ text: "Strictly Private and Confidential", bold: true, size: 20 })],
       spacing: { after: 120 },
     }),
-    new Paragraph({
-      children: [boldRun("Strictly Private and Confidential")],
-      spacing: { after: 60 },
-    }),
-    ...addressLines.map(l => new Paragraph({ children: [normalRun(l)], spacing: { after: 40 } })),
+    ...addressLines.map(l => new Paragraph({ children: [new TextRun({ text: l, size: 20 })], spacing: { after: 40 } })),
     spacerPara(),
     new Paragraph({
       children: [new TextRun({ text: salutation, bold: true, size: 24, color: GREEN, font: "Georgia" })],
@@ -404,18 +416,18 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
     }),
     new Paragraph({
       children: [
-        normalRun("Thank you for entrusting Genesis Wills and Estate Planning with your instructions. Following your recent meeting with our consultant, "),
-        boldRun(consultantName),
-        normalRun(`, I am writing to formally welcome you as our newest client and to confirm the details of your instructions for a `),
-        boldRun(willTypeLabel(record.willType || "Will")),
-        normalRun(". We understand that estate planning is a significant step, and our team is dedicated to ensuring your wishes are documented accurately and professionally."),
+        new TextRun({ text: "Thank you for entrusting Genesis Wills and Estate Planning with your instructions. Following your recent meeting with our consultant, ", size: 20 }),
+        new TextRun({ text: consultantName, bold: true, size: 20 }),
+        new TextRun({ text: `, I am writing to formally welcome you as our newest client and to confirm the details of your instructions for a `, size: 20 }),
+        new TextRun({ text: willTypeLabel(record.willType || "Will"), bold: true, size: 20 }),
+        new TextRun({ text: ". We understand that estate planning is a significant step, and our team is dedicated to ensuring your wishes are documented accurately and professionally.", size: 20 }),
       ],
       spacing: { after: 120 },
     }),
     bodyPara("Enclosed in this Welcome Pack you will find a summary of the instructions we have recorded for you. Please review all details carefully and contact us immediately if any corrections are required before drafting begins."),
     dividerPara(),
     sectionHeading("Your Support Team"),
-    bodyPara(`We are here to help you at every stage. If you have any questions about your documents or the process, please contact your dedicated team members below.${coordinatorPhone ? ` (General Enquiries: ${coordinatorPhone})` : ""}`),
+    bodyPara(`We are here to help you at every stage. If you have any questions, please contact your dedicated team members below.`),
     spacerPara(),
     supportTable(
       { name: consultantName, email: consultantEmail, phone: consultantPhone },
@@ -424,10 +436,11 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
     pageBreakPara(),
   );
 
-  // Client Details
+  // ── SUMMARY OF INSTRUCTIONS ────────────────────────────────────────────────
   children.push(
     heading1("Summary of Instructions"),
     bodyPara("Please check the following details carefully. It is vital that all names, addresses, and dates of birth are 100% accurate. Contact us immediately if any corrections are needed."),
+    dividerPara(),
     sectionHeading("Client Details"),
     ...(clientTable(record, 1) as (Paragraph | Table)[]),
     ...(isMirror ? clientTable(record, 2) as (Paragraph | Table)[] : []),
@@ -435,6 +448,7 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
 
   if (uniqueChildren.length > 0) {
     children.push(
+      dividerPara(),
       sectionHeading("Children"),
       bodyPara("You have confirmed that you have the following children:"),
       ...uniqueChildren.flatMap(c => personPara(c)),
@@ -443,23 +457,30 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
 
   children.push(pageBreakPara());
 
-  // Executors & Guardians
+  // ── APPOINTMENTS ───────────────────────────────────────────────────────────
   children.push(heading1("Appointments"));
+  children.push(dividerPara());
   children.push(sectionHeading("Executors"));
 
   function addExecSection(label: string, primaries: any[], substitutes: any[]) {
     if (!primaries.length && !substitutes.length) return;
-    if (label) children.push(new Paragraph({ children: [boldRun(label)], spacing: { after: 80 } }));
+    if (label) children.push(new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20 })], spacing: { after: 80 } }));
     if (primaries.length) {
       children.push(new Paragraph({
-        children: [normalRun("You have appointed the following as your "), boldRun(`Primary Executor${primaries.length > 1 ? "s" : ""}:`), normalRun("")],
+        children: [
+          new TextRun({ text: "You have appointed the following as your ", size: 20 }),
+          new TextRun({ text: `Primary Executor${primaries.length > 1 ? "s" : ""}:`, bold: true, size: 20 }),
+        ],
         spacing: { after: 80 },
       }));
       primaries.forEach(p => children.push(...personPara(p)));
     }
     if (substitutes.length) {
       children.push(new Paragraph({
-        children: [normalRun("Should they be unable or unwilling to act, you have appointed the following "), boldRun(`Substitute Executor${substitutes.length > 1 ? "s" : ""}:`), normalRun("")],
+        children: [
+          new TextRun({ text: "Should they be unable or unwilling to act, you have appointed the following ", size: 20 }),
+          new TextRun({ text: `Substitute Executor${substitutes.length > 1 ? "s" : ""}:`, bold: true, size: 20 }),
+        ],
         spacing: { after: 80 },
       }));
       substitutes.forEach(p => children.push(...personPara(p)));
@@ -474,53 +495,49 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   }
 
   if (c1Guards.length > 0 || c1ResGuards.length > 0) {
+    children.push(dividerPara());
     children.push(sectionHeading("Guardians"));
     children.push(bodyPara("You have appointed the following to act as guardians for any minor children:"));
     c1Guards.forEach(p => children.push(...personPara(p)));
     if (c1ResGuards.length) {
-      children.push(new Paragraph({ children: [boldRun("Substitute Guardians:")], spacing: { after: 80 } }));
+      children.push(new Paragraph({ children: [new TextRun({ text: "Substitute Guardians:", bold: true, size: 20 })], spacing: { after: 80 } }));
       c1ResGuards.forEach(p => children.push(...personPara(p)));
     }
   }
 
+  children.push(dividerPara());
   children.push(sectionHeading("Distribution of Your Estate"));
   if (isMirror) {
     if (c1Bens.length) {
-      children.push(new Paragraph({ children: [boldRun(`Client 1 — ${record.client1FirstName || ""}`)], spacing: { after: 80 } }));
+      children.push(new Paragraph({ children: [new TextRun({ text: `Client 1 — ${record.client1FirstName || ""}`, bold: true, size: 20 })], spacing: { after: 80 } }));
       children.push(bodyPara("Your estate will be distributed as follows:"));
       children.push(...benListParas(c1Bens));
-      if (record.client1ResidualEstate) children.push(new Paragraph({ children: [normalRun("Any remaining estate will pass to: "), boldRun(record.client1ResidualEstate)], spacing: { after: 80 } }));
+      if (record.client1ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client1ResidualEstate));
     }
     if (c2Bens.length) {
-      children.push(new Paragraph({ children: [boldRun(`Client 2 — ${record.client2FirstName || ""}`)], spacing: { before: 120, after: 80 } }));
+      children.push(new Paragraph({ children: [new TextRun({ text: `Client 2 — ${record.client2FirstName || ""}`, bold: true, size: 20 })], spacing: { before: 120, after: 80 } }));
       children.push(bodyPara("Your estate will be distributed as follows:"));
       children.push(...benListParas(c2Bens));
-      if (record.client2ResidualEstate) children.push(new Paragraph({ children: [normalRun("Any remaining estate will pass to: "), boldRun(record.client2ResidualEstate)], spacing: { after: 80 } }));
+      if (record.client2ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client2ResidualEstate));
     }
   } else {
     children.push(...benListParas(c1Bens));
-    if (record.client1ResidualEstate) children.push(new Paragraph({ children: [normalRun("Any remaining estate will pass to: "), boldRun(record.client1ResidualEstate)], spacing: { after: 80 } }));
+    if (record.client1ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client1ResidualEstate));
   }
 
   if (record.disasterClauseNotes || record.disasterClauseClient1) {
-    children.push(new Paragraph({ children: [boldRun("Disaster Clause")], spacing: { before: 120, after: 60 } }));
+    children.push(spacerPara());
+    children.push(new Paragraph({ children: [new TextRun({ text: "Disaster Clause", bold: true, size: 20 })], spacing: { after: 60 } }));
     children.push(bodyPara(record.disasterClauseNotes || record.disasterClauseClient1));
   }
 
   children.push(pageBreakPara());
 
-  // Assets, Gifts & Funeral
+  // ── ASSETS, GIFTS & WISHES ─────────────────────────────────────────────────
   children.push(heading1("Assets, Gifts & Wishes"));
 
-  const propAddress = fmt(record.propertyAddress);
-  const propOwnership = fmt(record.propertyOwnership);
-  const propValue = fmt(record.propertyValue);
-  const mortgage = fmt(record.mortgageOutstanding);
-  const lifeInsurance = fmt(record.hasLifeInsurance);
-  const lifeInsurancePolicies: any[] = Array.isArray(record.lifeInsurancePolicies) ? record.lifeInsurancePolicies : [];
-  const assetsOutsideUK = fmt(record.assetsOutsideUK);
-
   if (propAddress || propValue) {
+    children.push(dividerPara());
     children.push(sectionHeading("Property & Financial Overview"));
     if (propAddress) children.push(labelValuePara("Property Address", propAddress));
     if (propOwnership) children.push(labelValuePara("Ownership", capitalize(propOwnership)));
@@ -536,6 +553,7 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   }
 
   if (c1Gifts.length > 0 || c2Gifts.length > 0) {
+    children.push(dividerPara());
     children.push(sectionHeading("Specific Gifts"));
     children.push(bodyPara(`You have instructed that the following gifts are to be included within your Will${isMirror ? "s" : ""}:`));
     if (isMirror) {
@@ -547,39 +565,42 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   }
 
   if (c1FuneralType || c1FuneralWishes || c1OrganDonation) {
+    children.push(dividerPara());
     children.push(sectionHeading("Funeral Wishes & Organ Donation"));
     if (isMirror) {
       if (c1FuneralType || c1FuneralWishes || c1OrganDonation) {
-        children.push(new Paragraph({ children: [boldRun(`Client 1 — ${record.client1FirstName || ""}`)], spacing: { after: 80 } }));
+        children.push(new Paragraph({ children: [new TextRun({ text: `Client 1 — ${record.client1FirstName || ""}`, bold: true, size: 20 })], spacing: { after: 80 } }));
         if (c1FuneralType) children.push(labelValuePara("Funeral Preference", capitalize(c1FuneralType)));
         if (c1OrganDonation) children.push(labelValuePara("Organ Donation", c1OrganDonation === "yes" ? "Yes" : "No"));
-        if (c1FuneralWishes) children.push(new Paragraph({ children: [italicRun(`"${c1FuneralWishes}"`), normalRun("")], spacing: { after: 80 } }));
+        if (c1FuneralWishes) children.push(new Paragraph({ children: [new TextRun({ text: `"${c1FuneralWishes}"`, italics: true, size: 20 })], spacing: { after: 80 } }));
       }
       if (c2FuneralType || c2FuneralWishes || c2OrganDonation) {
-        children.push(new Paragraph({ children: [boldRun(`Client 2 — ${record.client2FirstName || ""}`)], spacing: { before: 120, after: 80 } }));
+        children.push(new Paragraph({ children: [new TextRun({ text: `Client 2 — ${record.client2FirstName || ""}`, bold: true, size: 20 })], spacing: { before: 120, after: 80 } }));
         if (c2FuneralType) children.push(labelValuePara("Funeral Preference", capitalize(c2FuneralType)));
         if (c2OrganDonation) children.push(labelValuePara("Organ Donation", c2OrganDonation === "yes" ? "Yes" : "No"));
-        if (c2FuneralWishes) children.push(new Paragraph({ children: [italicRun(`"${c2FuneralWishes}"`), normalRun("")], spacing: { after: 80 } }));
+        if (c2FuneralWishes) children.push(new Paragraph({ children: [new TextRun({ text: `"${c2FuneralWishes}"`, italics: true, size: 20 })], spacing: { after: 80 } }));
       }
     } else {
       if (c1FuneralType) children.push(labelValuePara("Funeral Preference", capitalize(c1FuneralType)));
       if (c1OrganDonation) children.push(labelValuePara("Organ Donation", c1OrganDonation === "yes" ? "Yes" : "No"));
-      if (c1FuneralWishes) children.push(new Paragraph({ children: [italicRun(`"${c1FuneralWishes}"`), normalRun("")], spacing: { after: 80 } }));
+      if (c1FuneralWishes) children.push(new Paragraph({ children: [new TextRun({ text: `"${c1FuneralWishes}"`, italics: true, size: 20 })], spacing: { after: 80 } }));
     }
   }
 
   if (record.additionalNotes || record.specialNotes) {
     children.push(dividerPara());
-    children.push(new Paragraph({ children: [boldRun("Additional Notes")], spacing: { after: 80 } }));
+    children.push(new Paragraph({ children: [new TextRun({ text: "Additional Notes", bold: true, size: 22 })], spacing: { after: 80 } }));
     children.push(bodyPara(record.additionalNotes || record.specialNotes));
   }
 
   children.push(pageBreakPara());
 
-  // Additional Services & Next Steps
+  // ── NEXT STEPS & SERVICES ──────────────────────────────────────────────────
   children.push(heading1("Next Steps & Our Services"));
+  children.push(dividerPara());
   children.push(sectionHeading("Additional Services We Offer"));
   children.push(bodyPara("While you have instructed us for a Will, we offer a comprehensive range of services to protect your assets and your family:"));
+  spacerPara();
 
   const services = [
     ["Lasting Powers of Attorney (LPAs)", "Appoint someone to make decisions on your behalf regarding Health & Welfare or Property & Financial Affairs should you become mentally incapable."],
@@ -589,24 +610,31 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   ];
   services.forEach(([title, desc]) => {
     children.push(new Paragraph({
-      children: [boldRun(`${title}: `), normalRun(desc)],
+      children: [
+        new TextRun({ text: `${title}: `, bold: true, size: 20 }),
+        new TextRun({ text: desc, size: 20 }),
+      ],
       spacing: { after: 80 },
       indent: { left: convertMillimetersToTwip(5) },
     }));
   });
 
   children.push(spacerPara());
+  children.push(dividerPara());
   children.push(sectionHeading("What Happens Next?"));
 
   const steps = [
-    ["Verification", "Please review the Summary of Instructions in this pack carefully. It is vital that all names, addresses, and dates of birth are 100% accurate."],
-    ["Cooling-Off Period", "We will begin work on your legal documents immediately upon the expiration of your 14-day cooling-off period."],
-    ["Drafting", `You will receive your draft documents approximately 2 weeks from today${estimatedDraft ? ` (estimated: ${estimatedDraft})` : ""}, depending on case complexity.`],
-    ["Finalisation & Signing", "Once you approve the drafts, we will prepare the final documents for signing (attestation)."],
+    ["1. Verification", "Please review the Summary of Instructions in this pack carefully. It is vital that all names, addresses, and dates of birth are 100% accurate."],
+    ["2. Cooling-Off Period", "We will begin work on your legal documents immediately upon the expiration of your 14-day cooling-off period."],
+    ["3. Drafting", `You will receive your draft documents approximately 2 weeks from today${estimatedDraft ? ` (estimated: ${estimatedDraft})` : ""}, depending on case complexity.`],
+    ["4. Finalisation & Signing", "Once you approve the drafts, we will prepare the final documents for signing (attestation)."],
   ];
-  steps.forEach(([title, desc], i) => {
+  steps.forEach(([title, desc]) => {
     children.push(new Paragraph({
-      children: [boldRun(`${i + 1}. ${title}: `), normalRun(desc)],
+      children: [
+        new TextRun({ text: `${title}: `, bold: true, size: 20 }),
+        new TextRun({ text: desc, size: 20 }),
+      ],
       spacing: { after: 100 },
     }));
   });
@@ -614,13 +642,16 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   children.push(dividerPara());
   children.push(bodyPara("If you spot any errors in the summary, please reply to this correspondence immediately so we can correct our records before drafting begins."));
   children.push(spacerPara());
-  children.push(new Paragraph({ children: [normalRun("Yours sincerely,")], spacing: { after: 80 } }));
+  children.push(new Paragraph({ children: [new TextRun({ text: "Yours sincerely,", size: 20 })], spacing: { after: 80 } }));
+  children.push(spacerPara());
   children.push(new Paragraph({ children: [new TextRun({ text: coordinatorName, bold: true, size: 24, color: GREEN, font: "Georgia" })], spacing: { after: 60 } }));
-  children.push(new Paragraph({ children: [normalRun("Genesis Wills and Estate Planning")], spacing: { after: 60 } }));
-  if (coordinatorPhone) children.push(new Paragraph({ children: [normalRun(coordinatorPhone)], spacing: { after: 60 } }));
-  if (coordinatorEmail) children.push(new Paragraph({ children: [normalRun(coordinatorEmail)], spacing: { after: 60 } }));
+  children.push(new Paragraph({ children: [new TextRun({ text: "Genesis Wills and Estate Planning", size: 20 })], spacing: { after: 60 } }));
+  if (coordinatorPhone) children.push(new Paragraph({ children: [new TextRun({ text: coordinatorPhone, size: 20 })], spacing: { after: 60 } }));
+  if (coordinatorEmail) children.push(new Paragraph({ children: [new TextRun({ text: coordinatorEmail, size: 20 })], spacing: { after: 60 } }));
 
-  // Build document
+  // ── Assemble document ──────────────────────────────────────────────────────
+  const plainBorder = { style: BorderStyle.SINGLE, size: 4, color: "D1D5DB" };
+
   const doc = new Document({
     styles: {
       default: {
@@ -634,9 +665,9 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
         page: {
           margin: {
             top: convertMillimetersToTwip(20),
-            right: convertMillimetersToTwip(20),
+            right: convertMillimetersToTwip(22),
             bottom: convertMillimetersToTwip(20),
-            left: convertMillimetersToTwip(20),
+            left: convertMillimetersToTwip(22),
           },
         },
       },
@@ -649,7 +680,7 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
                 new TextRun({ text: "  |  Strictly Private & Confidential", color: "9CA3AF", size: 16 }),
                 refNum ? new TextRun({ text: `  |  Ref: ${refNum}`, color: "9CA3AF", size: 16 }) : new TextRun({ text: "" }),
               ],
-              border: { bottom: { color: GOLD, size: 4, space: 2, style: BorderStyle.SINGLE } },
+              // NO border on header paragraph — the user can delete the header entirely
               spacing: { after: 80 },
             }),
           ],
@@ -660,11 +691,11 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
           children: [
             new Paragraph({
               children: [
-                new TextRun({ text: "Genesis Wills and Estate Planning  |  ", color: "9CA3AF", size: 16 }),
-                new TextRun({ text: "Page ", color: "9CA3AF", size: 16 }),
+                new TextRun({ text: "Genesis Wills and Estate Planning  |  Confidential  |  ", color: "9CA3AF", size: 14 }),
+                new TextRun({ text: today, color: "9CA3AF", size: 14 }),
               ],
-              border: { top: { color: GOLD, size: 4, space: 2, style: BorderStyle.SINGLE } },
               alignment: AlignmentType.CENTER,
+              spacing: { before: 80 },
             }),
           ],
         }),
@@ -673,6 +704,5 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
     }],
   });
 
-  const buffer = await Packer.toBuffer(doc);
-  return Buffer.from(buffer);
+  return Buffer.from(await Packer.toBuffer(doc));
 }
