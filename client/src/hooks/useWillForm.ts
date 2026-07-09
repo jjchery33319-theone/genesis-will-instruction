@@ -435,7 +435,13 @@ export function useWillForm() {
       navigate(`/success/${data.referenceNumber}`);
     },
     onError: (err) => {
-      toast.error(`Submission failed: ${err.message}`);
+      // Log full error details to console for debugging
+      console.error('[Submit] Full error:', err);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cause = (err as any)?.cause;
+      const causeMsg = cause instanceof Error ? cause.message : (cause ? String(cause) : '');
+      const fullMsg = causeMsg ? `${err.message} | Cause: ${causeMsg}` : err.message;
+      toast.error(`Submission failed: ${fullMsg}`);
     },
   });
 
