@@ -313,14 +313,15 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   // ── Gifts state ───────────────────────────────────────────────────────────
   const toGiftRows = (role: string) =>
     (m.gifts || []).filter((g: any) => g.clientRole === role).map((g: any) => ({
+      recipientGroup: g.recipientGroup || "__named",
       recipientName: g.recipientName || "",
       recipientAddress: g.recipientAddress || "",
       giftDescription: g.giftDescription || "",
       giftType: g.giftType || "asset",
     }));
 
-  const [gifts1, setGifts1] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
-  const [gifts2, setGifts2] = useState<Array<{ recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows("testator2"));
+  const [gifts1, setGifts1] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
+  const [gifts2, setGifts2] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; _poolId?: number }>>(toGiftRows("testator2"));
 
   // ── Pets state ────────────────────────────────────────────────────────────
   const [pets, setPets] = useState<Array<{
@@ -338,6 +339,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   // ── Property state ────────────────────────────────────────────────────────
   const [properties, setProperties] = useState<Array<{
     address: string; ownershipType: string; mortgageOutstanding: number; mortgageLender: string; propertyNotes: string;
+    giftOfProperty: number; giftRecipientGroup: string; giftRecipientName: string; giftRecipientAddress: string; giftCondition: string; giftNotes: string;
   }>>(
     (m.properties || []).map((p: any) => ({
       address: p.address || "",
@@ -345,6 +347,12 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       mortgageOutstanding: p.mortgageOutstanding ?? 0,
       mortgageLender: p.mortgageLender || "",
       propertyNotes: p.propertyNotes || "",
+      giftOfProperty: p.giftOfProperty ?? 0,
+      giftRecipientGroup: p.giftRecipientGroup || "",
+      giftRecipientName: p.giftRecipientName || "",
+      giftRecipientAddress: p.giftRecipientAddress || "",
+      giftCondition: p.giftCondition || "",
+      giftNotes: p.giftNotes || "",
     }))
   );
 
@@ -528,13 +536,13 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       ops.push(saveGifts.mutateAsync({
         matterId: matter.id,
         clientRole: isMirror ? "testator1" : "shared",
-        gifts: gifts1.map(g => ({ ...g, giftType: g.giftType as "monetary" | "asset" | "residue" })),
+        gifts: gifts1.map(g => ({ ...g, giftType: g.giftType as "monetary" | "asset" | "residue" | "property" })),
       }));
       if (isMirror) {
         ops.push(saveGifts.mutateAsync({
           matterId: matter.id,
           clientRole: "testator2",
-          gifts: gifts2.map(g => ({ ...g, giftType: g.giftType as "monetary" | "asset" | "residue" })),
+          gifts: gifts2.map(g => ({ ...g, giftType: g.giftType as "monetary" | "asset" | "residue" | "property" })),
         }));
       }
 
@@ -1059,8 +1067,23 @@ function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: an
   );
 }
 
+const PROPERTY_GIFT_GROUPS = [
+  { value: "", label: "— Named individual —" },
+  { value: "my children", label: "My Children" },
+  { value: "my grandchildren", label: "My Grandchildren" },
+  { value: "my children and grandchildren", label: "My Children & Grandchildren" },
+  { value: "my siblings", label: "My Siblings" },
+  { value: "my parents", label: "My Parents" },
+  { value: "my nieces and nephews", label: "My Nieces & Nephews" },
+  { value: "my cousins", label: "My Cousins" },
+  { value: "my spouse or partner", label: "My Spouse / Partner" },
+  { value: "my stepchildren", label: "My Stepchildren" },
+  { value: "my estate", label: "My Estate (residue)" },
+  { value: "charity", label: "Charity" },
+];
+
 function PropertySection({ rows, onChange }: { rows: any[]; onChange: (r: any[]) => void }) {
-  const addRow = () => onChange([...rows, { address: "", ownershipType: "sole", mortgageOutstanding: 0, mortgageLender: "", propertyNotes: "" }]);
+  const addRow = () => onChange([...rows, { address: "", ownershipType: "sole", mortgageOutstanding: 0, mortgageLender: "", propertyNotes: "", giftOfProperty: false, giftRecipientGroup: "", giftRecipientName: "", giftRecipientAddress: "", giftCondition: "", giftNotes: "" }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1121,6 +1144,61 @@ function PropertySection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
             <Label className="text-xs">Notes</Label>
             <Textarea value={r.propertyNotes} onChange={e => updateRow(i, "propertyNotes", e.target.value)} placeholder="Any additional notes about this property..." rows={2} className="text-sm resize-none" />
           </div>
+
+          {/* Gift of Property Clause */}
+          <div className="border-t border-dashed border-border pt-2 mt-1">
+            <div className="flex items-center gap-2 mb-2">
+              <Switch
+                checked={!!r.giftOfProperty}
+                onCheckedChange={v => updateRow(i, "giftOfProperty", v)}
+                id={`gift-prop-${i}`}
+              />
+              <Label htmlFor={`gift-prop-${i}`} className="text-xs font-medium cursor-pointer">Gift of Property Clause</Label>
+              <span className="text-xs text-muted-foreground">(leave this property to a specific person or group)</span>
+            </div>
+            {!!r.giftOfProperty && (
+              <div className="space-y-2 pl-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Recipient Group</Label>
+                    <Select
+                      value={r.giftRecipientGroup || ""}
+                      onValueChange={v => updateRow(i, "giftRecipientGroup", v)}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder="Select group or named individual" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROPERTY_GIFT_GROUPS.map(g => (
+                          <SelectItem key={g.value || "__named"} value={g.value || "__named"}>{g.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(!r.giftRecipientGroup || r.giftRecipientGroup === "__named") && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Recipient Full Name</Label>
+                      <Input value={r.giftRecipientName || ""} onChange={e => updateRow(i, "giftRecipientName", e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
+                    </div>
+                  )}
+                </div>
+                {(!r.giftRecipientGroup || r.giftRecipientGroup === "__named") && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Recipient Address (optional)</Label>
+                    <SingleLineAddressField value={r.giftRecipientAddress || ""} onChange={v => updateRow(i, "giftRecipientAddress", v)} compact />
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-xs">Condition (optional)</Label>
+                  <Input value={r.giftCondition || ""} onChange={e => updateRow(i, "giftCondition", e.target.value)} placeholder="e.g. subject to surviving me by 30 days" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Gift Notes (optional)</Label>
+                  <Textarea value={r.giftNotes || ""} onChange={e => updateRow(i, "giftNotes", e.target.value)} placeholder="Any additional instructions for this property gift..." rows={2} className="text-sm resize-none" />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -1176,8 +1254,27 @@ function BusinessSection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
   );
 }
 
+const GIFT_RECIPIENT_GROUPS = [
+  { value: "__named", label: "— Named individual —" },
+  { value: "my children", label: "My Children" },
+  { value: "my grandchildren", label: "My Grandchildren" },
+  { value: "my children and grandchildren", label: "My Children & Grandchildren" },
+  { value: "my siblings", label: "My Siblings" },
+  { value: "my parents", label: "My Parents" },
+  { value: "my nieces and nephews", label: "My Nieces & Nephews" },
+  { value: "my cousins", label: "My Cousins" },
+  { value: "my spouse or partner", label: "My Spouse / Partner" },
+  { value: "my stepchildren", label: "My Stepchildren" },
+  { value: "my brothers and sisters", label: "My Brothers & Sisters" },
+  { value: "my aunts and uncles", label: "My Aunts & Uncles" },
+  { value: "my friends", label: "My Friends" },
+  { value: "my estate", label: "My Estate (residue)" },
+  { value: "charity", label: "Charity" },
+  { value: "other", label: "Other group (specify below)" },
+];
+
 function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
-  const addRow = () => onChange([...rows, { recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", _poolId: undefined }]);
+  const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1193,61 +1290,102 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
         </Button>
       </div>
       {rows.length === 0 && <p className="text-xs text-muted-foreground italic">No specific gifts added.</p>}
-      {rows.map((r, i) => (
-        <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gift {i + 1}</span>
-            <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          {matterId !== undefined && (
+      {rows.map((r, i) => {
+        const isGroup = r.recipientGroup && r.recipientGroup !== "__named";
+        return (
+          <div key={i} className="border border-border rounded-lg p-3 space-y-2 bg-card">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gift {i + 1}</span>
+              <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <PersonPickerField
-                matterId={matterId}
-                selectedId={r._poolId}
-                onSelect={p => {
-                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "" }));
-                }}
-                label="Select existing recipient or add new"
-              />
+              <div className="space-y-1">
+                <Label className="text-xs">Gift Type</Label>
+                <Select value={r.giftType} onValueChange={v => updateRow(i, "giftType", v)}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asset">Specific Asset / Item</SelectItem>
+                    <SelectItem value="monetary">Monetary Sum</SelectItem>
+                    <SelectItem value="residue">Share of Residue</SelectItem>
+                    <SelectItem value="property">Property</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Recipient</Label>
+                <Select
+                  value={r.recipientGroup || "__named"}
+                  onValueChange={v => {
+                    updateRow(i, "recipientGroup", v);
+                    if (v !== "__named") {
+                      updateRow(i, "recipientName", "");
+                      updateRow(i, "recipientAddress", "");
+                      updateRow(i, "_poolId", undefined);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Select recipient type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GIFT_RECIPIENT_GROUPS.map(g => (
+                      <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          )}
-          <div className="grid grid-cols-2 gap-2">
+            {/* "Other group" free-text */}
+            {r.recipientGroup === "other" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Specify Group</Label>
+                <Input value={r.recipientName} onChange={e => updateRow(i, "recipientName", e.target.value)} placeholder="e.g. my step-grandchildren" className="h-8 text-sm" />
+              </div>
+            )}
+            {/* Named individual fields */}
+            {!isGroup && r.recipientGroup !== "other" && (
+              <>
+                {matterId !== undefined && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <PersonPickerField
+                      matterId={matterId}
+                      selectedId={r._poolId}
+                      onSelect={p => {
+                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "" }));
+                      }}
+                      label="Select existing recipient or add new"
+                    />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Recipient Full Name</Label>
+                    <Input value={r.recipientName} onChange={e => updateRow(i, "recipientName", e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Recipient Address (optional)</Label>
+                    <SingleLineAddressField
+                      value={r.recipientAddress}
+                      onChange={v => updateRow(i, "recipientAddress", v)}
+                      compact
+                    />
+                  </div>
+                </div>
+              </>
+            )}
             <div className="space-y-1">
-              <Label className="text-xs">Gift Type</Label>
-              <Select value={r.giftType} onValueChange={v => updateRow(i, "giftType", v)}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asset">Specific Asset / Item</SelectItem>
-                  <SelectItem value="monetary">Monetary Sum</SelectItem>
-                  <SelectItem value="residue">Share of Residue</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Recipient Name</Label>
-              <Input value={r.recipientName} onChange={e => updateRow(i, "recipientName", e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
-            </div>
-            <div className="col-span-2 space-y-1">
               <Label className="text-xs">Gift Description</Label>
               <Input value={r.giftDescription} onChange={e => updateRow(i, "giftDescription", e.target.value)}
-                placeholder={r.giftType === "monetary" ? "e.g. £5,000" : "e.g. my gold watch, my car registration AB12 CDE"}
+                placeholder={r.giftType === "monetary" ? "e.g. £5,000" : r.giftType === "property" ? "e.g. my property at 12 Oak Lane, London" : "e.g. my gold watch, my car registration AB12 CDE"}
                 className="h-8 text-sm" />
             </div>
-            <div className="col-span-2 space-y-1">
-              <Label className="text-xs">Recipient Address (optional)</Label>
-              <SingleLineAddressField
-                value={r.recipientAddress}
-                onChange={v => updateRow(i, "recipientAddress", v)}
-                compact
-              />
-            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
