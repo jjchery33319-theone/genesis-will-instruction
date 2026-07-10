@@ -171,7 +171,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   // ── Property & Assets ──────────────────────────────────────────────────────
   propertyOwned: varchar("propertyOwned", { length: 8 }),
   propertyAddress: text("propertyAddress"),
-  propertyOwnership: varchar("propertyOwnership", { length: 32 }),
+  propertyOwnership: varchar("propertyOwnership", { length: 64 }),
   mortgageOutstanding: varchar("mortgageOutstanding", { length: 8 }),
   mortgageBalance: varchar("mortgageBalance", { length: 100 }),
   mortgageTermRemaining: varchar("mortgageTermRemaining", { length: 100 }),
