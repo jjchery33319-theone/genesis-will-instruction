@@ -367,7 +367,9 @@ export const willInstructionsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const referenceNumber = `GEP-${Date.now().toString(36).toUpperCase()}-${nanoid(4).toUpperCase()}`;
+      const surname = (input.client1LastName ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "") || "CLIENT";
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
+      const referenceNumber = `GEP-${surname}-${randomNum}`;
 
       // Use manual needs assessment if provided; skip AI generation
       let recommendations: Array<{ id: string; title: string; reason: string; priority: "high" | "medium" | "low" }> = [];
@@ -581,7 +583,9 @@ export const willInstructionsRouter = router({
           return { success: true, draftId };
         } else {
           // Create new draft with a reference number
-          const referenceNumber = `GEP-DRAFT-${Date.now().toString(36).toUpperCase()}`;
+          const draftSurname = (draftData.client1LastName ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "") || "DRAFT";
+          const draftRandomNum = Math.floor(100000 + Math.random() * 900000);
+          const referenceNumber = `GEP-${draftSurname}-${draftRandomNum}`;
           await db.insert(willInstructions).values({ ...draftData, referenceNumber });
           const [record] = await db
             .select({ id: willInstructions.id })
