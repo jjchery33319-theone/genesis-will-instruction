@@ -6527,7 +6527,7 @@ async function generateWillDocx(record, opts) {
 // server/_core/index.ts
 init_db();
 init_schema();
-import { eq as eq6 } from "drizzle-orm";
+import { eq as eq6, sql } from "drizzle-orm";
 
 // server/lpaFillPdf.ts
 import { PDFDocument as PDFDocument2 } from "pdf-lib";
@@ -11066,6 +11066,32 @@ async function createApp() {
   const app = express();
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.get("/api/debug", async (_req, res) => {
+    const hasDbUrl = !!process.env.DATABASE_URL;
+    const dbUrlLen = (process.env.DATABASE_URL ?? "").length;
+    let dbOk = false;
+    let dbError = "";
+    try {
+      const db = await getDb();
+      if (db) {
+        const result = await db.execute(sql`SELECT 1 as test`);
+        dbOk = true;
+      } else {
+        dbError = "getDb() returned null";
+      }
+    } catch (e) {
+      dbError = e.message ?? String(e);
+    }
+    res.json({
+      dbUrlSet: hasDbUrl,
+      dbUrlLength: dbUrlLen,
+      dbConnected: dbOk,
+      dbError: dbError || void 0,
+      nodeEnv: process.env.NODE_ENV,
+      vercel: !!process.env.VERCEL,
+      ts: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.get("/api/submissions/:id/pdf", async (req, res) => {
