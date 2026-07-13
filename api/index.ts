@@ -1,17 +1,16 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createApp } from "../server/_core/index";
 
-let appPromise: Promise<any> | null = null;
+let appPromise: ReturnType<typeof createApp> | null = null;
 let loadError: string | null = null;
 
 function getApp() {
   if (!appPromise) {
-    appPromise = import("../server/_core/index")
-      .then(m => m.createApp())
-      .catch((err: unknown) => {
-        loadError = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
-        console.error("[API] Failed to load app:", loadError);
-        return null;
-      });
+    appPromise = createApp().catch((err: unknown) => {
+      loadError = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
+      console.error("[API] createApp failed:", loadError);
+      return null as any;
+    });
   }
   return appPromise;
 }
@@ -20,16 +19,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const app = await getApp();
     if (!app) {
-      res.status(500).json({
-        error: "App failed to load",
-        detail: loadError,
-      });
+      res.status(500).json({ error: "App failed to initialize", detail: loadError });
       return;
     }
     app(req, res);
   } catch (err: unknown) {
     const message = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
-    console.error("[API Handler] Runtime error:", message);
-    res.status(500).json({ error: "Runtime error", detail: message });
+    console.error("[API] Handler error:", message);
+    res.status(500).json({ error: "Handler error", detail: message });
   }
 }
