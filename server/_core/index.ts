@@ -12,7 +12,7 @@ import { generateWillHtml, type WillHtmlOptions } from "../willHtmlGenerator";
 import { generateWillDocx } from "../willDocxGenerator";
 import { getDb } from "../db";
 import { willInstructions, lpaRecords } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import path from "path";
 import { fillLpaPdf } from "../lpaFillPdf";
 // NOTE: Vite dev server and static file serving are in start.ts (local dev only).
@@ -33,6 +33,36 @@ async function createApp() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Debug endpoint to diagnose database connectivity
+  app.get("/api/debug", async (_req, res) => {
+    const hasDbUrl = !!process.env.DATABASE_URL;
+    const dbUrlLen = (process.env.DATABASE_URL ?? "").length;
+    let dbOk = false;
+    let dbError = "";
+    try {
+      const db = await getDb();
+      if (db) {
+        // Try a simple query
+        const result = await db.execute(sql`SELECT 1 as test`);
+        dbOk = true;
+      } else {
+        dbError = "getDb() returned null";
+      }
+    } catch (e: any) {
+      dbError = e.message ?? String(e);
+    }
+    res.json({
+      dbUrlSet: hasDbUrl,
+      dbUrlLength: dbUrlLen,
+      dbConnected: dbOk,
+      dbError: dbError || undefined,
+      nodeEnv: process.env.NODE_ENV,
+      vercel: !!process.env.VERCEL,
+      ts: new Date().toISOString(),
+    });
+  });
+
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // PDF export endpoint
