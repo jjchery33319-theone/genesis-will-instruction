@@ -468,15 +468,15 @@ export const willInstructionsRouter = router({
           );
         });
 
-      // Send client confirmation email (non-blocking)
-      sendClientConfirmationEmail(record).catch(e =>
-        console.error("[ClientEmail] Failed to send client confirmation:", e)
-      );
-
-      // Send adviser confirmation email (non-blocking)
-      sendAdviserConfirmationEmail(record).catch(e =>
-        console.error("[AdviserEmail] Failed to send adviser confirmation:", e)
-      );
+      // Send client & adviser confirmation emails (awaited so they complete before the response)
+      await Promise.allSettled([
+        sendClientConfirmationEmail(record).catch(e =>
+          console.error("[ClientEmail] Failed to send client confirmation:", e)
+        ),
+        sendAdviserConfirmationEmail(record).catch(e =>
+          console.error("[AdviserEmail] Failed to send adviser confirmation:", e)
+        ),
+      ]);
 
       return { success: true, referenceNumber, id: record.id, recommendations, narrative, clientEmailDraft };
     }),
