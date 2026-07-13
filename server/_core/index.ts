@@ -16,7 +16,8 @@ import { willInstructions, lpaRecords } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import path from "path";
 import { fillLpaPdf } from "../lpaFillPdf";
-import { serveStatic, setupVite } from "./vite";
+// NOTE: "./vite" is loaded dynamically in startServer() to avoid pulling
+// Vite dev-dependencies into the Vercel serverless bundle.
 import { generateWillHtml as generateWillV2Html } from "../willV2Generator";
 import { generateCommentaryHtml } from "../willV2Commentary";
 import { generateSigningGuideHtml } from "../willV2SigningGuide";
@@ -787,6 +788,9 @@ async function createApp() {
 async function startServer() {
   const app = await createApp();
   const server = createServer(app);
+
+  // Dynamic import so Vite dev-dependencies are never loaded in production/serverless
+  const { setupVite, serveStatic } = await import("./vite");
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
