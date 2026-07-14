@@ -364,11 +364,17 @@ function LpaEditorForm({
     if (isMatterMode && matterRecord) {
       const clientRole = clientNumber === 1 ? "testator1" : "testator2";
       const client = (matterRecord.clients ?? []).find((c: any) => c.clientRole === clientRole);
-      const nameParts = (client?.fullName ?? "").trim().split(/\s+/);
-      const donorFirstNames = nameParts.slice(0, -1).join(" ") || client?.fullName || "";
-      const donorLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+      // Use individual name fields if available, fall back to parsing fullName
+      let donorTitle = client?.title ?? "";
+      let donorFirstNames = client?.firstName ? [client.firstName, client.middleName].filter(Boolean).join(" ") : "";
+      let donorLastName = client?.lastName ?? "";
+      if (!donorFirstNames && !donorLastName && client?.fullName) {
+        const nameParts = client.fullName.trim().split(/\s+/);
+        donorFirstNames = nameParts.slice(0, -1).join(" ") || client.fullName || "";
+        donorLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+      }
       return {
-        donorTitle: "",
+        donorTitle,
         donorFirstNames,
         donorLastName,
         donorDob: client?.dateOfBirth ?? "",
@@ -1058,11 +1064,16 @@ export default function LpaManager() {
       if (isMatterMode && matterRecord) {
         const role = targetClientNumber === 1 ? "testator1" : "testator2";
         const client = (matterRecord.clients ?? []).find((c: any) => c.clientRole === role);
-        const nameParts = (client?.fullName ?? "").trim().split(/\s+/);
-        const donorFirstNames = nameParts.slice(0, -1).join(" ") || client?.fullName || "";
-        const donorLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+        let donorTitle = client?.title ?? "";
+        let donorFirstNames = client?.firstName ? [client.firstName, client.middleName].filter(Boolean).join(" ") : "";
+        let donorLastName = client?.lastName ?? "";
+        if (!donorFirstNames && !donorLastName && client?.fullName) {
+          const nameParts = client.fullName.trim().split(/\s+/);
+          donorFirstNames = nameParts.slice(0, -1).join(" ") || client.fullName || "";
+          donorLastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+        }
         return {
-          donorTitle: "",
+          donorTitle,
           donorFirstNames,
           donorLastName,
           donorDob: client?.dateOfBirth ?? "",

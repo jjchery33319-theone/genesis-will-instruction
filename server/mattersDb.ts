@@ -41,11 +41,31 @@ import {
   matterPeoplePool,
   type MatterPersonPool,
 } from "../drizzle/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
+
+// ── Auto-migration for new columns ───────────────────────────────────────────
+let _migrated = false;
+async function ensureClientNameColumns(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
+  if (_migrated) return;
+  _migrated = true;
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN title VARCHAR(20) AFTER client_role`);
+  } catch { /* column already exists */ }
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN first_name VARCHAR(128) AFTER title`);
+  } catch { /* column already exists */ }
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN middle_name VARCHAR(128) AFTER first_name`);
+  } catch { /* column already exists */ }
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN last_name VARCHAR(128) AFTER middle_name`);
+  } catch { /* column already exists */ }
+}
 
 async function d() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  await ensureClientNameColumns(db);
   return db;
 }
 

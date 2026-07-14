@@ -225,20 +225,36 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   }, [isDirty, onDirty]);
 
   // ── Client state ──────────────────────────────────────────────────────────
-  const [t1, setT1] = useState({
-    fullName: m.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "",
-    address: m.clients?.find((c: any) => c.clientRole === "testator1")?.address || "",
-    dateOfBirth: m.clients?.find((c: any) => c.clientRole === "testator1")?.dateOfBirth || "",
-    email: m.clients?.find((c: any) => c.clientRole === "testator1")?.email || "",
-    phone: m.clients?.find((c: any) => c.clientRole === "testator1")?.phone || "",
-  });
-  const [t2, setT2] = useState({
-    fullName: m.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "",
-    address: m.clients?.find((c: any) => c.clientRole === "testator2")?.address || "",
-    dateOfBirth: m.clients?.find((c: any) => c.clientRole === "testator2")?.dateOfBirth || "",
-    email: m.clients?.find((c: any) => c.clientRole === "testator2")?.email || "",
-    phone: m.clients?.find((c: any) => c.clientRole === "testator2")?.phone || "",
-  });
+  const initClient = (role: string) => {
+    const c = m.clients?.find((c: any) => c.clientRole === role);
+    // Backward compat: if individual fields are empty but fullName exists, parse it
+    let title = c?.title || "";
+    let firstName = c?.firstName || "";
+    let middleName = c?.middleName || "";
+    let lastName = c?.lastName || "";
+    if (!firstName && !lastName && c?.fullName) {
+      const parts = c.fullName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        firstName = parts.slice(0, -1).join(" ");
+        lastName = parts[parts.length - 1];
+      } else {
+        firstName = c.fullName;
+      }
+    }
+    return {
+      title,
+      firstName,
+      middleName,
+      lastName,
+      fullName: c?.fullName || [title, firstName, middleName, lastName].filter(Boolean).join(" ").trim(),
+      address: c?.address || "",
+      dateOfBirth: c?.dateOfBirth || "",
+      email: c?.email || "",
+      phone: c?.phone || "",
+    };
+  };
+  const [t1, setT1] = useState(initClient("testator1"));
+  const [t2, setT2] = useState(initClient("testator2"));
 
   // ── Executor state ────────────────────────────────────────────────────────
   const toExecRows = (role: string) =>
@@ -979,19 +995,53 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 // ── Sub-sections ──────────────────────────────────────────────────────────────
 
 function ClientSection({ label, data, onChange }: { label: string; data: any; onChange: (d: any) => void }) {
+  const updateField = (field: string, value: string) => {
+    const updated = { ...data, [field]: value };
+    // Auto-compute fullName from parts
+    updated.fullName = [updated.title, updated.firstName, updated.middleName, updated.lastName].filter(Boolean).join(" ").trim();
+    onChange(updated);
+  };
+
   return (
     <div className="space-y-3">
       <h3 className="font-medium text-sm">{label}</h3>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs">Full Legal Name *</Label>
-          <Input value={data.fullName} onChange={e => onChange({ ...data, fullName: e.target.value })} placeholder="Full name as it appears on ID" className="h-8 text-sm" />
+          <Label className="text-xs">Title *</Label>
+          <Select value={data.title ?? ""} onValueChange={v => updateField("title", v)}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Select…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Mr">Mr</SelectItem>
+              <SelectItem value="Mrs">Mrs</SelectItem>
+              <SelectItem value="Miss">Miss</SelectItem>
+              <SelectItem value="Ms">Ms</SelectItem>
+              <SelectItem value="Dr">Dr</SelectItem>
+              <SelectItem value="Rev">Rev</SelectItem>
+              <SelectItem value="Prof">Prof</SelectItem>
+              <SelectItem value="Mx">Mx</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1">
+          <Label className="text-xs">First Name *</Label>
+          <Input value={data.firstName ?? ""} onChange={e => updateField("firstName", e.target.value)} placeholder="First name" className="h-8 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Middle Name</Label>
+          <Input value={data.middleName ?? ""} onChange={e => updateField("middleName", e.target.value)} placeholder="Middle name(s)" className="h-8 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Last Name *</Label>
+          <Input value={data.lastName ?? ""} onChange={e => updateField("lastName", e.target.value)} placeholder="Last name" className="h-8 text-sm" />
+        </div>
+        <div className="col-span-2 space-y-1">
           <Label className="text-xs">Date of Birth</Label>
           <Input type="date" value={data.dateOfBirth} onChange={e => onChange({ ...data, dateOfBirth: e.target.value })} className="h-8 text-sm" />
         </div>
-        <div className="col-span-2 space-y-1">
+        <div className="col-span-2" />
+        <div className="col-span-4 space-y-1">
           <Label className="text-xs">Full Address</Label>
           <SingleLineAddressField
             value={data.address}
@@ -999,11 +1049,11 @@ function ClientSection({ label, data, onChange }: { label: string; data: any; on
             compact
           />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-2 space-y-1">
           <Label className="text-xs">Email</Label>
           <Input type="email" value={data.email} onChange={e => onChange({ ...data, email: e.target.value })} placeholder="email@example.com" className="h-8 text-sm" />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-2 space-y-1">
           <Label className="text-xs">Phone</Label>
           <Input type="tel" value={data.phone} onChange={e => onChange({ ...data, phone: e.target.value })} placeholder="+44 7700 000000" className="h-8 text-sm" />
         </div>
