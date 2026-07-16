@@ -627,7 +627,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   THIS IS THE LAST WILL AND TESTAMENT of me, <strong>${name}</strong>,
   ${dob !== "_______________" ? `born on <strong>${dob}</strong>,` : ""}
   of <strong>${address}</strong>,
-  made this ${today()}.
+  made this the <span style="text-decoration:underline;">______ day of ________________________ 20______</span>.
 </p>
 
 <!-- 1. Revocation -->

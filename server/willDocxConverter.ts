@@ -277,7 +277,7 @@ function buildTrustClauseParagraphs(tc: FullMatter["trustClauses"][number], clau
     : "my beneficiaries";
 
   switch (tc.trustType) {
-    case "PPT": {
+    case "PPT": case "ppt": {
       const propertyAddr = tc.propertyAddress || "the property";
       const lifeTenantStr = lifeTenants.length
         ? lifeTenants.map(lt => `[[B]]${lt.name}[[/B]]`).join(" and ")
@@ -287,20 +287,20 @@ function buildTrustClauseParagraphs(tc: FullMatter["trustClauses"][number], clau
       paras.push(body(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "NRB": {
+    case "NRB": case "nrb": {
       paras.push(clauseHeading(`${clauseNum}. Nil Rate Band Discretionary Trust`));
       paras.push(body(`I give to my Trustees a sum equal to the nil rate band for inheritance tax purposes at the date of my death (the "NRB Sum") to hold upon the following trusts.`));
       paras.push(body(`My Trustees shall hold the NRB Sum upon discretionary trust for the benefit of ${bensStr}.`));
       paras.push(body(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "RNRB": {
+    case "RNRB": case "rnrb": {
       paras.push(clauseHeading(`${clauseNum}. Residence Nil Rate Band Trust`));
       paras.push(body(`I direct that my Trustees shall hold my residential property interest upon trust to ensure that the Residence Nil Rate Band is available and maximised for the benefit of my direct descendants.`));
       paras.push(body(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "BPR": {
+    case "BPR": case "bpr": {
       const bizName = tc.namedBeneficiary || "my business interests";
       const ownershipPct = tc.sharePercentage || "100";
       paras.push(clauseHeading(`${clauseNum}. Business Property Relief Trust`));
@@ -308,7 +308,7 @@ function buildTrustClauseParagraphs(tc: FullMatter["trustClauses"][number], clau
       paras.push(body(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "Vulnerable": {
+    case "Vulnerable": case "vulnerable": {
       const benName = tc.namedBeneficiary || "the vulnerable beneficiary";
       const disability = tc.namedBeneficiaryDisability || "their disability";
       paras.push(clauseHeading(`${clauseNum}. Vulnerable Beneficiary Trust`));
@@ -316,14 +316,14 @@ function buildTrustClauseParagraphs(tc: FullMatter["trustClauses"][number], clau
       paras.push(body(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "BereavedMinor": {
+    case "BereavedMinor": case "bereaved_minor": {
       const benName = tc.namedBeneficiary || "my minor children";
       paras.push(clauseHeading(`${clauseNum}. Bereaved Minor Trust`));
       paras.push(body(`I direct my Trustees to hold the share of my Estate for [[B]]${benName}[[/B]] upon a Bereaved Minor Trust pursuant to section 71A of the Inheritance Tax Act 1984, until they attain the age of 18 years.`));
       paras.push(body(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "18to25": {
+    case "18to25": case "age18to25": {
       const benName = tc.namedBeneficiary || "my children";
       const vestAge = tc.ageVesting || 25;
       paras.push(clauseHeading(`${clauseNum}. 18-to-25 Trust`));
@@ -452,7 +452,9 @@ export async function generateWillDocxFromMatter(
       ] : []),
       new TextRun({ text: " of ", size: BODY_SIZE, font: FONT }),
       new TextRun({ text: address, bold: true, size: BODY_SIZE, font: FONT }),
-      new TextRun({ text: `, made this ${todayStr()}.`, size: BODY_SIZE, font: FONT }),
+      new TextRun({ text: ", made this the ", size: BODY_SIZE, font: FONT }),
+      new TextRun({ text: "______ day of ________________________ 20______", size: BODY_SIZE, font: FONT, underline: {} }),
+      new TextRun({ text: ".", size: BODY_SIZE, font: FONT }),
     ],
     alignment: AlignmentType.JUSTIFIED,
     spacing: { before: 0, after: 200 },

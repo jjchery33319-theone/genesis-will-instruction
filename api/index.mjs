@@ -6867,15 +6867,6 @@ function formatDate(iso) {
   if (isNaN(d3.getTime())) return iso;
   return d3.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
-function ordinal(n) {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-function today() {
-  const d3 = /* @__PURE__ */ new Date();
-  return `the ${ordinal(d3.getDate())} day of ${d3.toLocaleDateString("en-GB", { month: "long" })} ${d3.getFullYear()}`;
-}
 function nameAndAddress(p) {
   const displayName = [p.title, p.fullName].filter(Boolean).join(" ") || "_______________";
   const parts = [displayName];
@@ -7377,7 +7368,7 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   THIS IS THE LAST WILL AND TESTAMENT of me, <strong>${name}</strong>,
   ${dob !== "_______________" ? `born on <strong>${dob}</strong>,` : ""}
   of <strong>${address}</strong>,
-  made this ${today()}.
+  made this the <span style="text-decoration:underline;">______ day of ________________________ 20______</span>.
 </p>
 
 <!-- 1. Revocation -->
@@ -9287,7 +9278,7 @@ function willTypeLabel(wt) {
   return map[wt] || wt || "Will";
 }
 function generateWelcomePackHtml(record) {
-  const today2 = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const today = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const isMirror = (record.willType || "").toLowerCase().includes("mirror");
   const c1Name = fullName3(record.client1Prefix, record.client1FirstName, record.client1MiddleName, record.client1LastName);
   const c2Name = isMirror ? fullName3(record.client2Prefix, record.client2FirstName, record.client2MiddleName, record.client2LastName) : "";
@@ -10205,7 +10196,7 @@ function generateWelcomePackHtml(record) {
       <div class="cover-meta-row">
         <div class="cover-meta-item">
           <div class="cover-meta-item-label">Date</div>
-          <div class="cover-meta-item-value">${today2}</div>
+          <div class="cover-meta-item-value">${today}</div>
         </div>
         ${refNum ? `<div class="cover-meta-item">
           <div class="cover-meta-item-label">Reference</div>
@@ -10233,7 +10224,7 @@ function generateWelcomePackHtml(record) {
           ${addressLines.map((l) => `<div class="address-line">${l}</div>`).join("")}
         </div>
 
-        <div class="body-text" style="margin-top:16px"><strong>Date:</strong> ${today2}</div>
+        <div class="body-text" style="margin-top:16px"><strong>Date:</strong> ${today}</div>
 
         <div class="salutation">${salutation}</div>
 
@@ -10847,7 +10838,7 @@ function giftParas(gifts, label) {
   return paras;
 }
 async function generateWelcomePackDocx(record) {
-  const today2 = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const today = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const isMirror = (record.willType || "").toLowerCase().includes("mirror");
   const c1Name = fullName4(record.client1Prefix, record.client1FirstName, record.client1MiddleName, record.client1LastName);
   const c2Name = isMirror ? fullName4(record.client2Prefix, record.client2FirstName, record.client2MiddleName, record.client2LastName) : "";
@@ -10913,7 +10904,7 @@ async function generateWelcomePackDocx(record) {
       spacing: { after: 120 }
     }),
     new Paragraph2({
-      children: [new TextRun2({ text: today2, size: 22, color: "6B7280" })],
+      children: [new TextRun2({ text: today, size: 22, color: "6B7280" })],
       alignment: AlignmentType2.CENTER,
       spacing: { after: 120 }
     }),
@@ -10932,7 +10923,7 @@ async function generateWelcomePackDocx(record) {
   );
   children.push(
     heading1("Welcome Letter"),
-    boldBodyPara("Date", today2),
+    boldBodyPara("Date", today),
     new Paragraph2({
       children: [new TextRun2({ text: "Strictly Private and Confidential", bold: true, size: 20 })],
       spacing: { after: 120 }
@@ -11209,7 +11200,7 @@ async function generateWelcomePackDocx(record) {
             new Paragraph2({
               children: [
                 new TextRun2({ text: "Genesis Wills and Estate Planning  |  Confidential  |  ", color: "9CA3AF", size: 14 }),
-                new TextRun2({ text: today2, color: "9CA3AF", size: 14 })
+                new TextRun2({ text: today, color: "9CA3AF", size: 14 })
               ],
               alignment: AlignmentType2.CENTER,
               spacing: { before: 80 }
@@ -11262,15 +11253,6 @@ function formatDate2(iso) {
   const d3 = new Date(iso);
   if (isNaN(d3.getTime())) return iso;
   return d3.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-}
-function ordinal2(n) {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-function todayStr() {
-  const d3 = /* @__PURE__ */ new Date();
-  return `the ${ordinal2(d3.getDate())} day of ${d3.toLocaleDateString("en-GB", { month: "long" })} ${d3.getFullYear()}`;
 }
 function nameAndAddr(p) {
   const displayName = [p.title, p.fullName].filter(Boolean).join(" ") || "_______________";
@@ -11443,7 +11425,8 @@ function buildTrustClauseParagraphs(tc, clauseNum) {
   const trusteeStr = trustees.length ? trustees.map((t2) => `[[B]]${t2.name}[[/B]]${t2.address ? ` of ${t2.address}` : ""}`).join(" and ") : "my Executors";
   const bensStr = beneficiaries.length ? beneficiaries.map((b) => `[[B]]${b.name}[[/B]]${b.relationship ? ` (${b.relationship})` : ""}`).join(" and ") : "my beneficiaries";
   switch (tc.trustType) {
-    case "PPT": {
+    case "PPT":
+    case "ppt": {
       const propertyAddr = tc.propertyAddress || "the property";
       const lifeTenantStr = lifeTenants.length ? lifeTenants.map((lt) => `[[B]]${lt.name}[[/B]]`).join(" and ") : "my surviving spouse/civil partner";
       paras.push(clauseHeading3(`${clauseNum}. Protective Property Trust`));
@@ -11451,20 +11434,23 @@ function buildTrustClauseParagraphs(tc, clauseNum) {
       paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "NRB": {
+    case "NRB":
+    case "nrb": {
       paras.push(clauseHeading3(`${clauseNum}. Nil Rate Band Discretionary Trust`));
       paras.push(body2(`I give to my Trustees a sum equal to the nil rate band for inheritance tax purposes at the date of my death (the "NRB Sum") to hold upon the following trusts.`));
       paras.push(body2(`My Trustees shall hold the NRB Sum upon discretionary trust for the benefit of ${bensStr}.`));
       paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "RNRB": {
+    case "RNRB":
+    case "rnrb": {
       paras.push(clauseHeading3(`${clauseNum}. Residence Nil Rate Band Trust`));
       paras.push(body2(`I direct that my Trustees shall hold my residential property interest upon trust to ensure that the Residence Nil Rate Band is available and maximised for the benefit of my direct descendants.`));
       paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "BPR": {
+    case "BPR":
+    case "bpr": {
       const bizName = tc.namedBeneficiary || "my business interests";
       const ownershipPct = tc.sharePercentage || "100";
       paras.push(clauseHeading3(`${clauseNum}. Business Property Relief Trust`));
@@ -11472,7 +11458,8 @@ function buildTrustClauseParagraphs(tc, clauseNum) {
       paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "Vulnerable": {
+    case "Vulnerable":
+    case "vulnerable": {
       const benName = tc.namedBeneficiary || "the vulnerable beneficiary";
       const disability = tc.namedBeneficiaryDisability || "their disability";
       paras.push(clauseHeading3(`${clauseNum}. Vulnerable Beneficiary Trust`));
@@ -11480,14 +11467,16 @@ function buildTrustClauseParagraphs(tc, clauseNum) {
       paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "BereavedMinor": {
+    case "BereavedMinor":
+    case "bereaved_minor": {
       const benName = tc.namedBeneficiary || "my minor children";
       paras.push(clauseHeading3(`${clauseNum}. Bereaved Minor Trust`));
       paras.push(body2(`I direct my Trustees to hold the share of my Estate for [[B]]${benName}[[/B]] upon a Bereaved Minor Trust pursuant to section 71A of the Inheritance Tax Act 1984, until they attain the age of 18 years.`));
       paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
       break;
     }
-    case "18to25": {
+    case "18to25":
+    case "age18to25": {
       const benName = tc.namedBeneficiary || "my children";
       const vestAge = tc.ageVesting || 25;
       paras.push(clauseHeading3(`${clauseNum}. 18-to-25 Trust`));
@@ -11604,7 +11593,9 @@ async function generateWillDocxFromMatter(matter, testatorRole = "testator1") {
       ] : [],
       new TextRun3({ text: " of ", size: BODY_SIZE, font: FONT }),
       new TextRun3({ text: address, bold: true, size: BODY_SIZE, font: FONT }),
-      new TextRun3({ text: `, made this ${todayStr()}.`, size: BODY_SIZE, font: FONT })
+      new TextRun3({ text: ", made this the ", size: BODY_SIZE, font: FONT }),
+      new TextRun3({ text: "______ day of ________________________ 20______", size: BODY_SIZE, font: FONT, underline: {} }),
+      new TextRun3({ text: ".", size: BODY_SIZE, font: FONT })
     ],
     alignment: AlignmentType3.JUSTIFIED,
     spacing: { before: 0, after: 200 }
