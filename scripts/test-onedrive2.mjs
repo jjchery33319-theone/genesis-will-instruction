@@ -1,9 +1,9 @@
 import { ConfidentialClientApplication } from "@azure/msal-node";
 import fetch from "node-fetch";
 
-const clientId = "72a94d8c-af1d-4152-a690-fdb4a88d0267";
-const tenantId = "dc328c91-3398-4532-9e19-64fa2c134581";
-const clientSecret = "ist8Q~IOljiEDSaoDS0NPjuRy0uM5hxmB9UGBcdr";
+const clientId = process.env.AZURE_CLIENT_ID ?? "";
+const tenantId = process.env.AZURE_TENANT_ID ?? "";
+const clientSecret = process.env.AZURE_CLIENT_SECRET ?? "";
 const targetEmail = "jacques.chery@rightwaywills.com";
 
 const cca = new ConfidentialClientApplication({

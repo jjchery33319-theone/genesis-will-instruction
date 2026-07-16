@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, tinyint, bigint } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, json, tinyint, bigint } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -249,12 +249,12 @@ export const willInstructions = mysqlTable("will_instructions", {
   aiClientEmailDraft: text("aiClientEmailDraft"),
 
   // ── Edited Will HTML (manual back-office edits saved per willType) ───────────
-  editedWillHtmlSingle: text("editedWillHtmlSingle"),
-  editedWillHtmlClient1: text("editedWillHtmlClient1"),
-  editedWillHtmlClient2: text("editedWillHtmlClient2"),
+  editedWillHtmlSingle: mediumtext("editedWillHtmlSingle"),
+  editedWillHtmlClient1: mediumtext("editedWillHtmlClient1"),
+  editedWillHtmlClient2: mediumtext("editedWillHtmlClient2"),
 
   // ── Edited Welcome Pack HTML (manual back-office edits) ──────────────────────
-  editedWelcomePackHtml: text("editedWelcomePackHtml"),
+  editedWelcomePackHtml: mediumtext("editedWelcomePackHtml"),
 
   // ── Meta ───────────────────────────────────────────────────────────────────
   status: mysqlEnum("status", ["draft", "submitted", "processing", "complete", "cancelled"]).default("submitted").notNull(),
@@ -359,8 +359,8 @@ export const matters = mysqlTable("matters", {
   matterType: mysqlEnum("matter_type", ["single", "mirror"]).notNull(),
   fileReference: varchar("file_reference", { length: 100 }),
   status: mysqlEnum("status", ["draft", "complete"]).default("draft").notNull(),
-  editedWillHtmlTestator1: text("edited_will_html_testator1"),
-  editedWillHtmlTestator2: text("edited_will_html_testator2"),
+  editedWillHtmlTestator1: mediumtext("edited_will_html_testator1"),
+  editedWillHtmlTestator2: mediumtext("edited_will_html_testator2"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
