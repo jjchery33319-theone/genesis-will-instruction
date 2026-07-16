@@ -111,7 +111,7 @@ export default function Step7Wishes({ data, onChange }: Props) {
             hint="The residuary estate is everything left after specific gifts and debts have been paid"
           >
             <Textarea
-              rows={3}
+              rows={5}
               value={data.residuaryEstate ?? ""}
               onChange={e => onChange({ residuaryEstate: e.target.value })}
               placeholder="e.g. To my spouse absolutely, or if they predecease me, equally between my children…"
@@ -123,7 +123,7 @@ export default function Step7Wishes({ data, onChange }: Props) {
             hint="What happens if the primary residuary beneficiary predeceases the client?"
           >
             <Textarea
-              rows={3}
+              rows={5}
               value={data.residuaryBackup ?? ""}
               onChange={e => onChange({ residuaryBackup: e.target.value })}
               placeholder="e.g. If my spouse predeceases me, I leave the residue equally between my children…"

@@ -48,7 +48,7 @@ export default function Step13Pets({ data, onChange }: Props) {
 
             <FieldRow label="Pet Details" hint="Type of pet, name, and any relevant information">
               <Textarea
-                rows={3}
+                rows={5}
                 value={data.petsDetails ?? ""}
                 onChange={e => onChange({ petsDetails: e.target.value })}
                 placeholder="e.g. Two cats — Whiskers (5) and Mittens (3). One dog — Buddy (7, Labrador)…"
@@ -60,7 +60,7 @@ export default function Step13Pets({ data, onChange }: Props) {
               hint="Who should take care of the pets? A sum of money can be left to this person for the pets' upkeep"
             >
               <Textarea
-                rows={3}
+                rows={5}
                 value={data.petsCarer ?? ""}
                 onChange={e => onChange({ petsCarer: e.target.value })}
                 placeholder="e.g. Sister — Jane Smith, 12 Oak Lane, London. Leave £2,000 for upkeep on condition she takes the cats…"

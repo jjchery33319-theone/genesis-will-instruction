@@ -126,7 +126,7 @@ export default function Step11BusinessInterests({ data, onChange }: Props) {
 
                 <FieldRow label="Notes" hint="Partnership agreements, shareholder agreements, succession plans, etc.">
                   <Textarea
-                    rows={3}
+                    rows={5}
                     value={biz.notes ?? ""}
                     onChange={e => updateBusiness(index, { notes: e.target.value })}
                     placeholder="e.g. Sole trader, no partnership agreement in place. Client wishes to leave business to son…"

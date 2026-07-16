@@ -167,7 +167,7 @@ function ChildCard({
         <div>
           <Label className="text-xs text-muted-foreground mb-1 block">Special Needs / Vulnerability Details</Label>
           <Textarea
-            rows={2}
+            rows={4}
             value={child.specialNeedsDetails ?? ""}
             onChange={e => u({ specialNeedsDetails: e.target.value })}
             placeholder="Describe the special needs or vulnerability…"
@@ -314,7 +314,7 @@ function ClientChildrenSection({
       {data[`${fieldPrefix}MarriagePlans`] === "yes" && (
         <FieldRow label="Marriage / Civil Partnership Details">
           <Textarea
-            rows={2}
+            rows={4}
             value={data[`${fieldPrefix}MarriagePlanDetails`] ?? ""}
             onChange={e => onChange({ [`${fieldPrefix}MarriagePlanDetails`]: e.target.value } as Partial<WillFormData>)}
             placeholder="e.g. Planning to marry in 2025, partner's name is…"
@@ -368,7 +368,7 @@ function ClientChildrenSection({
           {data[`${fieldPrefix}ChildrenSpecialNeeds`] === "yes" && (
             <FieldRow label="Special Needs / Vulnerability Overview" hint="General overview — you can add detail per child below">
               <Textarea
-                rows={2}
+                rows={4}
                 value={data[`${fieldPrefix}ChildrenSpecialNeedsDetails`] ?? ""}
                 onChange={e => onChange({ [`${fieldPrefix}ChildrenSpecialNeedsDetails`]: e.target.value } as Partial<WillFormData>)}
                 placeholder="e.g. One child has autism and will require ongoing care…"
@@ -473,7 +473,7 @@ function ClientChildrenSection({
       {/* Family circumstances */}
       <FieldRow label="Family Circumstances" hint="Any relevant family background the consultant should note">
         <Textarea
-          rows={3}
+          rows={5}
           value={data[`${fieldPrefix}FamilyCircumstances`] ?? ""}
           onChange={e => onChange({ [`${fieldPrefix}FamilyCircumstances`]: e.target.value } as Partial<WillFormData>)}
           placeholder="e.g. Blended family, estranged relatives, dependants with special needs…"

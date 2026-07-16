@@ -279,7 +279,7 @@ export function PersonList({
           )}
 
           <FieldRow label="Notes">
-            <Textarea className="text-sm resize-none" rows={2} value={person.notes ?? ""} onChange={e => update(index, "notes", e.target.value)} placeholder="Any additional notes…" />
+            <Textarea className="text-sm" rows={4} value={person.notes ?? ""} onChange={e => update(index, "notes", e.target.value)} placeholder="Any additional notes…" />
           </FieldRow>
         </div>
       ))}

@@ -124,7 +124,7 @@ function TextInput({ label, value, onChange, placeholder }: { label: string; val
 function TextAreaInput({ label, value, onChange, rows = 3 }: { label: string; value: string; onChange: (v: string) => void; rows?: number }) {
   return (
     <Field label={label}>
-      <Textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} className="text-sm resize-none" />
+      <Textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} className="text-sm" />
     </Field>
   );
 }
@@ -249,7 +249,7 @@ function PersonEditor({
               <Label className="text-sm">Vulnerable beneficiary</Label>
             </div>
           )}
-          <TextAreaInput label="Notes" value={s(person.notes)} onChange={v => onChange({ ...person, notes: v })} rows={2} />
+          <TextAreaInput label="Notes" value={s(person.notes)} onChange={v => onChange({ ...person, notes: v })} rows={4} />
         </div>
       )}
     </div>
@@ -346,7 +346,7 @@ function GiftEditor({ gift, onChange, onRemove, index }: { gift: GiftEntry; onCh
             <Switch checked={!!gift.isCharity} onCheckedChange={c => onChange({ ...gift, isCharity: c })} />
             <Label className="text-sm">Charity gift</Label>
           </div>
-          <TextAreaInput label="Notes" value={s(gift.notes)} onChange={v => onChange({ ...gift, notes: v })} rows={2} />
+          <TextAreaInput label="Notes" value={s(gift.notes)} onChange={v => onChange({ ...gift, notes: v })} rows={4} />
         </div>
       )}
     </div>
@@ -399,7 +399,7 @@ function PolicyEditor({ policy, onChange, onRemove, index }: { policy: PolicyEnt
             <Switch checked={!!policy.inTrust} onCheckedChange={c => onChange({ ...policy, inTrust: c })} />
             <Label className="text-sm">Written in trust</Label>
           </div>
-          <TextAreaInput label="Notes" value={s(policy.notes)} onChange={v => onChange({ ...policy, notes: v })} rows={2} />
+          <TextAreaInput label="Notes" value={s(policy.notes)} onChange={v => onChange({ ...policy, notes: v })} rows={4} />
         </div>
       )}
     </div>
@@ -861,7 +861,7 @@ export default function AdminSubmissionEditor() {
                 <YesNoInput label="Has Vulnerable Beneficiary?" value={f("client1HasVulnerableBeneficiary")} onChange={v => set("client1HasVulnerableBeneficiary", v)} />
               </Row>
               {f("client1HasVulnerableBeneficiary") === "yes" && (
-                <TextAreaInput label="Vulnerable Beneficiary Details" value={f("client1VulnerableBeneficiaryDetails")} onChange={v => set("client1VulnerableBeneficiaryDetails", v)} rows={2} />
+                <TextAreaInput label="Vulnerable Beneficiary Details" value={f("client1VulnerableBeneficiaryDetails")} onChange={v => set("client1VulnerableBeneficiaryDetails", v)} rows={4} />
               )}
             </SectionCard>
             {isMirror && (
@@ -877,7 +877,7 @@ export default function AdminSubmissionEditor() {
                   <YesNoInput label="Has Vulnerable Beneficiary?" value={f("client2HasVulnerableBeneficiary")} onChange={v => set("client2HasVulnerableBeneficiary", v)} />
                 </Row>
                 {f("client2HasVulnerableBeneficiary") === "yes" && (
-                  <TextAreaInput label="Vulnerable Beneficiary Details" value={f("client2VulnerableBeneficiaryDetails")} onChange={v => set("client2VulnerableBeneficiaryDetails", v)} rows={2} />
+                  <TextAreaInput label="Vulnerable Beneficiary Details" value={f("client2VulnerableBeneficiaryDetails")} onChange={v => set("client2VulnerableBeneficiaryDetails", v)} rows={4} />
                 )}
               </SectionCard>
             )}
@@ -910,7 +910,7 @@ export default function AdminSubmissionEditor() {
                 <SelectInput label="Ownership Type" value={f("propertyOwnership")} onChange={v => set("propertyOwnership", v)} options={[{ value: "sole", label: "Sole" }, { value: "joint_tenants", label: "Joint Tenants" }, { value: "tenants_in_common", label: "Tenants in Common" }]} />
                 <TextInput label="Property Value (£)" value={f("propertyValue")} onChange={v => set("propertyValue", v)} />
               </Row>
-              <TextAreaInput label="Property Address" value={f("propertyAddress")} onChange={v => set("propertyAddress", v)} rows={2} />
+              <TextAreaInput label="Property Address" value={f("propertyAddress")} onChange={v => set("propertyAddress", v)} rows={4} />
               <Row>
                 <YesNoInput label="Mortgage Outstanding?" value={f("mortgageOutstanding")} onChange={v => set("mortgageOutstanding", v)} />
                 <TextInput label="Mortgage Balance (£)" value={f("mortgageBalance")} onChange={v => set("mortgageBalance", v)} />
@@ -921,22 +921,22 @@ export default function AdminSubmissionEditor() {
                 <YesNoInput label="Other Properties?" value={f("hasOtherProperties")} onChange={v => set("hasOtherProperties", v)} />
                 <YesNoInput label="Assets Outside UK?" value={f("assetsOutsideUK")} onChange={v => set("assetsOutsideUK", v)} />
               </Row>
-              {f("hasOtherProperties") === "yes" && <TextAreaInput label="Other Properties Details" value={f("otherProperties")} onChange={v => set("otherProperties", v)} rows={2} />}
-              {f("assetsOutsideUK") === "yes" && <TextAreaInput label="Assets Outside UK Details" value={f("assetsOutsideUKDetails")} onChange={v => set("assetsOutsideUKDetails", v)} rows={2} />}
+              {f("hasOtherProperties") === "yes" && <TextAreaInput label="Other Properties Details" value={f("otherProperties")} onChange={v => set("otherProperties", v)} rows={4} />}
+              {f("assetsOutsideUK") === "yes" && <TextAreaInput label="Assets Outside UK Details" value={f("assetsOutsideUKDetails")} onChange={v => set("assetsOutsideUKDetails", v)} rows={4} />}
             </SectionCard>
 
             <SectionCard title={`${client1Name} — Financial Assets`} icon={<Home className="w-4 h-4" />}>
-              <TextAreaInput label="Bank Accounts" value={f("bankAccounts")} onChange={v => set("bankAccounts", v)} rows={2} />
-              <TextAreaInput label="Investments" value={f("investments")} onChange={v => set("investments", v)} rows={2} />
-              <TextAreaInput label="Pension Details" value={f("pensionDetails")} onChange={v => set("pensionDetails", v)} rows={2} />
+              <TextAreaInput label="Bank Accounts" value={f("bankAccounts")} onChange={v => set("bankAccounts", v)} rows={4} />
+              <TextAreaInput label="Investments" value={f("investments")} onChange={v => set("investments", v)} rows={4} />
+              <TextAreaInput label="Pension Details" value={f("pensionDetails")} onChange={v => set("pensionDetails", v)} rows={4} />
               <TextInput label="Estimated Estate Value (£)" value={f("estimatedEstateValue")} onChange={v => set("estimatedEstateValue", v)} />
             </SectionCard>
 
             {isMirror && (
               <SectionCard title={`${client2Name} — Financial Assets`} icon={<Home className="w-4 h-4" />}>
-                <TextAreaInput label="Bank Accounts" value={f("client2BankAccounts")} onChange={v => set("client2BankAccounts", v)} rows={2} />
-                <TextAreaInput label="Investments" value={f("client2Investments")} onChange={v => set("client2Investments", v)} rows={2} />
-                <TextAreaInput label="Pension Details" value={f("client2PensionDetails")} onChange={v => set("client2PensionDetails", v)} rows={2} />
+                <TextAreaInput label="Bank Accounts" value={f("client2BankAccounts")} onChange={v => set("client2BankAccounts", v)} rows={4} />
+                <TextAreaInput label="Investments" value={f("client2Investments")} onChange={v => set("client2Investments", v)} rows={4} />
+                <TextAreaInput label="Pension Details" value={f("client2PensionDetails")} onChange={v => set("client2PensionDetails", v)} rows={4} />
                 <TextInput label="Estimated Estate Value (£)" value={f("client2EstimatedEstateValue")} onChange={v => set("client2EstimatedEstateValue", v)} />
               </SectionCard>
             )}
@@ -962,7 +962,7 @@ export default function AdminSubmissionEditor() {
                       />
                     ))}
                   </div>
-                  <TextAreaInput label="Life Insurance Notes" value={f("lifeInsuranceNotes")} onChange={v => set("lifeInsuranceNotes", v)} rows={2} />
+                  <TextAreaInput label="Life Insurance Notes" value={f("lifeInsuranceNotes")} onChange={v => set("lifeInsuranceNotes", v)} rows={4} />
                 </>
               )}
             </SectionCard>
@@ -971,7 +971,7 @@ export default function AdminSubmissionEditor() {
               <YesNoInput label="Has Business Interests?" value={f("hasBusinessInterests")} onChange={v => set("hasBusinessInterests", v)} />
               {f("hasBusinessInterests") === "yes" && (
                 <>
-                  <TextAreaInput label="Business Interests Overview" value={f("businessInterests")} onChange={v => set("businessInterests", v)} rows={2} />
+                  <TextAreaInput label="Business Interests Overview" value={f("businessInterests")} onChange={v => set("businessInterests", v)} rows={4} />
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">Business Entries</span>
@@ -1002,7 +1002,7 @@ export default function AdminSubmissionEditor() {
               <Row>
                 <YesNoInput label="Care Concerns?" value={f("careConcerns")} onChange={v => set("careConcerns", v)} />
               </Row>
-              {f("careConcerns") === "yes" && <TextAreaInput label="Care Concern Details" value={f("careConcernDetails")} onChange={v => set("careConcernDetails", v)} rows={2} />}
+              {f("careConcerns") === "yes" && <TextAreaInput label="Care Concern Details" value={f("careConcernDetails")} onChange={v => set("careConcernDetails", v)} rows={4} />}
             </SectionCard>
           </TabsContent>
 
@@ -1035,8 +1035,8 @@ export default function AdminSubmissionEditor() {
               <YesNoInput label="Has Pets?" value={f("hasPets")} onChange={v => set("hasPets", v)} />
               {f("hasPets") === "yes" && (
                 <>
-                  <TextAreaInput label="Pets Details" value={f("petsDetails")} onChange={v => set("petsDetails", v)} rows={2} />
-                  <TextAreaInput label="Pets Carer" value={f("petsCarer")} onChange={v => set("petsCarer", v)} rows={2} />
+                  <TextAreaInput label="Pets Details" value={f("petsDetails")} onChange={v => set("petsDetails", v)} rows={4} />
+                  <TextAreaInput label="Pets Carer" value={f("petsCarer")} onChange={v => set("petsCarer", v)} rows={4} />
                 </>
               )}
             </SectionCard>
@@ -1053,13 +1053,13 @@ export default function AdminSubmissionEditor() {
                 <YesNoInput label="Has Children?" value={f("client1HasChildren")} onChange={v => set("client1HasChildren", v)} />
                 <TextInput label="Total Children" value={f("client1TotalChildren")} onChange={v => set("client1TotalChildren", v)} />
               </Row>
-              {f("client1MarriagePlans") === "yes" && <TextAreaInput label="Marriage Plan Details" value={f("client1MarriagePlanDetails")} onChange={v => set("client1MarriagePlanDetails", v)} rows={2} />}
+              {f("client1MarriagePlans") === "yes" && <TextAreaInput label="Marriage Plan Details" value={f("client1MarriagePlanDetails")} onChange={v => set("client1MarriagePlanDetails", v)} rows={4} />}
               <Row>
                 <YesNoInput label="Children with Special Needs?" value={f("client1ChildrenSpecialNeeds")} onChange={v => set("client1ChildrenSpecialNeeds", v)} />
                 <YesNoInput label="Children from Past Relationships?" value={f("client1ChildrenPastRelationships")} onChange={v => set("client1ChildrenPastRelationships", v)} />
               </Row>
-              {f("client1ChildrenSpecialNeeds") === "yes" && <TextAreaInput label="Special Needs Details" value={f("client1ChildrenSpecialNeedsDetails")} onChange={v => set("client1ChildrenSpecialNeedsDetails", v)} rows={2} />}
-              {f("client1ChildrenPastRelationships") === "yes" && <TextAreaInput label="Past Relationship Children Details" value={f("client1ChildrenPastDetails")} onChange={v => set("client1ChildrenPastDetails", v)} rows={2} />}
+              {f("client1ChildrenSpecialNeeds") === "yes" && <TextAreaInput label="Special Needs Details" value={f("client1ChildrenSpecialNeedsDetails")} onChange={v => set("client1ChildrenSpecialNeedsDetails", v)} rows={4} />}
+              {f("client1ChildrenPastRelationships") === "yes" && <TextAreaInput label="Past Relationship Children Details" value={f("client1ChildrenPastDetails")} onChange={v => set("client1ChildrenPastDetails", v)} rows={4} />}
               <TextAreaInput label="Family Circumstances" value={f("client1FamilyCircumstances")} onChange={v => set("client1FamilyCircumstances", v)} rows={3} />
             </SectionCard>
             <SectionCard title={`${client1Name} — Additional Background`} icon={<User className="w-4 h-4" />}>
@@ -1068,7 +1068,7 @@ export default function AdminSubmissionEditor() {
                 <YesNoInput label="Domiciled in UK?" value={f("client1DomiciledUK")} onChange={v => set("client1DomiciledUK", v)} />
                 <YesNoInput label="Mental Capacity Confirmed?" value={f("client1MentalCapacity")} onChange={v => set("client1MentalCapacity", v)} />
               </Row>
-              {f("client1MentalCapacity") === "no" && <TextAreaInput label="Mental Capacity Notes" value={f("client1MentalCapacityNotes")} onChange={v => set("client1MentalCapacityNotes", v)} rows={2} />}
+              {f("client1MentalCapacity") === "no" && <TextAreaInput label="Mental Capacity Notes" value={f("client1MentalCapacityNotes")} onChange={v => set("client1MentalCapacityNotes", v)} rows={4} />}
             </SectionCard>
             {isMirror && (
               <>
@@ -1078,13 +1078,13 @@ export default function AdminSubmissionEditor() {
                     <YesNoInput label="Has Children?" value={f("client2HasChildren")} onChange={v => set("client2HasChildren", v)} />
                     <TextInput label="Total Children" value={f("client2TotalChildren")} onChange={v => set("client2TotalChildren", v)} />
                   </Row>
-                  {f("client2MarriagePlans") === "yes" && <TextAreaInput label="Marriage Plan Details" value={f("client2MarriagePlanDetails")} onChange={v => set("client2MarriagePlanDetails", v)} rows={2} />}
+                  {f("client2MarriagePlans") === "yes" && <TextAreaInput label="Marriage Plan Details" value={f("client2MarriagePlanDetails")} onChange={v => set("client2MarriagePlanDetails", v)} rows={4} />}
                   <Row>
                     <YesNoInput label="Children with Special Needs?" value={f("client2ChildrenSpecialNeeds")} onChange={v => set("client2ChildrenSpecialNeeds", v)} />
                     <YesNoInput label="Children from Past Relationships?" value={f("client2ChildrenPastRelationships")} onChange={v => set("client2ChildrenPastRelationships", v)} />
                   </Row>
-                  {f("client2ChildrenSpecialNeeds") === "yes" && <TextAreaInput label="Special Needs Details" value={f("client2ChildrenSpecialNeedsDetails")} onChange={v => set("client2ChildrenSpecialNeedsDetails", v)} rows={2} />}
-                  {f("client2ChildrenPastRelationships") === "yes" && <TextAreaInput label="Past Relationship Children Details" value={f("client2ChildrenPastDetails")} onChange={v => set("client2ChildrenPastDetails", v)} rows={2} />}
+                  {f("client2ChildrenSpecialNeeds") === "yes" && <TextAreaInput label="Special Needs Details" value={f("client2ChildrenSpecialNeedsDetails")} onChange={v => set("client2ChildrenSpecialNeedsDetails", v)} rows={4} />}
+                  {f("client2ChildrenPastRelationships") === "yes" && <TextAreaInput label="Past Relationship Children Details" value={f("client2ChildrenPastDetails")} onChange={v => set("client2ChildrenPastDetails", v)} rows={4} />}
                   <TextAreaInput label="Family Circumstances" value={f("client2FamilyCircumstances")} onChange={v => set("client2FamilyCircumstances", v)} rows={3} />
                 </SectionCard>
                 <SectionCard title={`${client2Name} — Additional Background`} icon={<User className="w-4 h-4" />}>
@@ -1093,7 +1093,7 @@ export default function AdminSubmissionEditor() {
                     <YesNoInput label="Domiciled in UK?" value={f("client2DomiciledUK")} onChange={v => set("client2DomiciledUK", v)} />
                     <YesNoInput label="Mental Capacity Confirmed?" value={f("client2MentalCapacity")} onChange={v => set("client2MentalCapacity", v)} />
                   </Row>
-                  {f("client2MentalCapacity") === "no" && <TextAreaInput label="Mental Capacity Notes" value={f("client2MentalCapacityNotes")} onChange={v => set("client2MentalCapacityNotes", v)} rows={2} />}
+                  {f("client2MentalCapacity") === "no" && <TextAreaInput label="Mental Capacity Notes" value={f("client2MentalCapacityNotes")} onChange={v => set("client2MentalCapacityNotes", v)} rows={4} />}
                 </SectionCard>
               </>
             )}
@@ -1122,7 +1122,7 @@ export default function AdminSubmissionEditor() {
                 <div className="space-y-2">
                   <YesNoInput label="Was anyone else present at the meeting other than yourself and the client?" value={f("ddOthersPresent")} onChange={v => set("ddOthersPresent", v)} />
                   {f("ddOthersPresent") === "yes" && (
-                    <TextAreaInput label="Name and relation to client of person(s) present" value={f("ddOthersPresentNotes")} onChange={v => set("ddOthersPresentNotes", v)} rows={2} />
+                    <TextAreaInput label="Name and relation to client of person(s) present" value={f("ddOthersPresentNotes")} onChange={v => set("ddOthersPresentNotes", v)} rows={4} />
                   )}
                 </div>
               </SectionCard>
@@ -1147,7 +1147,7 @@ export default function AdminSubmissionEditor() {
                 ].map(q => (
                   <div key={q.yesNo} className="space-y-2 pb-4 border-b border-border last:border-0 last:pb-0">
                     <YesNoInput label={q.label} value={f(q.yesNo)} onChange={v => set(q.yesNo, v)} />
-                    <TextAreaInput label="Notes" value={f(q.notes)} onChange={v => set(q.notes, v)} rows={2} />
+                    <TextAreaInput label="Notes" value={f(q.notes)} onChange={v => set(q.notes, v)} rows={4} />
                   </div>
                 ))}
               </SectionCard>
@@ -1224,7 +1224,7 @@ export default function AdminSubmissionEditor() {
                   onChange={e => set("manualNeedsAssessment", e.target.value)}
                   rows={6}
                   placeholder="Enter manual needs assessment and recommendations here…"
-                  className="text-sm resize-none w-full"
+                  className="text-sm w-full"
                 />
               </div>
             </div>

@@ -154,7 +154,7 @@ export default function Step10LifeInsurance({ data, onChange }: Props) {
 
                 <FieldRow label="Notes">
                   <Textarea
-                    rows={2}
+                    rows={4}
                     value={policy.notes ?? ""}
                     onChange={e => updatePolicy(index, { notes: e.target.value })}
                     placeholder="Any additional notes about this policy…"
@@ -179,7 +179,7 @@ export default function Step10LifeInsurance({ data, onChange }: Props) {
         <div className="mt-5">
           <FieldRow label="Additional Notes" hint="Any other protection arrangements, critical illness cover, income protection, etc.">
             <Textarea
-              rows={3}
+              rows={5}
               value={data.lifeInsuranceNotes ?? ""}
               onChange={e => onChange({ lifeInsuranceNotes: e.target.value })}
               placeholder="e.g. Critical illness cover with employer, death in service benefit…"

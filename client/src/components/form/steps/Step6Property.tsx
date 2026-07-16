@@ -45,7 +45,7 @@ export default function Step6Property({ data, onChange }: Props) {
             <div className="space-y-4 pt-2">
               <FieldRow label="Property Address">
                 <Textarea
-                  rows={2}
+                  rows={4}
                   value={data.propertyAddress ?? ""}
                   onChange={e => onChange({ propertyAddress: e.target.value })}
                   placeholder="Full property address including postcode"
@@ -134,7 +134,7 @@ export default function Step6Property({ data, onChange }: Props) {
               {hasOtherProperties && (
                 <FieldRow label="Other Properties Details">
                   <Textarea
-                    rows={3}
+                    rows={5}
                     value={data.otherProperties ?? ""}
                     onChange={e => onChange({ otherProperties: e.target.value })}
                     placeholder="Address, ownership type, and estimated value of each additional property…"
@@ -159,7 +159,7 @@ export default function Step6Property({ data, onChange }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldRow label="Bank / Building Society Accounts" hint="List main accounts and approximate balances">
             <Textarea
-              rows={3}
+              rows={5}
               value={data.bankAccounts ?? ""}
               onChange={e => onChange({ bankAccounts: e.target.value })}
               placeholder="e.g. Barclays current account, HSBC savings…"
@@ -167,7 +167,7 @@ export default function Step6Property({ data, onChange }: Props) {
           </FieldRow>
           <FieldRow label="Investments / Stocks & Shares" hint="ISAs, shares, bonds, etc.">
             <Textarea
-              rows={3}
+              rows={5}
               value={data.investments ?? ""}
               onChange={e => onChange({ investments: e.target.value })}
               placeholder="e.g. Stocks & Shares ISA with Hargreaves Lansdown…"
@@ -175,7 +175,7 @@ export default function Step6Property({ data, onChange }: Props) {
           </FieldRow>
           <FieldRow label="Pension Details" hint="Workplace and personal pensions">
             <Textarea
-              rows={3}
+              rows={5}
               value={data.pensionDetails ?? ""}
               onChange={e => onChange({ pensionDetails: e.target.value })}
               placeholder="e.g. NHS pension, private pension with Aviva…"
@@ -205,7 +205,7 @@ export default function Step6Property({ data, onChange }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FieldRow label="Bank / Building Society Accounts" hint="List main accounts and approximate balances">
               <Textarea
-                rows={3}
+                rows={5}
                 value={data.client2BankAccounts ?? ""}
                 onChange={e => onChange({ client2BankAccounts: e.target.value })}
                 placeholder="e.g. Lloyds current account, Nationwide savings…"
@@ -213,7 +213,7 @@ export default function Step6Property({ data, onChange }: Props) {
             </FieldRow>
             <FieldRow label="Investments / Stocks & Shares" hint="ISAs, shares, bonds, etc.">
               <Textarea
-                rows={3}
+                rows={5}
                 value={data.client2Investments ?? ""}
                 onChange={e => onChange({ client2Investments: e.target.value })}
                 placeholder="e.g. Cash ISA with Halifax…"
@@ -221,7 +221,7 @@ export default function Step6Property({ data, onChange }: Props) {
             </FieldRow>
             <FieldRow label="Pension Details" hint="Workplace and personal pensions">
               <Textarea
-                rows={3}
+                rows={5}
                 value={data.client2PensionDetails ?? ""}
                 onChange={e => onChange({ client2PensionDetails: e.target.value })}
                 placeholder="e.g. Teacher's pension, SIPP with Vanguard…"
@@ -309,7 +309,7 @@ export default function Step6Property({ data, onChange }: Props) {
               </div>
               <FieldRow label="Care Concern Details">
                 <Textarea
-                  rows={3}
+                  rows={5}
                   value={data.careConcernDetails ?? ""}
                   onChange={e => onChange({ careConcernDetails: e.target.value })}
                   placeholder="Please describe the client's care concerns and current situation…"

@@ -79,7 +79,7 @@ function ClientBackgroundSection({
       {(mentalCapacity === "concerns" || mentalCapacity === "no") && (
         <FieldRow label="Mental Capacity Notes">
           <Textarea
-            rows={3}
+            rows={5}
             value={data[`${fieldPrefix}MentalCapacityNotes`] ?? ""}
             onChange={e => onChange({ [`${fieldPrefix}MentalCapacityNotes`]: e.target.value } as Partial<WillFormData>)}
             placeholder="Describe any concerns about mental capacity…"
@@ -106,7 +106,7 @@ function ClientBackgroundSection({
       {childrenPast === "yes" && (
         <FieldRow label="Details of Children from Past Relationships">
           <Textarea
-            rows={3}
+            rows={5}
             value={data[`${fieldPrefix}ChildrenPastDetails`] ?? ""}
             onChange={e => onChange({ [`${fieldPrefix}ChildrenPastDetails`]: e.target.value } as Partial<WillFormData>)}
             placeholder="e.g. Two children from first marriage — Tom (22) and Emma (19)…"

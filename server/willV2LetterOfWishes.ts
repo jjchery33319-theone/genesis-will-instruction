@@ -12,18 +12,8 @@ export function generateLetterOfWishesHtml(matter: any, clientRole: "testator1" 
   const low = (matter.lettersOfWishes || []).find((l: any) => l.clientRole === clientRole);
   const content = low?.content || "";
 
-  // Format the will date — use matter's willDate if available, otherwise today
-  const willDateRaw = matter.willDate || matter.createdAt;
-  let willDate = "";
-  if (willDateRaw) {
-    try {
-      const d = new Date(typeof willDateRaw === "number" ? willDateRaw : willDateRaw);
-      willDate = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    } catch {
-      willDate = "";
-    }
-  }
-  const willDateText = willDate ? willDate : "[Date of Will]";
+  // Leave the will date blank — clients will fill this in manually when signing
+  const willDateText = "____________________";
 
   // Convert plain text content to paragraphs
   const paragraphs = content

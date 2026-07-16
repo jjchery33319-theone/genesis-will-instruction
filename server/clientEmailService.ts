@@ -95,7 +95,9 @@ function createTransporter() {
     return null;
   }
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: { user, pass },
   });
 }
@@ -138,7 +140,7 @@ function buildClientEmailHtml(record: WillInstruction): string {
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#ffffff;letter-spacing:0.3px;">
+                    <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#000000;letter-spacing:0.3px;">
                       Genesis Wills and Estate Planning
                     </p>
                     <p style="margin:4px 0 0;font-size:13px;color:#b8d4c2;">Will Instruction Confirmation</p>

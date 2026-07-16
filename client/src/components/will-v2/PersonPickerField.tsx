@@ -27,9 +27,11 @@ import { Users } from "lucide-react";
 
 export interface PoolPerson {
   id: number;
+  title?: string | null;
   fullName: string;
   dateOfBirth?: string | null;
   address?: string | null;
+  gender?: string | null;
   relationship?: string | null;
   sourceRole?: string | null;
 }

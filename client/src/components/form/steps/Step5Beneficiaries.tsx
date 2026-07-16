@@ -103,7 +103,7 @@ function ClientBeneficiarySection({
         hint="e.g. To my spouse absolutely, or if they predecease me, equally between my children"
       >
         <Textarea
-          rows={3}
+          rows={5}
           value={data[residualEstateKey] ?? ""}
           onChange={e => onChange({ [residualEstateKey]: e.target.value } as Partial<WillFormData>)}
           placeholder="e.g. To my spouse absolutely, or if they predecease me, equally between my children…"
@@ -115,7 +115,7 @@ function ClientBeneficiarySection({
         hint="What happens if the primary residuary beneficiary predeceases the client?"
       >
         <Textarea
-          rows={2}
+          rows={4}
           value={data[residualBackupKey] ?? ""}
           onChange={e => onChange({ [residualBackupKey]: e.target.value } as Partial<WillFormData>)}
           placeholder="e.g. If my spouse predeceases me, I leave the residue equally between my children…"
@@ -187,7 +187,7 @@ function ClientBeneficiarySection({
           </div>
           <FieldRow label="Please provide details of the vulnerable beneficiary">
             <Textarea
-              rows={3}
+              rows={5}
               value={data[vulnerableDetailsKey] ?? ""}
               onChange={e => onChange({ [vulnerableDetailsKey]: e.target.value } as Partial<WillFormData>)}
               placeholder="Name, nature of vulnerability, current support arrangements…"

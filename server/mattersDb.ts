@@ -41,11 +41,38 @@ import {
   matterPeoplePool,
   type MatterPersonPool,
 } from "../drizzle/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
+
+// ── Auto-migration for new columns ───────────────────────────────────────────
+let _migrated = false;
+async function ensureClientNameColumns(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
+  if (_migrated) return;
+  _migrated = true;
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN title VARCHAR(20) AFTER client_role`);
+  } catch { /* column already exists */ }
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN first_name VARCHAR(128) AFTER title`);
+  } catch { /* column already exists */ }
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN middle_name VARCHAR(128) AFTER first_name`);
+  } catch { /* column already exists */ }
+  try {
+    await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN last_name VARCHAR(128) AFTER middle_name`);
+  } catch { /* column already exists */ }
+  // People Pool — store title & gender so "pick existing person" duplicates everything
+  try {
+    await db.execute(sql`ALTER TABLE matter_people_pool ADD COLUMN title VARCHAR(20) DEFAULT '' AFTER matter_id`);
+  } catch { /* column already exists */ }
+  try {
+    await db.execute(sql`ALTER TABLE matter_people_pool ADD COLUMN gender VARCHAR(20) DEFAULT '' AFTER address`);
+  } catch { /* column already exists */ }
+}
 
 async function d() {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  await ensureClientNameColumns(db);
   return db;
 }
 
@@ -63,6 +90,7 @@ export type FullMatter = Matter & {
   businesses: MatterBusinessRecord[];
   trustClauses: MatterTrustClause[];
   exclusions: MatterExclusion[];
+  lettersOfWishes: MatterLetterOfWishes[];
 };
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -82,7 +110,7 @@ export async function getMatterById(id: number): Promise<FullMatter | null> {
 
 async function enrichMatter(matter: Matter): Promise<FullMatter> {
   const db = await d();
-  const [clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses, exclusions] = await Promise.all([
+  const [clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses, exclusions, lettersOfWishes] = await Promise.all([
     db.select().from(matterClients).where(eq(matterClients.matterId, matter.id)),
     db.select().from(matterExecutors).where(eq(matterExecutors.matterId, matter.id)).orderBy(matterExecutors.sortOrder),
     db.select().from(matterGuardians).where(eq(matterGuardians.matterId, matter.id)).orderBy(matterGuardians.sortOrder),
@@ -94,8 +122,9 @@ async function enrichMatter(matter: Matter): Promise<FullMatter> {
     db.select().from(matterBusiness).where(eq(matterBusiness.matterId, matter.id)).orderBy(matterBusiness.sortOrder),
     db.select().from(matterTrustClauses).where(eq(matterTrustClauses.matterId, matter.id)),
     db.select().from(matterExclusions).where(eq(matterExclusions.matterId, matter.id)).orderBy(matterExclusions.createdAt),
+    db.select().from(matterLettersOfWishes).where(eq(matterLettersOfWishes.matterId, matter.id)),
   ]);
-  return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses, exclusions };
+  return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses, exclusions, lettersOfWishes };
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -382,13 +411,13 @@ export async function listPeoplePool(matterId: number): Promise<MatterPersonPool
 
 export async function upsertPersonPool(
   matterId: number,
-  data: { id?: number; fullName: string; dateOfBirth?: string; address?: string; relationship?: string; sourceRole?: string }
+  data: { id?: number; fullName: string; title?: string; dateOfBirth?: string; address?: string; gender?: string; relationship?: string; sourceRole?: string }
 ): Promise<number> {
   const db = await d();
   const now = Date.now();
   if (data.id) {
     await db.update(matterPeoplePool)
-      .set({ fullName: data.fullName, dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", updatedAt: now })
+      .set({ fullName: data.fullName, title: data.title ?? "", dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", gender: data.gender ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", updatedAt: now })
       .where(and(eq(matterPeoplePool.id, data.id), eq(matterPeoplePool.matterId, matterId)));
     return data.id;
   }
@@ -397,11 +426,11 @@ export async function upsertPersonPool(
     .where(and(eq(matterPeoplePool.matterId, matterId), eq(matterPeoplePool.fullName, data.fullName)));
   if (existing[0]) {
     await db.update(matterPeoplePool)
-      .set({ dateOfBirth: data.dateOfBirth ?? existing[0].dateOfBirth ?? "", address: data.address ?? existing[0].address ?? "", relationship: data.relationship ?? existing[0].relationship ?? "", sourceRole: data.sourceRole ?? existing[0].sourceRole ?? "", updatedAt: now })
+      .set({ title: data.title ?? existing[0].title ?? "", dateOfBirth: data.dateOfBirth ?? existing[0].dateOfBirth ?? "", address: data.address ?? existing[0].address ?? "", gender: data.gender ?? existing[0].gender ?? "", relationship: data.relationship ?? existing[0].relationship ?? "", sourceRole: data.sourceRole ?? existing[0].sourceRole ?? "", updatedAt: now })
       .where(eq(matterPeoplePool.id, existing[0].id));
     return existing[0].id;
   }
-  const result = await db.insert(matterPeoplePool).values({ matterId, fullName: data.fullName, dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", createdAt: now, updatedAt: now });
+  const result = await db.insert(matterPeoplePool).values({ matterId, fullName: data.fullName, title: data.title ?? "", dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", gender: data.gender ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", createdAt: now, updatedAt: now });
   return (result as any)[0].insertId as number;
 }
 

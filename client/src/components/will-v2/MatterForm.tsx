@@ -225,20 +225,36 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   }, [isDirty, onDirty]);
 
   // ── Client state ──────────────────────────────────────────────────────────
-  const [t1, setT1] = useState({
-    fullName: m.clients?.find((c: any) => c.clientRole === "testator1")?.fullName || "",
-    address: m.clients?.find((c: any) => c.clientRole === "testator1")?.address || "",
-    dateOfBirth: m.clients?.find((c: any) => c.clientRole === "testator1")?.dateOfBirth || "",
-    email: m.clients?.find((c: any) => c.clientRole === "testator1")?.email || "",
-    phone: m.clients?.find((c: any) => c.clientRole === "testator1")?.phone || "",
-  });
-  const [t2, setT2] = useState({
-    fullName: m.clients?.find((c: any) => c.clientRole === "testator2")?.fullName || "",
-    address: m.clients?.find((c: any) => c.clientRole === "testator2")?.address || "",
-    dateOfBirth: m.clients?.find((c: any) => c.clientRole === "testator2")?.dateOfBirth || "",
-    email: m.clients?.find((c: any) => c.clientRole === "testator2")?.email || "",
-    phone: m.clients?.find((c: any) => c.clientRole === "testator2")?.phone || "",
-  });
+  const initClient = (role: string) => {
+    const c = m.clients?.find((c: any) => c.clientRole === role);
+    // Backward compat: if individual fields are empty but fullName exists, parse it
+    let title = c?.title || "";
+    let firstName = c?.firstName || "";
+    let middleName = c?.middleName || "";
+    let lastName = c?.lastName || "";
+    if (!firstName && !lastName && c?.fullName) {
+      const parts = c.fullName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        firstName = parts.slice(0, -1).join(" ");
+        lastName = parts[parts.length - 1];
+      } else {
+        firstName = c.fullName;
+      }
+    }
+    return {
+      title,
+      firstName,
+      middleName,
+      lastName,
+      fullName: c?.fullName || [title, firstName, middleName, lastName].filter(Boolean).join(" ").trim(),
+      address: c?.address || "",
+      dateOfBirth: c?.dateOfBirth || "",
+      email: c?.email || "",
+      phone: c?.phone || "",
+    };
+  };
+  const [t1, setT1] = useState(initClient("testator1"));
+  const [t2, setT2] = useState(initClient("testator2"));
 
   // ── Executor state ────────────────────────────────────────────────────────
   const toExecRows = (role: string) =>
@@ -630,19 +646,19 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       // Collect all named people from every section and upsert them into the pool.
       // We do this AFTER the main save so the pool stays fresh without blocking.
       const poolOps: Promise<any>[] = [];
-      const syncPerson = (fullName: string, address: string, relationship: string, sourceRole: string, id?: number, dateOfBirth?: string) => {
+      const syncPerson = (fullName: string, address: string, relationship: string, sourceRole: string, id?: number, dateOfBirth?: string, title?: string, gender?: string) => {
         if (!fullName.trim()) return;
-        poolOps.push(upsertPersonPool.mutateAsync({ matterId: matter.id, id, fullName: fullName.trim(), address: address?.trim() || "", relationship: relationship?.trim() || "", sourceRole, dateOfBirth: dateOfBirth?.trim() || "" }));
+        poolOps.push(upsertPersonPool.mutateAsync({ matterId: matter.id, id, fullName: fullName.trim(), title: title?.trim() || "", address: address?.trim() || "", gender: gender?.trim() || "", relationship: relationship?.trim() || "", sourceRole, dateOfBirth: dateOfBirth?.trim() || "" }));
       };
-      // Testators — include DOB from client record
-      if (t1.fullName) syncPerson(t1.fullName, t1.address || "", "testator", "testator1", undefined, t1.dateOfBirth || "");
-      if (isMirror && t2.fullName) syncPerson(t2.fullName, t2.address || "", "testator", "testator2", undefined, t2.dateOfBirth || "");
+      // Testators — include DOB, title from client record
+      if (t1.fullName) syncPerson(t1.fullName, t1.address || "", "testator", "testator1", undefined, t1.dateOfBirth || "", t1.title || "", "");
+      if (isMirror && t2.fullName) syncPerson(t2.fullName, t2.address || "", "testator", "testator2", undefined, t2.dateOfBirth || "", t2.title || "", "");
       // Executors
-      [...execs1, ...(isMirror ? execs2 : [])].forEach(e => syncPerson(e.fullName, e.address, "", "executor", e._poolId, e.dateOfBirth));
+      [...execs1, ...(isMirror ? execs2 : [])].forEach(e => syncPerson(e.fullName, e.address, "", "executor", e._poolId, e.dateOfBirth, e.title, e.gender));
       // Guardians
-      guardians.forEach(g => syncPerson(g.fullName, g.address, "", "guardian", g._poolId, g.dateOfBirth));
+      guardians.forEach(g => syncPerson(g.fullName, g.address, "", "guardian", g._poolId, g.dateOfBirth, g.title, g.gender));
       // Beneficiaries
-      [...bens1, ...(isMirror ? bens2 : [])].forEach(b => syncPerson(b.fullName, b.address || "", b.relationship || "", "beneficiary", b._poolId, b.dateOfBirth));
+      [...bens1, ...(isMirror ? bens2 : [])].forEach(b => syncPerson(b.fullName, b.address || "", b.relationship || "", "beneficiary", b._poolId, b.dateOfBirth, b.title, b.gender));
       // Gifts recipients
       [...gifts1, ...(isMirror ? gifts2 : [])].forEach(g => syncPerson(g.recipientName, g.recipientAddress, "", "gift_recipient", g._poolId, (g as any).recipientDob));
       // Pets carers
@@ -979,19 +995,53 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 // ── Sub-sections ──────────────────────────────────────────────────────────────
 
 function ClientSection({ label, data, onChange }: { label: string; data: any; onChange: (d: any) => void }) {
+  const updateField = (field: string, value: string) => {
+    const updated = { ...data, [field]: value };
+    // Auto-compute fullName from parts
+    updated.fullName = [updated.title, updated.firstName, updated.middleName, updated.lastName].filter(Boolean).join(" ").trim();
+    onChange(updated);
+  };
+
   return (
     <div className="space-y-3">
       <h3 className="font-medium text-sm">{label}</h3>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs">Full Legal Name *</Label>
-          <Input value={data.fullName} onChange={e => onChange({ ...data, fullName: e.target.value })} placeholder="Full name as it appears on ID" className="h-8 text-sm" />
+          <Label className="text-xs">Title *</Label>
+          <Select value={data.title ?? ""} onValueChange={v => updateField("title", v)}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Select…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Mr">Mr</SelectItem>
+              <SelectItem value="Mrs">Mrs</SelectItem>
+              <SelectItem value="Miss">Miss</SelectItem>
+              <SelectItem value="Ms">Ms</SelectItem>
+              <SelectItem value="Dr">Dr</SelectItem>
+              <SelectItem value="Rev">Rev</SelectItem>
+              <SelectItem value="Prof">Prof</SelectItem>
+              <SelectItem value="Mx">Mx</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1">
+          <Label className="text-xs">First Name *</Label>
+          <Input value={data.firstName ?? ""} onChange={e => updateField("firstName", e.target.value)} placeholder="First name" className="h-8 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Middle Name</Label>
+          <Input value={data.middleName ?? ""} onChange={e => updateField("middleName", e.target.value)} placeholder="Middle name(s)" className="h-8 text-sm" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Last Name *</Label>
+          <Input value={data.lastName ?? ""} onChange={e => updateField("lastName", e.target.value)} placeholder="Last name" className="h-8 text-sm" />
+        </div>
+        <div className="col-span-2 space-y-1">
           <Label className="text-xs">Date of Birth</Label>
           <Input type="date" value={data.dateOfBirth} onChange={e => onChange({ ...data, dateOfBirth: e.target.value })} className="h-8 text-sm" />
         </div>
-        <div className="col-span-2 space-y-1">
+        <div className="col-span-2" />
+        <div className="col-span-4 space-y-1">
           <Label className="text-xs">Full Address</Label>
           <SingleLineAddressField
             value={data.address}
@@ -999,11 +1049,11 @@ function ClientSection({ label, data, onChange }: { label: string; data: any; on
             compact
           />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-2 space-y-1">
           <Label className="text-xs">Email</Label>
           <Input type="email" value={data.email} onChange={e => onChange({ ...data, email: e.target.value })} placeholder="email@example.com" className="h-8 text-sm" />
         </div>
-        <div className="space-y-1">
+        <div className="col-span-2 space-y-1">
           <Label className="text-xs">Phone</Label>
           <Input type="tel" value={data.phone} onChange={e => onChange({ ...data, phone: e.target.value })} placeholder="+44 7700 000000" className="h-8 text-sm" />
         </div>
@@ -1037,7 +1087,7 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
             }}
           />
         ))}
@@ -1055,7 +1105,7 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
             }}
           />
         ))}
@@ -1088,7 +1138,7 @@ function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: an
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
             }}
           />
         ))}
@@ -1106,7 +1156,7 @@ function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: an
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
             }}
           />
         ))}
@@ -1157,7 +1207,7 @@ function PropertySection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Full Address</Label>
-            <Textarea value={r.address} onChange={e => updateRow(i, "address", e.target.value)} placeholder="Full property address" rows={2} className="text-sm resize-none" />
+            <Textarea value={r.address} onChange={e => updateRow(i, "address", e.target.value)} placeholder="Full property address" rows={4} className="text-sm" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
@@ -1190,7 +1240,7 @@ function PropertySection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
           )}
           <div className="space-y-1">
             <Label className="text-xs">Notes</Label>
-            <Textarea value={r.propertyNotes} onChange={e => updateRow(i, "propertyNotes", e.target.value)} placeholder="Any additional notes about this property..." rows={2} className="text-sm resize-none" />
+            <Textarea value={r.propertyNotes} onChange={e => updateRow(i, "propertyNotes", e.target.value)} placeholder="Any additional notes about this property..." rows={4} className="text-sm" />
           </div>
 
           {/* Gift of Property Clause */}
@@ -1242,7 +1292,7 @@ function PropertySection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Gift Notes (optional)</Label>
-                  <Textarea value={r.giftNotes || ""} onChange={e => updateRow(i, "giftNotes", e.target.value)} placeholder="Any additional instructions for this property gift..." rows={2} className="text-sm resize-none" />
+                  <Textarea value={r.giftNotes || ""} onChange={e => updateRow(i, "giftNotes", e.target.value)} placeholder="Any additional instructions for this property gift..." rows={4} className="text-sm" />
                 </div>
               </div>
             )}
@@ -1294,7 +1344,7 @@ function BusinessSection({ rows, onChange }: { rows: any[]; onChange: (r: any[])
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Notes</Label>
-            <Textarea value={r.businessNotes} onChange={e => updateRow(i, "businessNotes", e.target.value)} placeholder="Any additional notes about this business interest..." rows={2} className="text-sm resize-none" />
+            <Textarea value={r.businessNotes} onChange={e => updateRow(i, "businessNotes", e.target.value)} placeholder="Any additional notes about this business interest..." rows={4} className="text-sm" />
           </div>
         </div>
       ))}
@@ -1402,7 +1452,7 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                       matterId={matterId}
                       selectedId={r._poolId}
                       onSelect={p => {
-                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "" }));
+                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "", recipientDob: p ? (p.dateOfBirth ?? "") : "" }));
                       }}
                       label="Select existing recipient or add new"
                     />
@@ -1460,7 +1510,7 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                       placeholder={r.divisionType === "percentage"
                         ? "e.g. 50% to my eldest child, 25% each to my other two children"
                         : "e.g. to be divided at the discretion of my executors"}
-                      className="text-sm min-h-[60px] resize-none"
+                      className="text-sm min-h-[60px]"
                     />
                   </div>
                 )}
@@ -1540,7 +1590,7 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
             </div>
             <div className="col-span-2 space-y-1">
               <Label className="text-xs">Care Notes</Label>
-              <Textarea value={r.careNotes} onChange={e => updateRow(i, "careNotes", e.target.value)} placeholder="Any special care instructions..." rows={2} className="text-sm resize-none" />
+              <Textarea value={r.careNotes} onChange={e => updateRow(i, "careNotes", e.target.value)} placeholder="Any special care instructions..." rows={4} className="text-sm" />
             </div>
           </div>
         </div>
@@ -1638,7 +1688,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   matterId={matterId}
                   selectedId={r._poolId}
                   onSelect={p => {
-                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", address: p ? (p.address ?? "") : "" }));
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", address: p ? (p.address ?? "") : "" }));
                   }}
                   label="Select existing beneficiary or add new"
                 />
@@ -1748,7 +1798,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                       <Label className="text-xs">{r.divisionType === "percentage" ? "Percentage breakdown" : "Custom division details"}</Label>
                       <Textarea value={r.divisionNotes || ""} onChange={e => updateRow(i, "divisionNotes", e.target.value)}
                         placeholder={r.divisionType === "percentage" ? "e.g. 50% to my eldest child, 25% each to my other two" : "e.g. to be divided at the discretion of my executors"}
-                        className="text-sm min-h-[60px] resize-none" />
+                        className="text-sm min-h-[60px]" />
                     </div>
                   )}
                 </div>
@@ -1811,7 +1861,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   matterId={matterId}
                   selectedId={r._poolId}
                   onSelect={p => {
-                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", address: p ? (p.address ?? "") : "" }));
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", address: p ? (p.address ?? "") : "" }));
                   }}
                   label="Select existing beneficiary or add new"
                 />
@@ -1913,7 +1963,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                       <Label className="text-xs">{r.divisionType === "percentage" ? "Percentage breakdown" : "Custom division details"}</Label>
                       <Textarea value={r.divisionNotes || ""} onChange={e => updateRow(i, "divisionNotes", e.target.value)}
                         placeholder={r.divisionType === "percentage" ? "e.g. 50% to my eldest child, 25% each to my other two" : "e.g. to be divided at the discretion of my executors"}
-                        className="text-sm min-h-[60px] resize-none" />
+                        className="text-sm min-h-[60px]" />
                     </div>
                   )}
                 </div>
@@ -1970,21 +2020,21 @@ function WishesSection({ label, data, onChange }: { label: string; data: any; on
         </div>
         {data.organDonation && (
           <Textarea value={data.organDonationText} onChange={e => onChange({ ...data, organDonationText: e.target.value })}
-            placeholder="I wish to donate my organs for medical purposes." rows={2} className="text-sm resize-none" />
+            placeholder="I wish to donate my organs for medical purposes." rows={4} className="text-sm" />
         )}
       </div>
 
       <div className="space-y-1">
         <Label className="text-xs">Funeral Wishes</Label>
         <Textarea value={data.funeralWishes} onChange={e => onChange({ ...data, funeralWishes: e.target.value })}
-          placeholder="e.g. I wish to be cremated. I would like a simple ceremony..." rows={3} className="text-sm resize-none" />
+          placeholder="e.g. I wish to be cremated. I would like a simple ceremony..." rows={5} className="text-sm" />
       </div>
 
       <div className="space-y-1">
         <Label className="text-xs">Disaster Clause — Custom Instructions</Label>
         <Textarea value={data.disasterClauseNotes} onChange={e => onChange({ ...data, disasterClauseNotes: e.target.value })}
           placeholder="Optional: specify what happens if ALL beneficiaries predecease you. Leave blank to use the standard intestacy fallback."
-          rows={3} className="text-sm resize-none" />
+          rows={5} className="text-sm" />
         <p className="text-[10px] text-muted-foreground">If left blank, the Will will include a standard clause directing the estate to pass under the intestacy rules.</p>
       </div>
 
@@ -1992,13 +2042,13 @@ function WishesSection({ label, data, onChange }: { label: string; data: any; on
         <Label className="text-xs">General Notes / Solicitor's Notes</Label>
         <Textarea value={data.generalNotes} onChange={e => onChange({ ...data, generalNotes: e.target.value })}
           placeholder="Any internal notes or additional instructions for the file (these will appear as a Solicitor's Notes section at the end of the Will document)..."
-          rows={3} className="text-sm resize-none" />
+          rows={5} className="text-sm" />
       </div>
 
       <div className="space-y-1">
         <Label className="text-xs">Additional Notes / Instructions</Label>
         <Textarea value={data.extraNotes} onChange={e => onChange({ ...data, extraNotes: e.target.value })}
-          placeholder="Any other instructions or notes for the file..." rows={3} className="text-sm resize-none" />
+          placeholder="Any other instructions or notes for the file..." rows={5} className="text-sm" />
       </div>
     </div>
   );
@@ -2107,8 +2157,8 @@ function TrustClausesSection({
                       value={tc.propertyAddress}
                       onChange={e => updateClause(i, "propertyAddress", e.target.value)}
                       placeholder={tc.trustType === "bpr" ? "e.g. Genesis Wills and Estate Planning Ltd — 100% shareholding" : "Full address of the property"}
-                      rows={2}
-                      className="text-sm resize-none"
+                      rows={4}
+                      className="text-sm"
                     />
                   </div>
                 )}
@@ -2274,8 +2324,8 @@ function TrustClausesSection({
                     value={tc.notes}
                     onChange={e => updateClause(i, "notes", e.target.value)}
                     placeholder="Any additional instructions for this trust clause..."
-                    rows={2}
-                    className="text-sm resize-none"
+                    rows={4}
+                    className="text-sm"
                   />
                 </div>
               </div>
@@ -2350,7 +2400,7 @@ function ExclusionsSection({
                 matterId={matterId}
                 selectedId={r._poolId}
                 onSelect={p => {
-                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", address: p ? (p.address ?? "") : "" }));
                 }}
                 label="Select existing person or add new"
               />
@@ -2397,8 +2447,8 @@ function ExclusionsSection({
                   value={r.reasonCustom}
                   onChange={e => updateRow(i, "reasonCustom", e.target.value)}
                   placeholder="Provide additional context if needed (not included in the Will text itself)"
-                  rows={2}
-                  className="text-sm resize-none"
+                  rows={4}
+                  className="text-sm"
                 />
               </div>
             )}

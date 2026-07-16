@@ -96,7 +96,7 @@ export default function Step15DisasterClause({ data, onChange, isMirrorWill }: P
           hint="Any additional considerations or instructions for the disaster clause"
         >
           <Textarea
-            rows={3}
+            rows={5}
             value={data.disasterClauseNotes ?? ""}
             onChange={e => onChange({ disasterClauseNotes: e.target.value })}
             placeholder="e.g. Client wishes to include a 30-day survivorship clause for all beneficiaries…"
@@ -121,7 +121,7 @@ export default function Step15DisasterClause({ data, onChange, isMirrorWill }: P
           hint="Private notes for the admin team — not included in client-facing documents"
         >
           <Textarea
-            rows={3}
+            rows={5}
             value={data.specialNotes ?? ""}
             onChange={e => onChange({ specialNotes: e.target.value })}
             placeholder="Internal notes only — compliance observations, follow-up reminders, etc."

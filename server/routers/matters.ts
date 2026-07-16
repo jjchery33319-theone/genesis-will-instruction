@@ -157,6 +157,10 @@ export const mattersRouter = router({
     .input(z.object({
       matterId: z.number().int(),
       clientRole: z.enum(["testator1", "testator2"]),
+      title: z.string().optional(),
+      firstName: z.string().optional(),
+      middleName: z.string().optional(),
+      lastName: z.string().optional(),
       fullName: z.string().optional(),
       address: z.string().optional(),
       dateOfBirth: z.string().optional(),
@@ -165,6 +169,10 @@ export const mattersRouter = router({
     }))
     .mutation(async ({ input }) => {
       const { matterId, clientRole, ...data } = input;
+      // Auto-compute fullName from parts if individual fields are provided
+      if (data.firstName || data.lastName) {
+        data.fullName = [data.title, data.firstName, data.middleName, data.lastName].filter(Boolean).join(" ").trim();
+      }
       await upsertClient(matterId, clientRole, data);
       return { success: true };
     }),
@@ -364,8 +372,10 @@ export const mattersRouter = router({
       matterId: z.number().int(),
       id: z.number().int().optional(),
       fullName: z.string(),
+      title: z.string().optional(),
       dateOfBirth: z.string().optional(),
       address: z.string().optional(),
+      gender: z.string().optional(),
       relationship: z.string().optional(),
       sourceRole: z.string().optional(),
     }))
@@ -426,6 +436,10 @@ export const mattersRouter = router({
       const c1Name = fullName(ins.client1Prefix, ins.client1FirstName, ins.client1MiddleName, ins.client1LastName);
       const c1Address = buildAddress(ins.client1AddressLine1, ins.client1City, ins.client1Postcode);
       await upsertClient(matterId, "testator1", {
+        title: ins.client1Prefix ?? undefined,
+        firstName: ins.client1FirstName ?? undefined,
+        middleName: ins.client1MiddleName ?? undefined,
+        lastName: ins.client1LastName ?? undefined,
         fullName: c1Name,
         address: c1Address,
         dateOfBirth: ins.client1Dob ?? undefined,
@@ -437,6 +451,10 @@ export const mattersRouter = router({
         const c2Name = fullName(ins.client2Prefix, ins.client2FirstName, ins.client2MiddleName, ins.client2LastName);
         const c2Address = buildAddress(ins.client2AddressLine1, ins.client2City, ins.client2Postcode);
         await upsertClient(matterId, "testator2", {
+          title: ins.client2Prefix ?? undefined,
+          firstName: ins.client2FirstName ?? undefined,
+          middleName: ins.client2MiddleName ?? undefined,
+          lastName: ins.client2LastName ?? undefined,
           fullName: c2Name,
           address: c2Address,
           dateOfBirth: ins.client2Dob ?? undefined,

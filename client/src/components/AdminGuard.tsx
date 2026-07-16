@@ -1,14 +1,26 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Lock, LogIn, ShieldX } from "lucide-react";
+import { useState } from "react";
 
 interface AdminGuardProps {
   children: React.ReactNode;
 }
 
 export default function AdminGuard({ children }: AdminGuardProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, refresh } = useAuth();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: () => {
+      setError("");
+      refresh();
+    },
+    onError: (err) => {
+      setError(err.message || "Login failed");
+    },
+  });
 
   // Still loading auth state — show a neutral spinner
   if (loading) {
@@ -22,7 +34,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  // Not logged in — prompt to sign in via Manus OAuth
+  // Not logged in — prompt to sign in with password
   if (!user) {
     return (
       <div
@@ -31,11 +43,6 @@ export default function AdminGuard({ children }: AdminGuardProps) {
       >
         <div className="bg-white rounded-2xl border border-border shadow-lg w-full max-w-sm p-8">
           <div className="flex flex-col items-center gap-3 mb-8">
-            <img
-              src="/manus-storage/genesis-logo_48897107.png"
-              alt="Genesis Wills and Estate Planning"
-              className="h-14 w-14 object-contain rounded-xl"
-            />
             <div className="text-center">
               <h1 className="font-serif text-xl font-semibold genesis-green-text">Admin Access</h1>
               <p className="text-sm text-muted-foreground mt-1">Genesis Wills and Estate Planning</p>
@@ -49,17 +56,47 @@ export default function AdminGuard({ children }: AdminGuardProps) {
               <Lock className="w-6 h-6" style={{ color: "oklch(0.28 0.07 155)" }} />
             </div>
           </div>
-          <p className="text-sm text-center text-muted-foreground mb-6">
-            Sign in with your Genesis Wills account to access the admin dashboard.
-          </p>
-          <Button
-            className="w-full font-semibold gap-2"
-            style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
-            onClick={() => { window.location.href = getLoginUrl(); }}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setError("");
+              loginMutation.mutate({ password });
+            }}
+            className="flex flex-col gap-4"
           >
-            <LogIn className="w-4 h-4" />
-            Sign In
-          </Button>
+            <div>
+              <label htmlFor="admin-password" className="text-sm font-medium text-muted-foreground block mb-1.5">
+                Admin Password
+              </label>
+              <input
+                id="admin-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter admin password"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-offset-1"
+                style={{ focusRingColor: "oklch(0.28 0.07 155)" } as any}
+                autoFocus
+                required
+              />
+            </div>
+            {error && (
+              <p className="text-sm text-red-600 text-center">{error}</p>
+            )}
+            <Button
+              type="submit"
+              className="w-full font-semibold gap-2"
+              style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <LogIn className="w-4 h-4" />
+              )}
+              {loginMutation.isPending ? "Signing in…" : "Sign In"}
+            </Button>
+          </form>
         </div>
       </div>
     );
@@ -74,11 +111,6 @@ export default function AdminGuard({ children }: AdminGuardProps) {
       >
         <div className="bg-white rounded-2xl border border-border shadow-lg w-full max-w-sm p-8">
           <div className="flex flex-col items-center gap-3 mb-8">
-            <img
-              src="/manus-storage/genesis-logo_48897107.png"
-              alt="Genesis Wills and Estate Planning"
-              className="h-14 w-14 object-contain rounded-xl"
-            />
             <div className="text-center">
               <h1 className="font-serif text-xl font-semibold text-destructive">Access Denied</h1>
               <p className="text-sm text-muted-foreground mt-1">Genesis Wills and Estate Planning</p>

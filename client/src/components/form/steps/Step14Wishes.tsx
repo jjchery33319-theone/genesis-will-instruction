@@ -53,7 +53,7 @@ function ClientFuneralSection({
 
       <FieldRow label="Funeral Wishes & Instructions" hint="Any specific requests for the funeral service">
         <Textarea
-          rows={3}
+          rows={5}
           value={data[funeralWishesKey] ?? ""}
           onChange={e => onChange({ [funeralWishesKey]: e.target.value } as Partial<WillFormData>)}
           placeholder="e.g. I would like a quiet family service. No flowers, donations to Cancer Research UK…"

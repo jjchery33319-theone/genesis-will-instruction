@@ -136,7 +136,7 @@ export default function Step6DueDiligence({ data, onChange }: Props) {
                       <div className="mt-3">
                         <FieldRow label="Notes / Additional Details" hint="Optional — record any relevant observations">
                           <Textarea
-                            rows={2}
+                            rows={4}
                             value={(data[q.notesKey] as string) ?? ""}
                             onChange={e => onChange({ [q.notesKey]: e.target.value } as Partial<WillFormData>)}
                             placeholder="Add any relevant notes here…"

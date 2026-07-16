@@ -1,7 +1,6 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
-import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
@@ -13,10 +12,10 @@ import { generateWillHtml, type WillHtmlOptions } from "../willHtmlGenerator";
 import { generateWillDocx } from "../willDocxGenerator";
 import { getDb } from "../db";
 import { willInstructions, lpaRecords } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import path from "path";
 import { fillLpaPdf } from "../lpaFillPdf";
-import { serveStatic, setupVite } from "./vite";
+// NOTE: Vite dev server and static file serving are in start.ts (local dev only).
 import { generateWillHtml as generateWillV2Html } from "../willV2Generator";
 import { generateCommentaryHtml } from "../willV2Commentary";
 import { generateSigningGuideHtml } from "../willV2SigningGuide";
@@ -29,31 +28,41 @@ import { generateWelcomePackDocx } from "../welcomePackDocxGenerator";
 import { createRequire } from "module";
 const _require = createRequire(import.meta.url);
 
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise(resolve => {
-    const server = net.createServer();
-    server.listen(port, () => {
-      server.close(() => resolve(true));
-    });
-    server.on("error", () => resolve(false));
-  });
-}
-
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
-  for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
-  }
-  throw new Error(`No available port found starting from ${startPort}`);
-}
-
-async function startServer() {
+async function createApp() {
   const app = express();
-  const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Debug endpoint to diagnose database connectivity
+  app.get("/api/debug", async (_req, res) => {
+    const hasDbUrl = !!process.env.DATABASE_URL;
+    const dbUrlLen = (process.env.DATABASE_URL ?? "").length;
+    let dbOk = false;
+    let dbError = "";
+    try {
+      const db = await getDb();
+      if (db) {
+        // Try a simple query
+        const result = await db.execute(sql`SELECT 1 as test`);
+        dbOk = true;
+      } else {
+        dbError = "getDb() returned null";
+      }
+    } catch (e: any) {
+      dbError = e.message ?? String(e);
+    }
+    res.json({
+      dbUrlSet: hasDbUrl,
+      dbUrlLength: dbUrlLen,
+      dbConnected: dbOk,
+      dbError: dbError || undefined,
+      nodeEnv: process.env.NODE_ENV,
+      vercel: !!process.env.VERCEL,
+      ts: new Date().toISOString(),
+    });
+  });
+
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // PDF export endpoint
@@ -782,23 +791,8 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
-  }
-
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
-  });
+  return app;
 }
 
-startServer().catch(console.error);
+// Export createApp for serverless environments (Vercel) and local dev server
+export { createApp };
