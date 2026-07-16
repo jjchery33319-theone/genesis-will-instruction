@@ -661,6 +661,33 @@ async function createApp() {
     }
   });
 
+  // V2 Will — Word (.docx) download
+  app.get("/api/matters/:id/will-docx", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = (req.query.testator as string) === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+      const matter = await getMatterById(id);
+      if (!matter) { res.status(404).json({ error: "Not found" }); return; }
+      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const html = savedHtml || generateWillV2Html(matter, testatorRole);
+      const client = matter.clients.find(c => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      const HTMLtoDOCX = _require("html-to-docx");
+      const docxBuffer = await HTMLtoDOCX(html, null, {
+        title: `${safeName} — Last Will & Testament`,
+        font: "Times New Roman",
+        fontSize: 24,
+        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+      });
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.docx"`);
+      res.send(Buffer.from(docxBuffer));
+    } catch (err) {
+      console.error("[Will V2 DOCX] Error:", err);
+      res.status(500).json({ error: "Failed to generate Will Word document" });
+    }
+  });
   // Commentary — Word (.docx) download
   app.get("/api/matters/:id/commentary-docx", async (req, res) => {
     try {

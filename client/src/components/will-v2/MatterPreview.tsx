@@ -35,6 +35,8 @@ const DOC_TABS: DocTab[] = [
     endpoint: (id, t) => `/api/matters/${id}/will?testator=${t}`,
     downloadPdfEndpoint: (id, t) => `/api/matters/${id}/will-pdf?testator=${t}`,
     downloadPdfLabel: "Download Will (PDF)",
+    downloadDocxEndpoint: (id, t) => `/api/matters/${id}/will-docx?testator=${t}`,
+    downloadDocxLabel: "Download Will (Word)",
   },
   {
     id: "commentary",
@@ -226,7 +228,7 @@ function DocViewer({
 
   const handleDownloadDocx = () => {
     if (!downloadDocxUrl) return;
-    const docLabel = doc.id === "commentary" ? "Commentary" : "Document";
+    const docLabel = doc.id === "will" ? "Will" : doc.id === "commentary" ? "Commentary" : "Document";
     triggerDownload(downloadDocxUrl, `${safeName}-${docLabel}.docx`, setDownloadingDocx);
   };
 

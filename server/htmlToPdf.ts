@@ -91,11 +91,13 @@ export async function htmlToPdf(html: string): Promise<Buffer> {
   try {
     const page = await browser.newPage();
     try {
-      await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await page.setContent(html, { waitUntil: ["networkidle0", "domcontentloaded"] as any, timeout: 60000 });
       const pdf = await page.pdf({
         format: "A4",
         printBackground: true,
-        margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
+        // Margins are controlled by @page CSS in the HTML template.
+        // Setting margin: 0 here lets the HTML's @page rules take full effect.
+        margin: { top: "0", right: "0", bottom: "0", left: "0" },
       });
       return Buffer.from(pdf);
     } finally {
