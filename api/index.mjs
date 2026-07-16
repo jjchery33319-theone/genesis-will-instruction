@@ -7042,94 +7042,112 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Last Will &amp; Testament \u2014 ${name}</title>
 <style>
+  /* \u2500\u2500 Google Fonts \u2500\u2500 */
   @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* \u2500\u2500 Reset \u2500\u2500 */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* \u2500\u2500 Base \u2500\u2500 */
   body {
-    font-family: 'EB Garamond', Georgia, serif;
-    font-size: 12pt;
-    line-height: 1.7;
-    color: #1a1a1a;
+    font-family: 'EB Garamond', Georgia, 'Times New Roman', serif;
+    font-size: 11.5pt;
+    line-height: 1.75;
+    color: #111;
     background: #fff;
   }
+
+  /* \u2500\u2500 Screen: each .page is an A4 card \u2500\u2500 */
   .page {
     width: 210mm;
     min-height: 297mm;
-    margin: 0 auto;
-    padding: 20mm 22mm 20mm 22mm;
-    page-break-after: always;
+    margin: 10mm auto;
+    padding: 20mm 25mm 20mm 25mm;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
   }
+
+  /* \u2500\u2500 Cover page \u2500\u2500 */
   .cover {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
     text-align: center;
-    min-height: 297mm;
-    padding: 20mm 22mm;
-    position: relative;
-    /* Double-line border: outer line via box-shadow, inner line via border */
+    padding: 22mm 28mm;
     border: 3px solid #1a1a1a;
-    box-shadow: inset 0 0 0 5px #fff, inset 0 0 0 8px #1a1a1a;
+    box-shadow: inset 0 0 0 5px #fff, inset 0 0 0 9px #1a1a1a;
   }
+
   .cover-box {
-    border: 1px solid #1a1a1a;
-    padding: 12mm 16mm;
-    margin-top: 30mm;
-    margin-bottom: 0;
+    border: 1.5px solid #1a1a1a;
+    padding: 12mm 18mm;
+    margin-top: 28mm;
     width: 100%;
-    max-width: 140mm;
+    max-width: 145mm;
   }
+
   .cover-title {
-    font-size: 16pt;
+    font-size: 17pt;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #1a1a1a;
+    color: #111;
     margin-bottom: 5mm;
     line-height: 1.3;
   }
+
   .cover-subtitle {
     font-size: 13pt;
-    color: #1a1a1a;
-    margin-bottom: 5mm;
+    color: #333;
+    margin-bottom: 4mm;
   }
+
   .cover-name {
-    font-size: 16pt;
+    font-size: 17pt;
     font-weight: 700;
-    color: #1a1a1a;
+    color: #111;
     margin-bottom: 5mm;
   }
+
   .cover-ref {
     font-size: 10pt;
     color: #555;
     font-style: italic;
   }
+
   .cover-company {
     margin-top: auto;
-    padding-top: 20mm;
+    padding-top: 18mm;
     font-size: 9.5pt;
     color: #333;
-    line-height: 1.8;
+    line-height: 1.9;
     text-align: center;
   }
+
   .cover-logo-img {
-    margin-top: 5mm;
+    margin-top: 6mm;
     display: block;
     margin-left: auto;
     margin-right: auto;
-    width: 160px;
+    width: 150px;
   }
+
+  /* \u2500\u2500 Headings \u2500\u2500 */
   h2 {
-    font-size: 13pt;
+    font-size: 12.5pt;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-top: 8mm;
+    letter-spacing: 0.07em;
+    margin-top: 9mm;
     margin-bottom: 3mm;
     color: #1a3a5c;
+    border-bottom: 1px solid #c8d8e8;
+    padding-bottom: 1.5mm;
   }
+
   h3 {
-    font-size: 11.5pt;
+    font-size: 11pt;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -7137,158 +7155,197 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
     margin-bottom: 2mm;
     color: #1a3a5c;
   }
+
+  /* \u2500\u2500 Body text \u2500\u2500 */
   .clause {
-    margin-bottom: 6mm;
+    margin-bottom: 7mm;
   }
+
   p {
-    margin-bottom: 3mm;
+    margin-bottom: 3.5mm;
     text-align: justify;
+    text-justify: inter-word;
   }
+
   .recital {
-    margin-bottom: 8mm;
+    margin-bottom: 9mm;
     font-style: italic;
+    border-left: 3px solid #1a3a5c;
+    padding-left: 5mm;
   }
+
+  /* \u2500\u2500 Attestation \u2500\u2500 */
   .attestation {
-    margin-top: 12mm;
+    margin-top: 14mm;
+    padding-top: 6mm;
+    border-top: 2px solid #1a3a5c;
   }
+
   .sig-block {
-    margin-top: 8mm;
-    border-top: 1px solid #ccc;
-    padding-top: 4mm;
+    margin-top: 9mm;
   }
+
   .sig-line {
-    margin-top: 10mm;
-    border-bottom: 1px solid #333;
-    width: 80mm;
+    margin-top: 12mm;
+    border-bottom: 1.5px solid #333;
+    width: 85mm;
     display: inline-block;
   }
+
   .sig-label {
     font-size: 9pt;
     color: #555;
-    margin-top: 1mm;
+    margin-top: 1.5mm;
+    font-style: italic;
   }
+
+  /* \u2500\u2500 Witness blocks \u2500\u2500 */
+  .witness-row {
+    display: flex;
+    gap: 8mm;
+    margin-top: 9mm;
+  }
+
   .witness-block {
-    margin-top: 8mm;
-    padding: 4mm;
-    border: 1px solid #ccc;
+    flex: 1;
+    padding: 5mm 6mm;
+    border: 1px solid #bbb;
+    border-radius: 1mm;
   }
+
   .witness-title {
     font-weight: 600;
-    margin-bottom: 2mm;
+    font-size: 10.5pt;
+    margin-bottom: 3mm;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1a3a5c;
   }
+
   .witness-field {
-    margin-top: 5mm;
+    margin-top: 6mm;
   }
+
   .witness-field-line {
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #444;
     width: 100%;
-    margin-top: 1mm;
-    height: 6mm;
+    margin-top: 1.5mm;
+    height: 7mm;
   }
+
   .witness-field-label {
-    font-size: 9pt;
-    color: #555;
+    font-size: 8.5pt;
+    color: #666;
+    font-style: italic;
   }
+
+  /* \u2500\u2500 Footer \u2500\u2500 */
   .page-footer {
     text-align: center;
-    font-size: 9pt;
-    color: #888;
-    margin-top: 10mm;
-    border-top: 1px solid #eee;
+    font-size: 8.5pt;
+    color: #999;
+    margin-top: 12mm;
+    border-top: 1px solid #e0e0e0;
     padding-top: 3mm;
   }
+
+  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+     PRINT / PDF STYLES
+     Puppeteer uses margin: 0 on the page itself;
+     all spacing comes from @page margins below.
+  \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
   @media print {
-    /* \u2500\u2500 Page setup \u2500\u2500 */
     @page {
       size: A4;
-      margin: 18mm 20mm 18mm 20mm;
+      margin: 20mm 22mm 22mm 22mm;
     }
+    /* Cover page: no margin so the border fills edge-to-edge */
     @page :first {
       margin: 0;
     }
 
-    /* \u2500\u2500 Reset screen chrome \u2500\u2500 */
     * {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
+
     html, body {
       width: 100%;
       background: #fff !important;
     }
 
-    /* \u2500\u2500 Page containers \u2500\u2500 */
+    /* Each .page div = one printed page; no screen padding needed */
     .page {
       width: 100% !important;
       min-height: 0 !important;
       margin: 0 !important;
       padding: 0 !important;
-      /* Each .page div = one printed page */
+      box-shadow: none !important;
       break-after: page;
       page-break-after: always;
     }
-    /* Don't force a blank page after the very last div */
+
     .page:last-child {
       break-after: avoid;
       page-break-after: avoid;
     }
 
-    /* \u2500\u2500 Cover page: fill the first printed page \u2500\u2500 */
+    /* Cover fills the zero-margin first page */
     .cover {
+      width: 100% !important;
       min-height: 0 !important;
-      height: 100vh;
-      padding: 18mm 20mm !important;
-      /* Preserve double-line border in print */
+      height: 297mm;
+      padding: 22mm 28mm !important;
       border: 3pt solid #1a1a1a !important;
-      box-shadow: inset 0 0 0 5pt #fff, inset 0 0 0 8pt #1a1a1a !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      box-shadow: inset 0 0 0 5pt #fff, inset 0 0 0 9pt #1a1a1a !important;
     }
 
-    /* \u2500\u2500 Keep headings with their following content \u2500\u2500 */
+    /* Keep headings with their following paragraph */
     h2, h3 {
       break-after: avoid;
       page-break-after: avoid;
-      break-inside: avoid;
-      page-break-inside: avoid;
     }
 
-    /* \u2500\u2500 Keep clauses together where possible \u2500\u2500 */
+    /* Keep clauses together where possible */
     .clause {
       break-inside: avoid;
       page-break-inside: avoid;
     }
 
-    /* \u2500\u2500 Attestation block must never split across pages \u2500\u2500 */
+    /* Attestation must never split */
     .attestation {
       break-inside: avoid;
       page-break-inside: avoid;
-      break-before: auto;
-      page-break-before: auto;
     }
 
-    /* \u2500\u2500 Witness blocks must stay together \u2500\u2500 */
+    .witness-row {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
     .witness-block {
       break-inside: avoid;
       page-break-inside: avoid;
     }
 
-    /* \u2500\u2500 Signature lines \u2500\u2500 */
     .sig-block {
       break-inside: avoid;
       page-break-inside: avoid;
     }
 
-    /* \u2500\u2500 Orphans / widows \u2500\u2500 */
     p {
       orphans: 3;
       widows: 3;
     }
 
-    /* \u2500\u2500 Footer: keep with preceding content \u2500\u2500 */
     .page-footer {
       break-before: avoid;
       page-break-before: avoid;
+    }
+
+    /* Remove screen-only decorations */
+    .recital {
+      border-left: 3px solid #1a3a5c !important;
     }
   }
 </style>
@@ -7369,7 +7426,7 @@ ${generalNotesSection}
     <div class="sig-label">(Date)</div>
   </div>
 
-  <div style="display:flex; gap:8mm; margin-top:8mm;">
+  <div class="witness-row">
     <div class="witness-block" style="flex:1;">
       <div class="witness-title">Witness 1</div>
       <div class="witness-field">
@@ -9169,11 +9226,13 @@ async function htmlToPdf(html) {
   try {
     const page = await browser.newPage();
     try {
-      await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 6e4 });
+      await page.setContent(html, { waitUntil: ["networkidle0", "domcontentloaded"], timeout: 6e4 });
       const pdf = await page.pdf({
         format: "A4",
         printBackground: true,
-        margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" }
+        // Margins are controlled by @page CSS in the HTML template.
+        // Setting margin: 0 here lets the HTML's @page rules take full effect.
+        margin: { top: "0", right: "0", bottom: "0", left: "0" }
       });
       return Buffer.from(pdf);
     } finally {
@@ -11889,6 +11948,38 @@ $1`);
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[Commentary PDF] Error:", msg, err);
       res.status(500).json({ error: "Failed to generate commentary PDF", detail: msg });
+    }
+  });
+  app.get("/api/matters/:id/will-docx", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const testatorRole = req.query.testator === "testator2" ? "testator2" : "testator1";
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid id" });
+        return;
+      }
+      const matter = await getMatterById(id);
+      if (!matter) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const html = savedHtml || generateWillHtml2(matter, testatorRole);
+      const client = matter.clients.find((c) => c.clientRole === testatorRole);
+      const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+      const HTMLtoDOCX = _require("html-to-docx");
+      const docxBuffer = await HTMLtoDOCX(html, null, {
+        title: `${safeName} \u2014 Last Will & Testament`,
+        font: "Times New Roman",
+        fontSize: 24,
+        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+      });
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.docx"`);
+      res.send(Buffer.from(docxBuffer));
+    } catch (err) {
+      console.error("[Will V2 DOCX] Error:", err);
+      res.status(500).json({ error: "Failed to generate Will Word document" });
     }
   });
   app.get("/api/matters/:id/commentary-docx", async (req, res) => {
