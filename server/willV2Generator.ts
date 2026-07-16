@@ -959,17 +959,40 @@ function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: 
     }
 
     case "bpr": {
-      const bizName = tc.propertyAddress || "my business interests";
+      const bizName = tc.propertyAddress || "[INSERT BUSINESS NAME]";
+      const ownershipPct = tc.sharePercentage || "[INSERT % OWNERSHIP]";
       const bens = tc.beneficiaries && tc.beneficiaries.length > 0
         ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ")
-        : "my children and remoter issue in equal shares absolutely";
+        : "[INSERT BENEFICIARIES]";
       return `
   <h2>${num}. Business Property Relief Trust</h2>
-  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
-  <p>(b) I GIVE my business interests known as <strong>${bizName}</strong> to my Trustees to hold upon the trusts hereinafter declared, it being my intention that the Business Assets shall qualify for Business Property Relief pursuant to Chapter I of Part V of the Inheritance Tax Act 1984.</p>
-  <p>(c) My Trustees shall hold the Business Assets upon trust for ${bens}.</p>
-  <p>(d) My Trustees shall have the widest possible powers to manage, invest, realise, and deal with the Business Assets as if they were absolute beneficial owners thereof.</p>
-  <p>(e) My Trustees shall use their best endeavours to ensure that the Business Assets continue to qualify for Business Property Relief and shall not take any action that would jeopardise such qualification without first obtaining appropriate professional advice.</p>
+  <p>(a) <strong>Appointment of Trustees</strong><br>The Trustees of the trusts declared by this clause (the &ldquo;Trustees&rdquo;) shall be ${trNames}, and the expression &ldquo;my Trustees&rdquo; shall include the Trustees for the time being of this trust.</p>
+  <p>(b) <strong>Gift of business interests / definition of Business Assets</strong><br>I GIVE to my Trustees all my business interests known as <strong>${bizName}</strong> (the &ldquo;Business&rdquo;) representing <strong>${ownershipPct}%</strong> ownership (or such part of the Business and/or such shareholding or interest as I own at my death) together with all assets and rights comprised in or used for the purposes of the Business, including without limitation:</p>
+  <ul>
+    <li>any shares or securities in any company through which the Business is carried on (including any shares or securities deriving from them by conversion, reorganisation, consolidation, subdivision, bonus issue or rights issue);</li>
+    <li>any goodwill, trading name, business name, website domains, intellectual property, customer lists, contracts and book debts;</li>
+    <li>any plant, machinery, vehicles, equipment, stock, fittings, licences and permits used in connection with the Business; and</li>
+    <li>any monies owed to me by the Business (including any director&rsquo;s loan account or other credit balance),</li>
+  </ul>
+  <p>(together the &ldquo;Business Assets&rdquo;) to hold the same upon the trusts hereinafter declared.</p>
+  <p>It is my intention that the Business Assets shall, so far as practicable, qualify for Business Property Relief pursuant to Chapter I of Part V of the Inheritance Tax Act 1984 (as amended) (and any re-enactment or successor provisions).</p>
+  <p>(c) <strong>Beneficiaries / trusts of the Business Assets</strong><br>My Trustees shall hold the Business Assets and the income arising therefrom upon trust for ${bens} in such shares and upon such terms as are set out in the trusts of this Will (or, if no other terms are stated, for them equally absolutely).</p>
+  <p>(d) <strong>Wide powers as if absolute owners</strong><br>My Trustees shall have the widest possible powers to hold, manage, maintain, insure, invest, vary investments, reorganise, realise, sell, transfer, lease, charge, mortgage and otherwise deal with the Business Assets (and any property representing them) as if they were the absolute beneficial owners.</p>
+  <p>Without prejudice to the generality of the foregoing, my Trustees may:</p>
+  <ul>
+    <li>Continue the Business as a going concern for such period as they think fit, whether personally or through directors/managers/agents, and may employ such staff and professional advisers as they consider appropriate;</li>
+    <li>Exercise all voting and management rights attaching to any shares or securities comprised in the Business Assets, including appointing/removing directors and entering into shareholders&rsquo; agreements;</li>
+    <li>Restructure or reorganise the Business or any company through which it is carried on (including incorporation, merger, demerger, reconstruction, share reorganisation, creation of new share classes, or transfer of the Business to another entity);</li>
+    <li>Provide working capital or otherwise support the Business financially (including by making loans, leaving monies on loan account, subscribing for further shares/securities, or permitting profits to be retained), and to borrow money and grant security over trust assets if required;</li>
+    <li>Sell or otherwise dispose of all or any part of the Business Assets for such consideration and on such terms as they think fit (including for cash, by instalments, deferred consideration, earn-outs, loan notes or shares/securities), and to grant such warranties, indemnities and undertakings as they consider prudent; and</li>
+    <li>Appropriate or transfer Business Assets in or towards satisfaction of a beneficiary&rsquo;s entitlement, at such value and on such terms as my Trustees consider fair.</li>
+  </ul>
+  <p>(e) <strong>BPR preservation &ndash; best endeavours and professional advice safeguard</strong><br>My Trustees shall use their best endeavours to ensure that the Business Assets continue to qualify for Business Property Relief and shall not take (or omit to take) any step which they reasonably consider might jeopardise or materially prejudice such qualification without first obtaining appropriate professional advice (including specialist tax advice where relevant).</p>
+  <p>For the avoidance of doubt, my Trustees are expressly authorised to:</p>
+  <ul>
+    <li>make and pursue any claims, elections, apportionments, declarations or agreements required or desirable to secure Business Property Relief and any associated reliefs, and to correspond and agree matters with HMRC; and</li>
+    <li>retain the Business Assets (or any part of them) for such period as they consider appropriate where retention is reasonably considered conducive to the preservation or maximisation of Business Property Relief, subject always to acting in the best interests of the beneficiaries as a whole.</li>
+  </ul>
   ${notes}`;
     }
 
