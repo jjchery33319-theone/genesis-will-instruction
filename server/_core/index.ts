@@ -796,23 +796,3 @@ async function createApp() {
 
 // Export createApp for serverless environments (Vercel) and local dev server
 export { createApp };
-
-// ── Production server startup (Manus container / non-Vercel) ─────────────────
-// When running as `node dist/index.js` (production container), start the HTTP server.
-// Vercel uses api/index.mjs (serverless handler) — the STANDALONE env var is set
-// by the build script only for the dist/index.js build, not the Vercel bundle.
-if (process.env.NODE_ENV === "production" && process.env.STANDALONE === "1") {
-  (async () => {
-    const { serveStatic } = await import("./vite");
-    const app = await createApp();
-    serveStatic(app);
-    const port = parseInt(process.env.PORT || "3000", 10);
-    const server = createServer(app);
-    server.listen(port, () => {
-      console.log(`Server running on http://localhost:${port}/`);
-    });
-  })().catch(err => {
-    console.error("Failed to start server:", err);
-    process.exit(1);
-  });
-}

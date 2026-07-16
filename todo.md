@@ -531,3 +531,8 @@
 ## Paste Fix & RNRB Clause Update (Phase 20)
 - [x] Fix Will V2 preview editor paste limitation (add paste event handler to iframe contentEditable)
 - [x] Update RNRB clause in willV2Generator.ts with comprehensive 8-section wording (user-provided)
+
+## BPR % Ownership Field (Phase 30)
+- [x] Add % Ownership input field to BPR trust clause section in MatterForm.tsx (V2 Will Drafting)
+- [x] Field wired to existing sharePercentage column in matter_trust_clauses table
+- [x] willV2Generator.ts already uses sharePercentage to replace [INSERT % OWNERSHIP]% in BPR clause

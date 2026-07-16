@@ -1002,231 +1002,9 @@ var init_mattersDb = __esm({
   }
 });
 
-// vite.config.ts
-import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
-import fs3 from "node:fs";
-import path3 from "node:path";
-import { defineConfig } from "vite";
-import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
-function ensureLogDir() {
-  if (!fs3.existsSync(LOG_DIR)) {
-    fs3.mkdirSync(LOG_DIR, { recursive: true });
-  }
-}
-function trimLogFile(logPath, maxSize) {
-  try {
-    if (!fs3.existsSync(logPath) || fs3.statSync(logPath).size <= maxSize) {
-      return;
-    }
-    const lines = fs3.readFileSync(logPath, "utf-8").split("\n");
-    const keptLines = [];
-    let keptBytes = 0;
-    const targetSize = TRIM_TARGET_BYTES;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const lineBytes = Buffer.byteLength(`${lines[i]}
-`, "utf-8");
-      if (keptBytes + lineBytes > targetSize) break;
-      keptLines.unshift(lines[i]);
-      keptBytes += lineBytes;
-    }
-    fs3.writeFileSync(logPath, keptLines.join("\n"), "utf-8");
-  } catch {
-  }
-}
-function writeToLogFile(source, entries) {
-  if (entries.length === 0) return;
-  ensureLogDir();
-  const logPath = path3.join(LOG_DIR, `${source}.log`);
-  const lines = entries.map((entry) => {
-    const ts = (/* @__PURE__ */ new Date()).toISOString();
-    return `[${ts}] ${JSON.stringify(entry)}`;
-  });
-  fs3.appendFileSync(logPath, `${lines.join("\n")}
-`, "utf-8");
-  trimLogFile(logPath, MAX_LOG_SIZE_BYTES);
-}
-function vitePluginManusDebugCollector() {
-  return {
-    name: "manus-debug-collector",
-    transformIndexHtml(html) {
-      if (process.env.NODE_ENV === "production") {
-        return html;
-      }
-      return {
-        html,
-        tags: [
-          {
-            tag: "script",
-            attrs: {
-              src: "/__manus__/debug-collector.js",
-              defer: true
-            },
-            injectTo: "head"
-          }
-        ]
-      };
-    },
-    configureServer(server) {
-      server.middlewares.use("/__manus__/logs", (req, res, next) => {
-        if (req.method !== "POST") {
-          return next();
-        }
-        const handlePayload = (payload) => {
-          if (payload.consoleLogs?.length > 0) {
-            writeToLogFile("browserConsole", payload.consoleLogs);
-          }
-          if (payload.networkRequests?.length > 0) {
-            writeToLogFile("networkRequests", payload.networkRequests);
-          }
-          if (payload.sessionEvents?.length > 0) {
-            writeToLogFile("sessionReplay", payload.sessionEvents);
-          }
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ success: true }));
-        };
-        const reqBody = req.body;
-        if (reqBody && typeof reqBody === "object") {
-          try {
-            handlePayload(reqBody);
-          } catch (e) {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: false, error: String(e) }));
-          }
-          return;
-        }
-        let body2 = "";
-        req.on("data", (chunk) => {
-          body2 += chunk.toString();
-        });
-        req.on("end", () => {
-          try {
-            const payload = JSON.parse(body2);
-            handlePayload(payload);
-          } catch (e) {
-            res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: false, error: String(e) }));
-          }
-        });
-      });
-    }
-  };
-}
-var PROJECT_ROOT, LOG_DIR, MAX_LOG_SIZE_BYTES, TRIM_TARGET_BYTES, plugins, vite_config_default;
-var init_vite_config = __esm({
-  "vite.config.ts"() {
-    "use strict";
-    PROJECT_ROOT = import.meta.dirname;
-    LOG_DIR = path3.join(PROJECT_ROOT, ".manus-logs");
-    MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024;
-    TRIM_TARGET_BYTES = Math.floor(MAX_LOG_SIZE_BYTES * 0.6);
-    plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
-    vite_config_default = defineConfig({
-      plugins,
-      resolve: {
-        alias: {
-          "@": path3.resolve(import.meta.dirname, "client", "src"),
-          "@shared": path3.resolve(import.meta.dirname, "shared"),
-          "@assets": path3.resolve(import.meta.dirname, "attached_assets")
-        }
-      },
-      envDir: path3.resolve(import.meta.dirname),
-      root: path3.resolve(import.meta.dirname, "client"),
-      publicDir: path3.resolve(import.meta.dirname, "client", "public"),
-      build: {
-        outDir: path3.resolve(import.meta.dirname, "dist/public"),
-        emptyOutDir: true
-      },
-      server: {
-        host: true,
-        allowedHosts: [
-          ".manuspre.computer",
-          ".manus.computer",
-          ".manus-asia.computer",
-          ".manuscomputer.ai",
-          ".manusvm.computer",
-          "localhost",
-          "127.0.0.1"
-        ],
-        fs: {
-          strict: true,
-          deny: ["**/.*"]
-        }
-      }
-    });
-  }
-});
-
-// server/_core/vite.ts
-var vite_exports = {};
-__export(vite_exports, {
-  serveStatic: () => serveStatic,
-  setupVite: () => setupVite
-});
-import express from "express";
-import fs4 from "fs";
-import { nanoid } from "nanoid";
-import path4 from "path";
-import { createServer as createViteServer } from "vite";
-async function setupVite(app, server) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true
-  };
-  const vite = await createViteServer({
-    ...vite_config_default,
-    configFile: false,
-    server: serverOptions,
-    appType: "custom"
-  });
-  app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
-    try {
-      const clientTemplate = path4.resolve(
-        import.meta.dirname,
-        "../..",
-        "client",
-        "index.html"
-      );
-      let template = await fs4.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`
-      );
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
-    } catch (e) {
-      vite.ssrFixStacktrace(e);
-      next(e);
-    }
-  });
-}
-function serveStatic(app) {
-  const distPath = process.env.NODE_ENV === "development" ? path4.resolve(import.meta.dirname, "../..", "dist", "public") : path4.resolve(import.meta.dirname, "public");
-  if (!fs4.existsSync(distPath)) {
-    console.error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
-    );
-  }
-  app.use(express.static(distPath));
-  app.use("*", (_req, res) => {
-    res.sendFile(path4.resolve(distPath, "index.html"));
-  });
-}
-var init_vite = __esm({
-  "server/_core/vite.ts"() {
-    "use strict";
-    init_vite_config();
-  }
-});
-
 // server/_core/index.ts
 import "dotenv/config";
-import express2 from "express";
-import { createServer } from "http";
+import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 
 // shared/const.ts
@@ -2610,10 +2388,10 @@ function fetchBuffer(url) {
 }
 async function fetchLogoBuffer() {
   try {
-    const fs5 = await import("fs");
-    const path5 = await import("path");
-    const localPath = path5.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
-    if (fs5.existsSync(localPath)) return fs5.readFileSync(localPath);
+    const fs3 = await import("fs");
+    const path3 = await import("path");
+    const localPath = path3.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
+    if (fs3.existsSync(localPath)) return fs3.readFileSync(localPath);
     const baseUrl = `http://localhost:${process.env.PORT ?? 3e3}`;
     return await fetchBuffer(`${baseUrl}${LOGO_URL}`);
   } catch {
@@ -2919,9 +2697,9 @@ async function getAccessToken() {
   }
   return result.accessToken;
 }
-async function graphRequest(method, path5, token, body2, contentType) {
+async function graphRequest(method, path3, token, body2, contentType) {
   const fetch3 = (await import("node-fetch")).default;
-  const res = await fetch3(`https://graph.microsoft.com/v1.0${path5}`, {
+  const res = await fetch3(`https://graph.microsoft.com/v1.0${path3}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -2931,7 +2709,7 @@ async function graphRequest(method, path5, token, body2, contentType) {
   });
   if (!res.ok) {
     const text3 = await res.text();
-    throw new Error(`[OneDrive] Graph API ${method} ${path5} \u2192 ${res.status}: ${text3}`);
+    throw new Error(`[OneDrive] Graph API ${method} ${path3} \u2192 ${res.status}: ${text3}`);
   }
   const text2 = await res.text();
   return text2 ? JSON.parse(text2) : null;
@@ -4990,11 +4768,11 @@ var PAGE_WIDTH = 595.28;
 var CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
 async function fetchLogoBuffer2() {
   try {
-    const fs5 = await import("fs");
-    const path5 = await import("path");
-    const localPath = path5.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
-    if (fs5.existsSync(localPath)) {
-      return fs5.readFileSync(localPath);
+    const fs3 = await import("fs");
+    const path3 = await import("path");
+    const localPath = path3.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
+    if (fs3.existsSync(localPath)) {
+      return fs3.readFileSync(localPath);
     }
     const baseUrl = `http://localhost:${process.env.PORT ?? 3e3}`;
     return await fetchBuffer2(`${baseUrl}${LOGO_URL2}`);
@@ -9340,9 +9118,9 @@ var IS_VERCEL = process.env.VERCEL === "1";
 async function getExecutablePath() {
   try {
     const chromium = await import("@sparticuz/chromium");
-    const path5 = await chromium.default.executablePath();
-    if (path5 && existsSync2(path5)) {
-      return path5;
+    const path3 = await chromium.default.executablePath();
+    if (path3 && existsSync2(path3)) {
+      return path3;
     }
   } catch {
   }
@@ -11396,9 +11174,9 @@ async function generateWelcomePackDocx(record) {
 import { createRequire } from "module";
 var _require = createRequire(import.meta.url);
 async function createApp() {
-  const app = express2();
-  app.use(express2.json({ limit: "50mb" }));
-  app.use(express2.urlencoded({ limit: "50mb", extended: true }));
+  const app = express();
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.get("/api/debug", async (_req, res) => {
     const hasDbUrl = !!process.env.DATABASE_URL;
     const dbUrlLen = (process.env.DATABASE_URL ?? "").length;
@@ -11515,7 +11293,7 @@ async function createApp() {
       res.status(500).json({ error: "Failed to generate Welcome Pack preview" });
     }
   });
-  app.post("/api/submissions/:id/welcome-pack-html", express2.json({ limit: "10mb" }), async (req, res) => {
+  app.post("/api/submissions/:id/welcome-pack-html", express.json({ limit: "10mb" }), async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -11742,7 +11520,7 @@ async function createApp() {
       res.status(500).json({ error: "Failed to generate Will HTML" });
     }
   });
-  app.post("/api/submissions/:id/will-html", express2.json({ limit: "10mb" }), async (req, res) => {
+  app.post("/api/submissions/:id/will-html", express.json({ limit: "10mb" }), async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -12022,7 +11800,7 @@ $1`);
       res.status(500).json({ error: "Failed to generate Will PDF", detail: msg });
     }
   });
-  app.post("/api/matters/:id/will-html", express2.json({ limit: "10mb" }), async (req, res) => {
+  app.post("/api/matters/:id/will-html", express.json({ limit: "10mb" }), async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -12263,21 +12041,6 @@ $1`);
     })
   );
   return app;
-}
-if (process.env.NODE_ENV === "production" && process.env.STANDALONE === "1") {
-  (async () => {
-    const { serveStatic: serveStatic2 } = await Promise.resolve().then(() => (init_vite(), vite_exports));
-    const app = await createApp();
-    serveStatic2(app);
-    const port = parseInt(process.env.PORT || "3000", 10);
-    const server = createServer(app);
-    server.listen(port, () => {
-      console.log(`Server running on http://localhost:${port}/`);
-    });
-  })().catch((err) => {
-    console.error("Failed to start server:", err);
-    process.exit(1);
-  });
 }
 
 // server/vercel/handler.ts

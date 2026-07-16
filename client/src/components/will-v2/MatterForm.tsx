@@ -2163,6 +2163,23 @@ function TrustClausesSection({
                   </div>
                 )}
 
+                {/* % Ownership (BPR only) */}
+                {tc.trustType === "bpr" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">% Ownership</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={tc.sharePercentage}
+                        onChange={e => updateClause(i, "sharePercentage", e.target.value)}
+                        placeholder="e.g. 100"
+                        className="h-8 text-sm w-32"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Percentage of the business / asset owned by the testator</p>
+                  </div>
+                )}
+
                 {/* Named beneficiary (Vulnerable, Bereaved Minor, 18-to-25) */}
                 {needsNamedBen && (
                   <div className="grid grid-cols-2 gap-2">
