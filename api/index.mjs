@@ -35,7 +35,7 @@ __export(schema_exports, {
   users: () => users,
   willInstructions: () => willInstructions
 });
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, tinyint, bigint } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, mediumtext, timestamp, varchar, json, tinyint, bigint } from "drizzle-orm/mysql-core";
 var users, willInstructions, lpaRecords, matters, matterClients, matterExecutors, matterGuardians, matterBeneficiaries, matterWishes, matterGifts, matterPets, matterProperty, matterBusiness, matterTrustClauses, matterExclusions, matterLettersOfWishes, matterPeoplePool;
 var init_schema = __esm({
   "drizzle/schema.ts"() {
@@ -291,11 +291,11 @@ var init_schema = __esm({
       aiRecommendationNarrative: text("aiRecommendationNarrative"),
       aiClientEmailDraft: text("aiClientEmailDraft"),
       // ── Edited Will HTML (manual back-office edits saved per willType) ───────────
-      editedWillHtmlSingle: text("editedWillHtmlSingle"),
-      editedWillHtmlClient1: text("editedWillHtmlClient1"),
-      editedWillHtmlClient2: text("editedWillHtmlClient2"),
+      editedWillHtmlSingle: mediumtext("editedWillHtmlSingle"),
+      editedWillHtmlClient1: mediumtext("editedWillHtmlClient1"),
+      editedWillHtmlClient2: mediumtext("editedWillHtmlClient2"),
       // ── Edited Welcome Pack HTML (manual back-office edits) ──────────────────────
-      editedWelcomePackHtml: text("editedWelcomePackHtml"),
+      editedWelcomePackHtml: mediumtext("editedWelcomePackHtml"),
       // ── Meta ───────────────────────────────────────────────────────────────────
       status: mysqlEnum("status", ["draft", "submitted", "processing", "complete", "cancelled"]).default("submitted").notNull(),
       currentStep: int("currentStep").notNull().default(1),
@@ -384,8 +384,8 @@ var init_schema = __esm({
       matterType: mysqlEnum("matter_type", ["single", "mirror"]).notNull(),
       fileReference: varchar("file_reference", { length: 100 }),
       status: mysqlEnum("status", ["draft", "complete"]).default("draft").notNull(),
-      editedWillHtmlTestator1: text("edited_will_html_testator1"),
-      editedWillHtmlTestator2: text("edited_will_html_testator2"),
+      editedWillHtmlTestator1: mediumtext("edited_will_html_testator1"),
+      editedWillHtmlTestator2: mediumtext("edited_will_html_testator2"),
       createdAt: timestamp("created_at").defaultNow().notNull(),
       updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull()
     });
@@ -558,9 +558,11 @@ var init_schema = __esm({
     matterPeoplePool = mysqlTable("matter_people_pool", {
       id: int("id").primaryKey().autoincrement(),
       matterId: int("matter_id").notNull(),
+      title: varchar("title", { length: 20 }).default(""),
       fullName: varchar("full_name", { length: 255 }).notNull().default(""),
       dateOfBirth: varchar("date_of_birth", { length: 20 }).default(""),
       address: text("address"),
+      gender: varchar("gender", { length: 20 }).default(""),
       relationship: varchar("relationship", { length: 128 }).default(""),
       sourceRole: varchar("source_role", { length: 64 }).default(""),
       createdAt: bigint("created_at", { mode: "number" }).notNull().default(0),
@@ -721,6 +723,14 @@ async function ensureClientNameColumns(db) {
   }
   try {
     await db.execute(sql`ALTER TABLE matter_clients ADD COLUMN last_name VARCHAR(128) AFTER middle_name`);
+  } catch {
+  }
+  try {
+    await db.execute(sql`ALTER TABLE matter_people_pool ADD COLUMN title VARCHAR(20) DEFAULT '' AFTER matter_id`);
+  } catch {
+  }
+  try {
+    await db.execute(sql`ALTER TABLE matter_people_pool ADD COLUMN gender VARCHAR(20) DEFAULT '' AFTER address`);
   } catch {
   }
 }
@@ -957,15 +967,15 @@ async function upsertPersonPool(matterId, data) {
   const db = await d();
   const now = Date.now();
   if (data.id) {
-    await db.update(matterPeoplePool).set({ fullName: data.fullName, dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", updatedAt: now }).where(and(eq4(matterPeoplePool.id, data.id), eq4(matterPeoplePool.matterId, matterId)));
+    await db.update(matterPeoplePool).set({ fullName: data.fullName, title: data.title ?? "", dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", gender: data.gender ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", updatedAt: now }).where(and(eq4(matterPeoplePool.id, data.id), eq4(matterPeoplePool.matterId, matterId)));
     return data.id;
   }
   const existing = await db.select().from(matterPeoplePool).where(and(eq4(matterPeoplePool.matterId, matterId), eq4(matterPeoplePool.fullName, data.fullName)));
   if (existing[0]) {
-    await db.update(matterPeoplePool).set({ dateOfBirth: data.dateOfBirth ?? existing[0].dateOfBirth ?? "", address: data.address ?? existing[0].address ?? "", relationship: data.relationship ?? existing[0].relationship ?? "", sourceRole: data.sourceRole ?? existing[0].sourceRole ?? "", updatedAt: now }).where(eq4(matterPeoplePool.id, existing[0].id));
+    await db.update(matterPeoplePool).set({ title: data.title ?? existing[0].title ?? "", dateOfBirth: data.dateOfBirth ?? existing[0].dateOfBirth ?? "", address: data.address ?? existing[0].address ?? "", gender: data.gender ?? existing[0].gender ?? "", relationship: data.relationship ?? existing[0].relationship ?? "", sourceRole: data.sourceRole ?? existing[0].sourceRole ?? "", updatedAt: now }).where(eq4(matterPeoplePool.id, existing[0].id));
     return existing[0].id;
   }
-  const result = await db.insert(matterPeoplePool).values({ matterId, fullName: data.fullName, dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", createdAt: now, updatedAt: now });
+  const result = await db.insert(matterPeoplePool).values({ matterId, fullName: data.fullName, title: data.title ?? "", dateOfBirth: data.dateOfBirth ?? "", address: data.address ?? "", gender: data.gender ?? "", relationship: data.relationship ?? "", sourceRole: data.sourceRole ?? "", createdAt: now, updatedAt: now });
   return result[0].insertId;
 }
 async function deletePersonPool(id, matterId) {
@@ -992,9 +1002,231 @@ var init_mattersDb = __esm({
   }
 });
 
+// vite.config.ts
+import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import fs3 from "node:fs";
+import path3 from "node:path";
+import { defineConfig } from "vite";
+import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+function ensureLogDir() {
+  if (!fs3.existsSync(LOG_DIR)) {
+    fs3.mkdirSync(LOG_DIR, { recursive: true });
+  }
+}
+function trimLogFile(logPath, maxSize) {
+  try {
+    if (!fs3.existsSync(logPath) || fs3.statSync(logPath).size <= maxSize) {
+      return;
+    }
+    const lines = fs3.readFileSync(logPath, "utf-8").split("\n");
+    const keptLines = [];
+    let keptBytes = 0;
+    const targetSize = TRIM_TARGET_BYTES;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const lineBytes = Buffer.byteLength(`${lines[i]}
+`, "utf-8");
+      if (keptBytes + lineBytes > targetSize) break;
+      keptLines.unshift(lines[i]);
+      keptBytes += lineBytes;
+    }
+    fs3.writeFileSync(logPath, keptLines.join("\n"), "utf-8");
+  } catch {
+  }
+}
+function writeToLogFile(source, entries) {
+  if (entries.length === 0) return;
+  ensureLogDir();
+  const logPath = path3.join(LOG_DIR, `${source}.log`);
+  const lines = entries.map((entry) => {
+    const ts = (/* @__PURE__ */ new Date()).toISOString();
+    return `[${ts}] ${JSON.stringify(entry)}`;
+  });
+  fs3.appendFileSync(logPath, `${lines.join("\n")}
+`, "utf-8");
+  trimLogFile(logPath, MAX_LOG_SIZE_BYTES);
+}
+function vitePluginManusDebugCollector() {
+  return {
+    name: "manus-debug-collector",
+    transformIndexHtml(html) {
+      if (process.env.NODE_ENV === "production") {
+        return html;
+      }
+      return {
+        html,
+        tags: [
+          {
+            tag: "script",
+            attrs: {
+              src: "/__manus__/debug-collector.js",
+              defer: true
+            },
+            injectTo: "head"
+          }
+        ]
+      };
+    },
+    configureServer(server) {
+      server.middlewares.use("/__manus__/logs", (req, res, next) => {
+        if (req.method !== "POST") {
+          return next();
+        }
+        const handlePayload = (payload) => {
+          if (payload.consoleLogs?.length > 0) {
+            writeToLogFile("browserConsole", payload.consoleLogs);
+          }
+          if (payload.networkRequests?.length > 0) {
+            writeToLogFile("networkRequests", payload.networkRequests);
+          }
+          if (payload.sessionEvents?.length > 0) {
+            writeToLogFile("sessionReplay", payload.sessionEvents);
+          }
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: true }));
+        };
+        const reqBody = req.body;
+        if (reqBody && typeof reqBody === "object") {
+          try {
+            handlePayload(reqBody);
+          } catch (e) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: String(e) }));
+          }
+          return;
+        }
+        let body2 = "";
+        req.on("data", (chunk) => {
+          body2 += chunk.toString();
+        });
+        req.on("end", () => {
+          try {
+            const payload = JSON.parse(body2);
+            handlePayload(payload);
+          } catch (e) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: String(e) }));
+          }
+        });
+      });
+    }
+  };
+}
+var PROJECT_ROOT, LOG_DIR, MAX_LOG_SIZE_BYTES, TRIM_TARGET_BYTES, plugins, vite_config_default;
+var init_vite_config = __esm({
+  "vite.config.ts"() {
+    "use strict";
+    PROJECT_ROOT = import.meta.dirname;
+    LOG_DIR = path3.join(PROJECT_ROOT, ".manus-logs");
+    MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024;
+    TRIM_TARGET_BYTES = Math.floor(MAX_LOG_SIZE_BYTES * 0.6);
+    plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+    vite_config_default = defineConfig({
+      plugins,
+      resolve: {
+        alias: {
+          "@": path3.resolve(import.meta.dirname, "client", "src"),
+          "@shared": path3.resolve(import.meta.dirname, "shared"),
+          "@assets": path3.resolve(import.meta.dirname, "attached_assets")
+        }
+      },
+      envDir: path3.resolve(import.meta.dirname),
+      root: path3.resolve(import.meta.dirname, "client"),
+      publicDir: path3.resolve(import.meta.dirname, "client", "public"),
+      build: {
+        outDir: path3.resolve(import.meta.dirname, "dist/public"),
+        emptyOutDir: true
+      },
+      server: {
+        host: true,
+        allowedHosts: [
+          ".manuspre.computer",
+          ".manus.computer",
+          ".manus-asia.computer",
+          ".manuscomputer.ai",
+          ".manusvm.computer",
+          "localhost",
+          "127.0.0.1"
+        ],
+        fs: {
+          strict: true,
+          deny: ["**/.*"]
+        }
+      }
+    });
+  }
+});
+
+// server/_core/vite.ts
+var vite_exports = {};
+__export(vite_exports, {
+  serveStatic: () => serveStatic,
+  setupVite: () => setupVite
+});
+import express from "express";
+import fs4 from "fs";
+import { nanoid } from "nanoid";
+import path4 from "path";
+import { createServer as createViteServer } from "vite";
+async function setupVite(app, server) {
+  const serverOptions = {
+    middlewareMode: true,
+    hmr: { server },
+    allowedHosts: true
+  };
+  const vite = await createViteServer({
+    ...vite_config_default,
+    configFile: false,
+    server: serverOptions,
+    appType: "custom"
+  });
+  app.use(vite.middlewares);
+  app.use("*", async (req, res, next) => {
+    const url = req.originalUrl;
+    try {
+      const clientTemplate = path4.resolve(
+        import.meta.dirname,
+        "../..",
+        "client",
+        "index.html"
+      );
+      let template = await fs4.promises.readFile(clientTemplate, "utf-8");
+      template = template.replace(
+        `src="/src/main.tsx"`,
+        `src="/src/main.tsx?v=${nanoid()}"`
+      );
+      const page = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+    } catch (e) {
+      vite.ssrFixStacktrace(e);
+      next(e);
+    }
+  });
+}
+function serveStatic(app) {
+  const distPath = process.env.NODE_ENV === "development" ? path4.resolve(import.meta.dirname, "../..", "dist", "public") : path4.resolve(import.meta.dirname, "public");
+  if (!fs4.existsSync(distPath)) {
+    console.error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`
+    );
+  }
+  app.use(express.static(distPath));
+  app.use("*", (_req, res) => {
+    res.sendFile(path4.resolve(distPath, "index.html"));
+  });
+}
+var init_vite = __esm({
+  "server/_core/vite.ts"() {
+    "use strict";
+    init_vite_config();
+  }
+});
+
 // server/_core/index.ts
 import "dotenv/config";
-import express from "express";
+import express2 from "express";
+import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 
 // shared/const.ts
@@ -2378,10 +2610,10 @@ function fetchBuffer(url) {
 }
 async function fetchLogoBuffer() {
   try {
-    const fs3 = await import("fs");
-    const path3 = await import("path");
-    const localPath = path3.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
-    if (fs3.existsSync(localPath)) return fs3.readFileSync(localPath);
+    const fs5 = await import("fs");
+    const path5 = await import("path");
+    const localPath = path5.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
+    if (fs5.existsSync(localPath)) return fs5.readFileSync(localPath);
     const baseUrl = `http://localhost:${process.env.PORT ?? 3e3}`;
     return await fetchBuffer(`${baseUrl}${LOGO_URL}`);
   } catch {
@@ -2687,9 +2919,9 @@ async function getAccessToken() {
   }
   return result.accessToken;
 }
-async function graphRequest(method, path3, token, body2, contentType) {
+async function graphRequest(method, path5, token, body2, contentType) {
   const fetch3 = (await import("node-fetch")).default;
-  const res = await fetch3(`https://graph.microsoft.com/v1.0${path3}`, {
+  const res = await fetch3(`https://graph.microsoft.com/v1.0${path5}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -2699,7 +2931,7 @@ async function graphRequest(method, path3, token, body2, contentType) {
   });
   if (!res.ok) {
     const text3 = await res.text();
-    throw new Error(`[OneDrive] Graph API ${method} ${path3} \u2192 ${res.status}: ${text3}`);
+    throw new Error(`[OneDrive] Graph API ${method} ${path5} \u2192 ${res.status}: ${text3}`);
   }
   const text2 = await res.text();
   return text2 ? JSON.parse(text2) : null;
@@ -4402,8 +4634,10 @@ var mattersRouter = router({
     matterId: z4.number().int(),
     id: z4.number().int().optional(),
     fullName: z4.string(),
+    title: z4.string().optional(),
     dateOfBirth: z4.string().optional(),
     address: z4.string().optional(),
+    gender: z4.string().optional(),
     relationship: z4.string().optional(),
     sourceRole: z4.string().optional()
   })).mutation(async ({ input }) => {
@@ -4756,11 +4990,11 @@ var PAGE_WIDTH = 595.28;
 var CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
 async function fetchLogoBuffer2() {
   try {
-    const fs3 = await import("fs");
-    const path3 = await import("path");
-    const localPath = path3.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
-    if (fs3.existsSync(localPath)) {
-      return fs3.readFileSync(localPath);
+    const fs5 = await import("fs");
+    const path5 = await import("path");
+    const localPath = path5.join(process.cwd(), "../webdev-static-assets/GenesisEstatePlanningLogoUSETHISONE.png");
+    if (fs5.existsSync(localPath)) {
+      return fs5.readFileSync(localPath);
     }
     const baseUrl = `http://localhost:${process.env.PORT ?? 3e3}`;
     return await fetchBuffer2(`${baseUrl}${LOGO_URL2}`);
@@ -7567,13 +7801,50 @@ function buildTrustClauseHtml(tc, num) {
   ${notes}`;
     }
     case "rnrb": {
-      const property = tc.propertyAddress || "my principal residence";
-      const bens = tc.beneficiaries && tc.beneficiaries.length > 0 ? tc.beneficiaries.map((b) => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ") : "my lineal descendants";
+      const property = tc.propertyAddress || "[INSERT ADDRESS OF QUALIFYING RESIDENCE]";
+      const bens = tc.beneficiaries && tc.beneficiaries.length > 0 ? tc.beneficiaries.map((b) => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ") : "[INSERT NAMES OF DIRECT DESCENDANTS]";
       return `
   <h2>${num}. Residential Nil-Rate Band (RNRB)</h2>
-  <p>I direct that my Executors and Trustees shall use their best endeavours to ensure that the Residential Nil-Rate Band (as defined in section 8D of the Inheritance Tax Act 1984) is claimed in respect of my Estate.</p>
-  <p>For the purposes of qualifying for the Residential Nil-Rate Band, I give my interest in the property known as <strong>${property}</strong> to ${bens} absolutely, or if that property has been sold prior to my death, to such replacement residential property as I may own at the date of my death.</p>
-  <p>My Executors shall take all steps necessary to claim any transferable Residential Nil-Rate Band that may be available from my deceased spouse or civil partner's estate.</p>
+  <h3>${num}.1 Direction to claim and maximise RNRB</h3>
+  <p>I DIRECT that my Executors and Trustees shall use their best endeavours to ensure that the Residential Nil-Rate Band (the &ldquo;RNRB&rdquo;) (as defined in section 8D of the Inheritance Tax Act 1984 (the &ldquo;Act&rdquo;)) is claimed, secured and applied to my Estate so far as available.</p>
+  <p>My Executors and Trustees shall have full power to take (and shall take) all steps they consider necessary or desirable to secure, preserve and maximise the RNRB and any related reliefs, including (without limitation):</p>
+  <ul>
+    <li>preparing and submitting such inheritance tax accounts, schedules and computations as are required;</li>
+    <li>making all appropriate claims, elections, apportionments and notices and providing all information and evidence requested by HMRC;</li>
+    <li>corresponding and negotiating with HMRC and agreeing figures, valuations and the form and basis of any claim; and</li>
+    <li>obtaining and relying on specialist professional advice (including tax and valuation advice) where they consider it appropriate, the proper costs of which shall be paid out of my Estate as an expense of administration.</li>
+  </ul>
+  <h3>${num}.2 Qualifying residence gift to direct descendants</h3>
+  <p>For the purpose of securing (so far as practicable) that my Estate qualifies for the RNRB, I GIVE my interest in the property known as <strong>${property}</strong> (the &ldquo;Qualifying Residence&rdquo;) to ${bens} absolutely.</p>
+  <p>If the Qualifying Residence has been sold, disposed of, appropriated, transferred, or is otherwise no longer comprised in my Estate at my death, then I GIVE to the said beneficiaries absolutely my interest in such residential property (or, if more than one, such one of them) as I may own at my death as my Executors and Trustees, in their absolute discretion, consider most appropriate to constitute a qualifying residential interest for the purposes of the RNRB (the &ldquo;Replacement Residence&rdquo;).</p>
+  <p>If I own a share or interest only in the Qualifying Residence or any Replacement Residence, this gift shall take effect in respect of that share or interest.</p>
+  <h3>${num}.3 Occupation and conditions</h3>
+  <p>If (at the date of my death) any person is in occupation of the Qualifying Residence or any Replacement Residence, my Executors and Trustees may permit continued occupation on such terms (if any) as they consider reasonable, provided that nothing in this clause shall oblige my Executors and Trustees to retain the property if they consider that sale is required for the proper administration of my Estate or is otherwise in the best interests of the beneficiaries as a whole.</p>
+  <h3>${num}.4 Downsizing addition and former residence provisions</h3>
+  <p>If, at my death, no residential interest passes (or passes sufficiently) to constitute a qualifying residential interest for the RNRB, or if the RNRB cannot be fully utilised by reason of a lifetime disposal, downsizing, change of residence, or any other circumstances, my Executors and Trustees shall consider and (where appropriate) take all steps necessary to claim any downsizing addition or other equivalent relief available under the Act (including where I formerly owned and occupied a residence which has been disposed of, and other assets are inherited by my direct descendants).</p>
+  <p>For the avoidance of doubt, my Executors and Trustees are authorised to identify and designate (so far as is permitted) the assets or part of my Estate which should be treated as &ldquo;closely inherited&rdquo; or otherwise relevant for the purposes of securing any such allowance or addition.</p>
+  <h3>${num}.5 Transferable RNRB from deceased spouse or civil partner</h3>
+  <p>My Executors shall take all steps necessary and appropriate to claim any transferable RNRB (and any transferable downsizing addition or related uplift) which may be available from the estate of my deceased spouse or civil partner, including:</p>
+  <ul>
+    <li>obtaining such documents, information and evidence as may be reasonably required (including copies of grants, wills, accounts and schedules); and</li>
+    <li>making any claim(s) within the time limits prescribed, and pursuing those claims with HMRC as required.</li>
+  </ul>
+  <h3>${num}.6 Tapering: large estates</h3>
+  <p>My Executors and Trustees shall also consider whether the RNRB (or any transferable RNRB) is reduced by the taper provisions applicable to larger estates, and shall take appropriate professional advice and such steps as they consider lawful and appropriate in the administration of my Estate to ensure that any available RNRB is not inadvertently lost or underclaimed.</p>
+  <h3>${num}.7 Powers to appropriate, rearrange and fix the position</h3>
+  <p>My Executors and Trustees shall have power (in addition to any power conferred by law):</p>
+  <ul>
+    <li>to appropriate all or any part of the Qualifying Residence (or Replacement Residence), or any interest in it, in or towards satisfaction of the entitlement of my direct descendants;</li>
+    <li>to effect such appropriations, transfers and administrative arrangements as they consider appropriate so that the Qualifying Residence (or Replacement Residence) is treated as being inherited by my direct descendants for the purposes of claiming the RNRB, where permissible; and</li>
+    <li>generally to administer and arrange the devolution of my Estate in a manner designed to secure the RNRB, provided that they act in good faith and in the best interests of the beneficiaries as a whole.</li>
+  </ul>
+  <h3>${num}.8 Interpretation</h3>
+  <p>In this clause:</p>
+  <ul>
+    <li>references to &ldquo;my Executors&rdquo; include my Trustees where they are the persons administering the relevant part of my Estate;</li>
+    <li>references to the &ldquo;RNRB&rdquo; include any replacement, amendment, re-enactment or successor provision in force at my death; and</li>
+    <li>references to &ldquo;direct descendants&rdquo; shall have the meaning given by the Act.</li>
+  </ul>
   ${notes}`;
     }
     case "bereaved_minor": {
@@ -7601,15 +7872,38 @@ function buildTrustClauseHtml(tc, num) {
   ${notes}`;
     }
     case "bpr": {
-      const bizName = tc.propertyAddress || "my business interests";
-      const bens = tc.beneficiaries && tc.beneficiaries.length > 0 ? tc.beneficiaries.map((b) => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ") : "my children and remoter issue in equal shares absolutely";
+      const bizName = tc.propertyAddress || "[INSERT BUSINESS NAME]";
+      const ownershipPct = tc.sharePercentage || "[INSERT % OWNERSHIP]";
+      const bens = tc.beneficiaries && tc.beneficiaries.length > 0 ? tc.beneficiaries.map((b) => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ") : "[INSERT BENEFICIARIES]";
       return `
   <h2>${num}. Business Property Relief Trust</h2>
-  <p>(a) The Trustees of this trust shall be ${trNames}.</p>
-  <p>(b) I GIVE my business interests known as <strong>${bizName}</strong> to my Trustees to hold upon the trusts hereinafter declared, it being my intention that the Business Assets shall qualify for Business Property Relief pursuant to Chapter I of Part V of the Inheritance Tax Act 1984.</p>
-  <p>(c) My Trustees shall hold the Business Assets upon trust for ${bens}.</p>
-  <p>(d) My Trustees shall have the widest possible powers to manage, invest, realise, and deal with the Business Assets as if they were absolute beneficial owners thereof.</p>
-  <p>(e) My Trustees shall use their best endeavours to ensure that the Business Assets continue to qualify for Business Property Relief and shall not take any action that would jeopardise such qualification without first obtaining appropriate professional advice.</p>
+  <p>(a) <strong>Appointment of Trustees</strong><br>The Trustees of the trusts declared by this clause (the &ldquo;Trustees&rdquo;) shall be ${trNames}, and the expression &ldquo;my Trustees&rdquo; shall include the Trustees for the time being of this trust.</p>
+  <p>(b) <strong>Gift of business interests / definition of Business Assets</strong><br>I GIVE to my Trustees all my business interests known as <strong>${bizName}</strong> (the &ldquo;Business&rdquo;) representing <strong>${ownershipPct}%</strong> ownership (or such part of the Business and/or such shareholding or interest as I own at my death) together with all assets and rights comprised in or used for the purposes of the Business, including without limitation:</p>
+  <ul>
+    <li>any shares or securities in any company through which the Business is carried on (including any shares or securities deriving from them by conversion, reorganisation, consolidation, subdivision, bonus issue or rights issue);</li>
+    <li>any goodwill, trading name, business name, website domains, intellectual property, customer lists, contracts and book debts;</li>
+    <li>any plant, machinery, vehicles, equipment, stock, fittings, licences and permits used in connection with the Business; and</li>
+    <li>any monies owed to me by the Business (including any director&rsquo;s loan account or other credit balance),</li>
+  </ul>
+  <p>(together the &ldquo;Business Assets&rdquo;) to hold the same upon the trusts hereinafter declared.</p>
+  <p>It is my intention that the Business Assets shall, so far as practicable, qualify for Business Property Relief pursuant to Chapter I of Part V of the Inheritance Tax Act 1984 (as amended) (and any re-enactment or successor provisions).</p>
+  <p>(c) <strong>Beneficiaries / trusts of the Business Assets</strong><br>My Trustees shall hold the Business Assets and the income arising therefrom upon trust for ${bens} in such shares and upon such terms as are set out in the trusts of this Will (or, if no other terms are stated, for them equally absolutely).</p>
+  <p>(d) <strong>Wide powers as if absolute owners</strong><br>My Trustees shall have the widest possible powers to hold, manage, maintain, insure, invest, vary investments, reorganise, realise, sell, transfer, lease, charge, mortgage and otherwise deal with the Business Assets (and any property representing them) as if they were the absolute beneficial owners.</p>
+  <p>Without prejudice to the generality of the foregoing, my Trustees may:</p>
+  <ul>
+    <li>Continue the Business as a going concern for such period as they think fit, whether personally or through directors/managers/agents, and may employ such staff and professional advisers as they consider appropriate;</li>
+    <li>Exercise all voting and management rights attaching to any shares or securities comprised in the Business Assets, including appointing/removing directors and entering into shareholders&rsquo; agreements;</li>
+    <li>Restructure or reorganise the Business or any company through which it is carried on (including incorporation, merger, demerger, reconstruction, share reorganisation, creation of new share classes, or transfer of the Business to another entity);</li>
+    <li>Provide working capital or otherwise support the Business financially (including by making loans, leaving monies on loan account, subscribing for further shares/securities, or permitting profits to be retained), and to borrow money and grant security over trust assets if required;</li>
+    <li>Sell or otherwise dispose of all or any part of the Business Assets for such consideration and on such terms as they think fit (including for cash, by instalments, deferred consideration, earn-outs, loan notes or shares/securities), and to grant such warranties, indemnities and undertakings as they consider prudent; and</li>
+    <li>Appropriate or transfer Business Assets in or towards satisfaction of a beneficiary&rsquo;s entitlement, at such value and on such terms as my Trustees consider fair.</li>
+  </ul>
+  <p>(e) <strong>BPR preservation &ndash; best endeavours and professional advice safeguard</strong><br>My Trustees shall use their best endeavours to ensure that the Business Assets continue to qualify for Business Property Relief and shall not take (or omit to take) any step which they reasonably consider might jeopardise or materially prejudice such qualification without first obtaining appropriate professional advice (including specialist tax advice where relevant).</p>
+  <p>For the avoidance of doubt, my Trustees are expressly authorised to:</p>
+  <ul>
+    <li>make and pursue any claims, elections, apportionments, declarations or agreements required or desirable to secure Business Property Relief and any associated reliefs, and to correspond and agree matters with HMRC; and</li>
+    <li>retain the Business Assets (or any part of them) for such period as they consider appropriate where retention is reasonably considered conducive to the preservation or maximisation of Business Property Relief, subject always to acting in the best interests of the beneficiaries as a whole.</li>
+  </ul>
   ${notes}`;
     }
     default:
@@ -9046,9 +9340,9 @@ import { existsSync as existsSync2 } from "fs";
 async function getExecutablePath() {
   try {
     const chromium = await import("@sparticuz/chromium");
-    const path3 = await chromium.default.executablePath();
-    if (path3 && existsSync2(path3)) {
-      return path3;
+    const path5 = await chromium.default.executablePath();
+    if (path5 && existsSync2(path5)) {
+      return path5;
     }
   } catch {
   }
@@ -11096,9 +11390,9 @@ async function generateWelcomePackDocx(record) {
 import { createRequire } from "module";
 var _require = createRequire(import.meta.url);
 async function createApp() {
-  const app = express();
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  const app = express2();
+  app.use(express2.json({ limit: "50mb" }));
+  app.use(express2.urlencoded({ limit: "50mb", extended: true }));
   app.get("/api/debug", async (_req, res) => {
     const hasDbUrl = !!process.env.DATABASE_URL;
     const dbUrlLen = (process.env.DATABASE_URL ?? "").length;
@@ -11215,7 +11509,7 @@ async function createApp() {
       res.status(500).json({ error: "Failed to generate Welcome Pack preview" });
     }
   });
-  app.post("/api/submissions/:id/welcome-pack-html", express.json({ limit: "10mb" }), async (req, res) => {
+  app.post("/api/submissions/:id/welcome-pack-html", express2.json({ limit: "10mb" }), async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -11442,7 +11736,7 @@ async function createApp() {
       res.status(500).json({ error: "Failed to generate Will HTML" });
     }
   });
-  app.post("/api/submissions/:id/will-html", express.json({ limit: "10mb" }), async (req, res) => {
+  app.post("/api/submissions/:id/will-html", express2.json({ limit: "10mb" }), async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -11722,7 +12016,7 @@ $1`);
       res.status(500).json({ error: "Failed to generate Will PDF", detail: msg });
     }
   });
-  app.post("/api/matters/:id/will-html", express.json({ limit: "10mb" }), async (req, res) => {
+  app.post("/api/matters/:id/will-html", express2.json({ limit: "10mb" }), async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
@@ -11963,6 +12257,21 @@ $1`);
     })
   );
   return app;
+}
+if (process.env.NODE_ENV === "production" && process.env.STANDALONE === "1") {
+  (async () => {
+    const { serveStatic: serveStatic2 } = await Promise.resolve().then(() => (init_vite(), vite_exports));
+    const app = await createApp();
+    serveStatic2(app);
+    const port = parseInt(process.env.PORT || "3000", 10);
+    const server = createServer(app);
+    server.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}/`);
+    });
+  })().catch((err) => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
 }
 
 // server/vercel/handler.ts

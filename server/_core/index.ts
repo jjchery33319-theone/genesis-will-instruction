@@ -799,8 +799,9 @@ export { createApp };
 
 // ── Production server startup (Manus container / non-Vercel) ─────────────────
 // When running as `node dist/index.js` (production container), start the HTTP server.
-// Vercel uses api/index.mjs (serverless handler) and never reaches this block.
-if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
+// Vercel uses api/index.mjs (serverless handler) — the STANDALONE env var is set
+// by the build script only for the dist/index.js build, not the Vercel bundle.
+if (process.env.NODE_ENV === "production" && process.env.STANDALONE === "1") {
   (async () => {
     const { serveStatic } = await import("./vite");
     const app = await createApp();
