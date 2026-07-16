@@ -527,3 +527,7 @@
 - [x] Add division options UI (dropdown + notes textarea) to both primary and fallback beneficiary rows when a recipient group is selected
 - [x] Mirror button for gifts already copies `divisionType`/`divisionNotes` via spread (`{ ...g }`)
 - [x] TypeScript: 0 errors
+
+## Paste Fix & RNRB Clause Update (Phase 20)
+- [x] Fix Will V2 preview editor paste limitation (add paste event handler to iframe contentEditable)
+- [x] Update RNRB clause in willV2Generator.ts with comprehensive 8-section wording (user-provided)

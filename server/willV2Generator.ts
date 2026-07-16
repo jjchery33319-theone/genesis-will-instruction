@@ -883,15 +883,52 @@ function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: 
     }
 
     case "rnrb": {
-      const property = tc.propertyAddress || "my principal residence";
+      const property = tc.propertyAddress || "[INSERT ADDRESS OF QUALIFYING RESIDENCE]";
       const bens = tc.beneficiaries && tc.beneficiaries.length > 0
         ? tc.beneficiaries.map(b => `<strong>${b.name}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`).join(" and ")
-        : "my lineal descendants";
+        : "[INSERT NAMES OF DIRECT DESCENDANTS]";
       return `
   <h2>${num}. Residential Nil-Rate Band (RNRB)</h2>
-  <p>I direct that my Executors and Trustees shall use their best endeavours to ensure that the Residential Nil-Rate Band (as defined in section 8D of the Inheritance Tax Act 1984) is claimed in respect of my Estate.</p>
-  <p>For the purposes of qualifying for the Residential Nil-Rate Band, I give my interest in the property known as <strong>${property}</strong> to ${bens} absolutely, or if that property has been sold prior to my death, to such replacement residential property as I may own at the date of my death.</p>
-  <p>My Executors shall take all steps necessary to claim any transferable Residential Nil-Rate Band that may be available from my deceased spouse or civil partner's estate.</p>
+  <h3>${num}.1 Direction to claim and maximise RNRB</h3>
+  <p>I DIRECT that my Executors and Trustees shall use their best endeavours to ensure that the Residential Nil-Rate Band (the &ldquo;RNRB&rdquo;) (as defined in section 8D of the Inheritance Tax Act 1984 (the &ldquo;Act&rdquo;)) is claimed, secured and applied to my Estate so far as available.</p>
+  <p>My Executors and Trustees shall have full power to take (and shall take) all steps they consider necessary or desirable to secure, preserve and maximise the RNRB and any related reliefs, including (without limitation):</p>
+  <ul>
+    <li>preparing and submitting such inheritance tax accounts, schedules and computations as are required;</li>
+    <li>making all appropriate claims, elections, apportionments and notices and providing all information and evidence requested by HMRC;</li>
+    <li>corresponding and negotiating with HMRC and agreeing figures, valuations and the form and basis of any claim; and</li>
+    <li>obtaining and relying on specialist professional advice (including tax and valuation advice) where they consider it appropriate, the proper costs of which shall be paid out of my Estate as an expense of administration.</li>
+  </ul>
+  <h3>${num}.2 Qualifying residence gift to direct descendants</h3>
+  <p>For the purpose of securing (so far as practicable) that my Estate qualifies for the RNRB, I GIVE my interest in the property known as <strong>${property}</strong> (the &ldquo;Qualifying Residence&rdquo;) to ${bens} absolutely.</p>
+  <p>If the Qualifying Residence has been sold, disposed of, appropriated, transferred, or is otherwise no longer comprised in my Estate at my death, then I GIVE to the said beneficiaries absolutely my interest in such residential property (or, if more than one, such one of them) as I may own at my death as my Executors and Trustees, in their absolute discretion, consider most appropriate to constitute a qualifying residential interest for the purposes of the RNRB (the &ldquo;Replacement Residence&rdquo;).</p>
+  <p>If I own a share or interest only in the Qualifying Residence or any Replacement Residence, this gift shall take effect in respect of that share or interest.</p>
+  <h3>${num}.3 Occupation and conditions</h3>
+  <p>If (at the date of my death) any person is in occupation of the Qualifying Residence or any Replacement Residence, my Executors and Trustees may permit continued occupation on such terms (if any) as they consider reasonable, provided that nothing in this clause shall oblige my Executors and Trustees to retain the property if they consider that sale is required for the proper administration of my Estate or is otherwise in the best interests of the beneficiaries as a whole.</p>
+  <h3>${num}.4 Downsizing addition and former residence provisions</h3>
+  <p>If, at my death, no residential interest passes (or passes sufficiently) to constitute a qualifying residential interest for the RNRB, or if the RNRB cannot be fully utilised by reason of a lifetime disposal, downsizing, change of residence, or any other circumstances, my Executors and Trustees shall consider and (where appropriate) take all steps necessary to claim any downsizing addition or other equivalent relief available under the Act (including where I formerly owned and occupied a residence which has been disposed of, and other assets are inherited by my direct descendants).</p>
+  <p>For the avoidance of doubt, my Executors and Trustees are authorised to identify and designate (so far as is permitted) the assets or part of my Estate which should be treated as &ldquo;closely inherited&rdquo; or otherwise relevant for the purposes of securing any such allowance or addition.</p>
+  <h3>${num}.5 Transferable RNRB from deceased spouse or civil partner</h3>
+  <p>My Executors shall take all steps necessary and appropriate to claim any transferable RNRB (and any transferable downsizing addition or related uplift) which may be available from the estate of my deceased spouse or civil partner, including:</p>
+  <ul>
+    <li>obtaining such documents, information and evidence as may be reasonably required (including copies of grants, wills, accounts and schedules); and</li>
+    <li>making any claim(s) within the time limits prescribed, and pursuing those claims with HMRC as required.</li>
+  </ul>
+  <h3>${num}.6 Tapering: large estates</h3>
+  <p>My Executors and Trustees shall also consider whether the RNRB (or any transferable RNRB) is reduced by the taper provisions applicable to larger estates, and shall take appropriate professional advice and such steps as they consider lawful and appropriate in the administration of my Estate to ensure that any available RNRB is not inadvertently lost or underclaimed.</p>
+  <h3>${num}.7 Powers to appropriate, rearrange and fix the position</h3>
+  <p>My Executors and Trustees shall have power (in addition to any power conferred by law):</p>
+  <ul>
+    <li>to appropriate all or any part of the Qualifying Residence (or Replacement Residence), or any interest in it, in or towards satisfaction of the entitlement of my direct descendants;</li>
+    <li>to effect such appropriations, transfers and administrative arrangements as they consider appropriate so that the Qualifying Residence (or Replacement Residence) is treated as being inherited by my direct descendants for the purposes of claiming the RNRB, where permissible; and</li>
+    <li>generally to administer and arrange the devolution of my Estate in a manner designed to secure the RNRB, provided that they act in good faith and in the best interests of the beneficiaries as a whole.</li>
+  </ul>
+  <h3>${num}.8 Interpretation</h3>
+  <p>In this clause:</p>
+  <ul>
+    <li>references to &ldquo;my Executors&rdquo; include my Trustees where they are the persons administering the relevant part of my Estate;</li>
+    <li>references to the &ldquo;RNRB&rdquo; include any replacement, amendment, re-enactment or successor provision in force at my death; and</li>
+    <li>references to &ldquo;direct descendants&rdquo; shall have the meaning given by the Act.</li>
+  </ul>
   ${notes}`;
     }
 

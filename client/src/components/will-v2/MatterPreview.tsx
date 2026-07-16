@@ -119,7 +119,37 @@ function DocViewer({
     iframe.contentDocument.body.style.outline = "none";
     const handler = () => setHasUnsaved(true);
     iframe.contentDocument.addEventListener("input", handler);
-    return () => iframe.contentDocument?.removeEventListener("input", handler);
+    // Fix paste limitation: intercept paste events and insert plain text manually.
+    // Without this, browsers silently block large pastes into contentEditable iframes.
+    const pasteHandler = (e: Event) => {
+      const ce = e as ClipboardEvent;
+      ce.preventDefault();
+      const text = ce.clipboardData?.getData("text/plain") ?? "";
+      if (!text) return;
+      const iDoc = iframe.contentDocument;
+      if (!iDoc) return;
+      const sel = iDoc.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      // Preserve paragraph breaks as <br> elements
+      const lines = text.split(/\r?\n/);
+      const frag = iDoc.createDocumentFragment();
+      lines.forEach((line, i) => {
+        if (i > 0) frag.appendChild(iDoc.createElement("br"));
+        if (line) frag.appendChild(iDoc.createTextNode(line));
+      });
+      range.insertNode(frag);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      setHasUnsaved(true);
+    };
+    iframe.contentDocument.addEventListener("paste", pasteHandler);
+    return () => {
+      iframe.contentDocument?.removeEventListener("input", handler);
+      iframe.contentDocument?.removeEventListener("paste", pasteHandler);
+    };
   };
 
   const handleSave = async () => {
