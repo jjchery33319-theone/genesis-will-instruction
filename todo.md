@@ -538,6 +538,6 @@
 - [x] willV2Generator.ts already uses sharePercentage to replace [INSERT % OWNERSHIP]% in BPR clause
 
 ## V2 Will PDF Layout Fix & Word Export (Phase 31)
-- [ ] Fix V2 will PDF HTML layout: proper margins, fonts, page breaks, heading hierarchy
-- [ ] Add Word (.docx) export endpoint for V2 will (/api/matters/:id/will-docx/:clientRole)
-- [ ] Add "Download Word" button to MatterPreview alongside existing PDF button
+- [x] Fix V2 will PDF HTML layout: proper margins, fonts, page breaks, heading hierarchy
+- [x] Add Word (.docx) export endpoint for V2 will (/api/matters/:id/will-docx/:clientRole)
+- [x] Add "Download Word" button to MatterPreview alongside existing PDF button
