@@ -9335,8 +9335,8 @@ function generateTestimoniumHtml(matter, testatorRole = "testator1") {
 init_mattersDb();
 
 // server/htmlToPdf.ts
-import puppeteer from "puppeteer-core";
 import { existsSync as existsSync2 } from "fs";
+var IS_VERCEL = process.env.VERCEL === "1";
 async function getExecutablePath() {
   try {
     const chromium = await import("@sparticuz/chromium");
@@ -9368,6 +9368,12 @@ async function getLaunchArgs() {
   }
 }
 async function htmlToPdf(html) {
+  if (IS_VERCEL) {
+    throw new Error(
+      "PDF generation is not available on this deployment. Please use the Manus deployment for PDF generation."
+    );
+  }
+  const { default: puppeteer } = await import("puppeteer-core");
   const executablePath = await getExecutablePath();
   const extraArgs = await getLaunchArgs();
   const browser = await puppeteer.launch({

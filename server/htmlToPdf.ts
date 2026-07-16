@@ -11,10 +11,17 @@
  * stale browser handles in serverless/Autoscale environments where the
  * process may be reused across requests but the browser process may have
  * crashed or been OOM-killed.
+ *
+ * VERCEL NOTE: PDF generation is not available on Vercel because @sparticuz/chromium
+ * (67MB) exceeds Vercel's 50MB function size limit. PDF endpoints return 503 on Vercel.
+ * Use the Manus deployment (genesiswill-hzxzjpbp.manus.space) for PDF generation.
  */
 
-import puppeteer from "puppeteer-core";
 import { existsSync } from "fs";
+
+// On Vercel, we cannot use puppeteer — skip the import entirely to avoid
+// bundling the 67MB chromium binary which exceeds Vercel's function size limit.
+const IS_VERCEL = process.env.VERCEL === "1";
 
 async function getExecutablePath(): Promise<string> {
   // 1. Prefer @sparticuz/chromium when available (production / Cloud Run)
@@ -55,6 +62,16 @@ async function getLaunchArgs(): Promise<string[]> {
 }
 
 export async function htmlToPdf(html: string): Promise<Buffer> {
+  if (IS_VERCEL) {
+    throw new Error(
+      "PDF generation is not available on this deployment. Please use the Manus deployment for PDF generation."
+    );
+  }
+
+  // Dynamically import puppeteer only when not on Vercel, so the Vercel bundle
+  // does not include puppeteer-core (which pulls in the 67MB chromium binary).
+  const { default: puppeteer } = await import("puppeteer-core");
+
   const executablePath = await getExecutablePath();
   const extraArgs = await getLaunchArgs();
 

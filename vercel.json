@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm install && pnpm run build",
+  "buildCommand": "pnpm install --no-optional && pnpm run build",
   "outputDirectory": "dist/public",
   "framework": "vite",
   "rewrites": [
