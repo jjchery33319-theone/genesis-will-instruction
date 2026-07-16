@@ -1,11 +1,5 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -1352,8 +1346,8 @@ function registerStorageProxy(app) {
         headers: { Authorization: `Bearer ${ENV.forgeApiKey}` }
       });
       if (!forgeResp.ok) {
-        const body2 = await forgeResp.text().catch(() => "");
-        console.error(`[StorageProxy] forge error: ${forgeResp.status} ${body2}`);
+        const body3 = await forgeResp.text().catch(() => "");
+        console.error(`[StorageProxy] forge error: ${forgeResp.status} ${body3}`);
         res.status(502).send("Storage backend error");
         return;
       }
@@ -2452,7 +2446,7 @@ async function generateWillPdf(record) {
       doc.font("Helvetica").fontSize(8.5).fillColor(BLACK).text(value, 220, startY, { width: pageW - 170 });
       doc.moveDown(0.35);
     };
-    const subHeading = (title) => {
+    const subHeading2 = (title) => {
       doc.moveDown(0.4);
       doc.font("Helvetica-Bold").fontSize(9).fillColor(GOLD).text(title, 50);
       doc.font("Helvetica").fillColor(BLACK);
@@ -2466,11 +2460,11 @@ async function generateWillPdf(record) {
     field("Will Type", safe2(record.willType));
     const products = safeArr2(record.productsOrdered);
     field("Products Ordered", products.length ? products.join(", ") : "\u2014");
-    subHeading("Consultant");
+    subHeading2("Consultant");
     field("Name", safe2(record.consultantName));
     field("Email", safe2(record.consultantEmail));
     field("Phone", safe2(record.consultantPhone));
-    subHeading("Case Coordinator");
+    subHeading2("Case Coordinator");
     field("Name", safe2(record.caseCoordinatorName));
     field("Email", safe2(record.caseCoordinatorEmail));
     field("Phone", safe2(record.caseCoordinatorPhone));
@@ -2499,24 +2493,24 @@ async function generateWillPdf(record) {
       field("Email", safe2(record.client2Email));
     }
     sectionHeading2("4. Family Background");
-    subHeading("Client 1");
+    subHeading2("Client 1");
     field("Marriage Plans", yesNo(record.client1MarriagePlans));
     if (record.client1MarriagePlanDetails) field("Details", safe2(record.client1MarriagePlanDetails));
     field("Has Children", yesNo(record.client1HasChildren));
     field("Total Children", safe2(record.client1TotalChildren));
     const c1Under18 = safeArr2(record.client1ChildrenUnder18);
     if (c1Under18.length) {
-      subHeading("Minor Children (Client 1)");
+      subHeading2("Minor Children (Client 1)");
       c1Under18.forEach((child, i) => field(`Child ${i + 1}`, `${safe2(child.name)} \u2014 DOB: ${safe2(child.dob)}`));
     }
     if (record.client2FirstName) {
-      subHeading("Client 2");
+      subHeading2("Client 2");
       field("Marriage Plans", yesNo(record.client2MarriagePlans));
       field("Has Children", yesNo(record.client2HasChildren));
       field("Total Children", safe2(record.client2TotalChildren));
       const c2Under18 = safeArr2(record.client2ChildrenUnder18);
       if (c2Under18.length) {
-        subHeading("Minor Children (Client 2)");
+        subHeading2("Minor Children (Client 2)");
         c2Under18.forEach((child, i) => field(`Child ${i + 1}`, `${safe2(child.name)} \u2014 DOB: ${safe2(child.dob)}`));
       }
     }
@@ -2531,17 +2525,17 @@ async function generateWillPdf(record) {
     sectionHeading2("6. Executors & Guardians");
     const executors = safeArr2(record.executors);
     if (executors.length) {
-      subHeading("Executors");
+      subHeading2("Executors");
       executors.forEach((e, i) => field(`Executor ${i + 1}`, `${safe2(e.firstName)} ${safe2(e.lastName)} \u2014 ${safe2(e.relationship)}`));
     }
     const reservedExecutors = safeArr2(record.reservedExecutors);
     if (reservedExecutors.length) {
-      subHeading("Reserved Executors");
+      subHeading2("Reserved Executors");
       reservedExecutors.forEach((e, i) => field(`Reserved ${i + 1}`, `${safe2(e.firstName)} ${safe2(e.lastName)}`));
     }
     const guardians = safeArr2(record.guardians);
     if (guardians.length) {
-      subHeading("Guardians");
+      subHeading2("Guardians");
       guardians.forEach((g, i) => field(`Guardian ${i + 1}`, `${safe2(g.firstName)} ${safe2(g.lastName)} \u2014 ${safe2(g.relationship)}`));
     }
     sectionHeading2("7. Property & Assets");
@@ -2557,13 +2551,13 @@ async function generateWillPdf(record) {
         field("Mortgage Lender", safe2(record.mortgageLender));
       }
     }
-    subHeading("Client 1 Financial Assets");
+    subHeading2("Client 1 Financial Assets");
     field("Bank Accounts", safe2(record.bankAccounts));
     field("Investments", safe2(record.investments));
     field("Pension Details", safe2(record.pensionDetails));
     field("Estimated Estate Value", safe2(record.estimatedEstateValue));
     if (record.client2FirstName) {
-      subHeading("Client 2 Financial Assets");
+      subHeading2("Client 2 Financial Assets");
       field("Bank Accounts", safe2(record.client2BankAccounts));
       field("Investments", safe2(record.client2Investments));
       field("Pension Details", safe2(record.client2PensionDetails));
@@ -2574,7 +2568,7 @@ async function generateWillPdf(record) {
     const policies = safeArr2(record.lifeInsurancePolicies);
     if (policies.length) {
       policies.forEach((p, i) => {
-        subHeading(`Policy ${i + 1}`);
+        subHeading2(`Policy ${i + 1}`);
         field("Provider", safe2(p.provider));
         field("Policy Number", safe2(p.policyNumber));
         field("Sum Assured", safe2(p.sumAssured));
@@ -2589,7 +2583,7 @@ async function generateWillPdf(record) {
       sectionHeading2("9. Business Interests");
       const businesses = safeArr2(record.businessInterestsDetails);
       businesses.forEach((b, i) => {
-        subHeading(`Business ${i + 1}`);
+        subHeading2(`Business ${i + 1}`);
         field("Name", safe2(b.businessName));
         field("Nature", safe2(b.natureOfBusiness));
         field("Ownership %", safe2(b.ownershipPercentage));
@@ -2599,7 +2593,7 @@ async function generateWillPdf(record) {
     sectionHeading2("10. Wishes & Beneficiaries");
     const beneficiaries = safeArr2(record.beneficiaries);
     if (beneficiaries.length) {
-      subHeading("Beneficiaries");
+      subHeading2("Beneficiaries");
       beneficiaries.forEach((b, i) => field(`Beneficiary ${i + 1}`, `${safe2(b.firstName)} ${safe2(b.lastName)} \u2014 ${safe2(b.share)} (${safe2(b.relationship)})`));
     }
     field("Children Benefit Age", safe2(record.childrenBenefitAge));
@@ -2607,7 +2601,7 @@ async function generateWillPdf(record) {
     field("Backup Clause", safe2(record.residuaryBackup));
     const gifts = safeArr2(record.specificGifts);
     if (gifts.length) {
-      subHeading("Specific Gifts");
+      subHeading2("Specific Gifts");
       gifts.forEach((g, i) => field(`Gift ${i + 1}`, `${safe2(g.description)} \u2192 ${safe2(g.recipient)}${g.value ? ` (${g.value})` : ""}${g.isCharity ? " [Charity]" : ""}`));
     }
     sectionHeading2("11. Funeral Wishes");
@@ -2697,7 +2691,7 @@ async function getAccessToken() {
   }
   return result.accessToken;
 }
-async function graphRequest(method, path3, token, body2, contentType) {
+async function graphRequest(method, path3, token, body3, contentType) {
   const fetch3 = (await import("node-fetch")).default;
   const res = await fetch3(`https://graph.microsoft.com/v1.0${path3}`, {
     method,
@@ -2705,7 +2699,7 @@ async function graphRequest(method, path3, token, body2, contentType) {
       Authorization: `Bearer ${token}`,
       ...contentType ? { "Content-Type": contentType } : {}
     },
-    ...body2 !== void 0 ? { body: body2 } : {}
+    ...body3 !== void 0 ? { body: body3 } : {}
   });
   if (!res.ok) {
     const text3 = await res.text();
@@ -5478,11 +5472,11 @@ function parseJson(v, fallback) {
 function fullName2(...parts) {
   return parts.filter(Boolean).join(" ");
 }
-function clauseHtml(num, title, body2) {
+function clauseHtml(num, title, body3) {
   return `
   <div class="clause">
     <p class="clause-title">${num}. ${title}</p>
-    <div class="clause-body">${body2}</div>
+    <div class="clause-body">${body3}</div>
   </div>`;
 }
 function revocationClause(num, testatorName, dob, address) {
@@ -11229,6 +11223,631 @@ async function generateWelcomePackDocx(record) {
   return Buffer.from(await Packer2.toBuffer(doc));
 }
 
+// server/willDocxConverter.ts
+import {
+  Document as Document3,
+  Packer as Packer3,
+  Paragraph as Paragraph3,
+  TextRun as TextRun3,
+  AlignmentType as AlignmentType3,
+  ImageRun as ImageRun2,
+  PageBreak as PageBreak3,
+  BorderStyle as BorderStyle2,
+  convertInchesToTwip
+} from "docx";
+import { readFileSync as readFileSync2, existsSync as existsSync3 } from "fs";
+import { join as join2, dirname as dirname2 } from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+var __dirname2 = dirname2(fileURLToPath2(import.meta.url));
+var FONT = "Times New Roman";
+var BODY_SIZE = 22;
+var H2_SIZE = 26;
+var H3_SIZE = 23;
+var COVER_TITLE_SIZE = 44;
+var COVER_NAME_SIZE = 36;
+var COVER_SMALL_SIZE = 20;
+function loadLogo() {
+  const candidates = [
+    join2(__dirname2, "genesis-logo.png"),
+    join2(__dirname2, "../server/genesis-logo.png"),
+    join2(process.cwd(), "server/genesis-logo.png")
+  ];
+  for (const p of candidates) {
+    if (existsSync3(p)) return readFileSync2(p);
+  }
+  return null;
+}
+function formatDate2(iso) {
+  if (!iso) return "_______________";
+  const d3 = new Date(iso);
+  if (isNaN(d3.getTime())) return iso;
+  return d3.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+function ordinal2(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function todayStr() {
+  const d3 = /* @__PURE__ */ new Date();
+  return `the ${ordinal2(d3.getDate())} day of ${d3.toLocaleDateString("en-GB", { month: "long" })} ${d3.getFullYear()}`;
+}
+function nameAndAddr(p) {
+  const displayName = [p.title, p.fullName].filter(Boolean).join(" ") || "_______________";
+  return p.address ? `${displayName}, ${p.address}` : displayName;
+}
+function blank(n = 1) {
+  return Array.from(
+    { length: n },
+    () => new Paragraph3({ children: [new TextRun3({ text: "", font: FONT, size: BODY_SIZE })] })
+  );
+}
+function centred(text2, size = BODY_SIZE, bold = false, spaceBefore = 0, spaceAfter = 0) {
+  return new Paragraph3({
+    children: [new TextRun3({ text: text2, bold, size, font: FONT })],
+    alignment: AlignmentType3.CENTER,
+    spacing: { before: spaceBefore, after: spaceAfter }
+  });
+}
+function parseMarkedText(text2, size) {
+  const runs = [];
+  const normalised = text2.replace(/\*\*(.+?)\*\*/g, "[[B]]$1[[/B]]");
+  const parts = normalised.split(/(\[\[B\]\]|\[\[\/B\]\])/);
+  let bold = false;
+  for (const part of parts) {
+    if (part === "[[B]]") {
+      bold = true;
+      continue;
+    }
+    if (part === "[[/B]]") {
+      bold = false;
+      continue;
+    }
+    if (part) runs.push(new TextRun3({ text: part, bold, size, font: FONT }));
+  }
+  return runs.length ? runs : [new TextRun3({ text: text2, size, font: FONT })];
+}
+function body2(text2, spaceBefore = 80, spaceAfter = 120) {
+  return new Paragraph3({
+    children: parseMarkedText(text2, BODY_SIZE),
+    alignment: AlignmentType3.JUSTIFIED,
+    spacing: { before: spaceBefore, after: spaceAfter }
+  });
+}
+function clauseHeading3(text2) {
+  return new Paragraph3({
+    children: [new TextRun3({ text: text2, bold: true, size: H2_SIZE, font: FONT })],
+    spacing: { before: 320, after: 100 },
+    keepNext: true
+  });
+}
+function subHeading(text2) {
+  return new Paragraph3({
+    children: [new TextRun3({ text: text2, bold: true, italics: true, size: BODY_SIZE, font: FONT })],
+    spacing: { before: 160, after: 60 },
+    keepNext: true
+  });
+}
+function bullet(text2) {
+  return new Paragraph3({
+    children: parseMarkedText(text2, BODY_SIZE),
+    alignment: AlignmentType3.JUSTIFIED,
+    spacing: { before: 60, after: 60 },
+    indent: { left: convertInchesToTwip(0.4), hanging: convertInchesToTwip(0.2) },
+    bullet: { level: 0 }
+  });
+}
+function hr() {
+  return new Paragraph3({
+    children: [new TextRun3({ text: "", font: FONT })],
+    border: { bottom: { color: "333333", space: 1, style: BorderStyle2.SINGLE, size: 6 } },
+    spacing: { before: 200, after: 200 }
+  });
+}
+function sigLine(label) {
+  return [
+    new Paragraph3({
+      children: [new TextRun3({ text: "", font: FONT, size: BODY_SIZE })],
+      border: { bottom: { color: "000000", space: 1, style: BorderStyle2.SINGLE, size: 4 } },
+      spacing: { before: 400, after: 40 }
+    }),
+    new Paragraph3({
+      children: [new TextRun3({ text: label, size: BODY_SIZE - 2, font: FONT, italics: true })],
+      spacing: { before: 0, after: 200 }
+    })
+  ];
+}
+function buildExecutorParagraphs(primary, substitute) {
+  const paras = [];
+  if (primary.length === 0) {
+    paras.push(body2("I appoint my Executor(s) to administer my Estate."));
+  } else if (primary.length === 1) {
+    paras.push(body2(`I appoint [[B]]${nameAndAddr(primary[0])}[[/B]] to be the Executor of this my Will.`));
+  } else {
+    const names = primary.map((e) => `[[B]]${nameAndAddr(e)}[[/B]]`).join(" and ");
+    paras.push(body2(`I appoint ${names} to be the Executors of this my Will.`));
+  }
+  if (substitute.length > 0) {
+    const subNames = substitute.map((e) => `[[B]]${nameAndAddr(e)}[[/B]]`).join(" and ");
+    const plural = substitute.length > 1;
+    paras.push(body2(`In the event that the above Executor${primary.length > 1 ? "s are" : " is"} unable or unwilling to act, I appoint ${subNames} as substitute Executor${plural ? "s" : ""}.`));
+  }
+  return paras;
+}
+function buildGuardianParagraphs(primary, substitute) {
+  const paras = [];
+  if (primary.length === 0) {
+    paras.push(body2("In the event that any of my children are under the age of 18 years at the date of my death, I appoint my Executor(s) as Guardian(s) of my minor children."));
+  } else if (primary.length === 1) {
+    paras.push(body2(`In the event that any of my children are under the age of 18 years at the date of my death, I appoint [[B]]${nameAndAddr(primary[0])}[[/B]] to be the Guardian of my minor children.`));
+  } else {
+    const names = primary.map((g) => `[[B]]${nameAndAddr(g)}[[/B]]`).join(" and ");
+    paras.push(body2(`In the event that any of my children are under the age of 18 years at the date of my death, I appoint ${names} to be the Guardians of my minor children.`));
+  }
+  if (substitute.length > 0) {
+    const subNames = substitute.map((g) => `[[B]]${nameAndAddr(g)}[[/B]]`).join(" and ");
+    const plural = substitute.length > 1;
+    paras.push(body2(`In the event that the above Guardian${primary.length > 1 ? "s are" : " is"} unable or unwilling to act, I appoint ${subNames} as substitute Guardian${plural ? "s" : ""}.`));
+  }
+  return paras;
+}
+function buildResidueParagraphs(primary, fallback, partner, residueToSpouseFirst, ageCondition, survivorshipDays) {
+  const paras = [];
+  function benPronoun(b) {
+    if (b.gender === "male") return { subj: "he", poss: "his" };
+    if (b.gender === "female") return { subj: "she", poss: "her" };
+    return { subj: "they", poss: "their" };
+  }
+  if (residueToSpouseFirst && partner?.fullName) {
+    paras.push(body2(`I give the whole of my Estate to my partner [[B]]${partner.fullName}[[/B]] absolutely, provided they survive me by ${survivorshipDays} days.`));
+    paras.push(body2(`In the event that [[B]]${partner.fullName}[[/B]] does not survive me by ${survivorshipDays} days, or in the event that the above gift fails for any reason, I direct that the residue of my Estate shall be held on trust and distributed as follows:`));
+  }
+  if (primary.length === 0) {
+    paras.push(body2(`I give the whole of my Estate to such of my children as survive me and attain the age of ${ageCondition} years, and if more than one in equal shares.`));
+  } else if (primary.length === 1) {
+    const b = primary[0];
+    const share = b.shareFraction ? ` (${b.shareFraction})` : "";
+    const { subj, poss } = benPronoun(b);
+    const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+    paras.push(body2(`I give the whole of my Estate${share} to [[B]]${bName}[[/B]]${b.relationship ? `, my ${b.relationship},` : ""} absolutely, provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days.`));
+    if (b.includeIssue) {
+      paras.push(body2(`If [[B]]${bName}[[/B]] does not survive me by ${survivorshipDays} days, ${poss} share shall pass to ${poss} issue in equal shares per stirpes.`));
+    }
+  } else {
+    const shareText = primary.map((b) => {
+      const share = b.shareFraction ? ` (${b.shareFraction})` : "";
+      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+      return `[[B]]${bName}[[/B]]${b.relationship ? `, my ${b.relationship},` : ""}${share}`;
+    }).join("; ");
+    paras.push(body2(`I give the residue of my Estate to the following beneficiaries in the shares set out: ${shareText}; provided each survives me by ${survivorshipDays} days.`));
+    if (primary.some((b) => b.includeIssue)) {
+      paras.push(body2(`If any of the above beneficiaries does not survive me by ${survivorshipDays} days, their share shall pass to their issue in equal shares per stirpes.`));
+    }
+  }
+  if (fallback.length > 0) {
+    const fallbackText = fallback.map((b) => {
+      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+      return `[[B]]${bName}[[/B]]${b.relationship ? `, my ${b.relationship}` : ""}`;
+    }).join(" and ");
+    paras.push(body2(`In the event that all of the above gifts fail, I give the residue of my Estate to ${fallbackText} in equal shares absolutely.`));
+  } else {
+    paras.push(body2("In the event that all of the above gifts fail, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales."));
+  }
+  return paras;
+}
+function buildTrustClauseParagraphs(tc, clauseNum) {
+  const paras = [];
+  const trustees = tc.trustees || [];
+  const lifeTenants = tc.lifeTenants || [];
+  const beneficiaries = tc.beneficiaries || [];
+  const trusteeStr = trustees.length ? trustees.map((t2) => `[[B]]${t2.name}[[/B]]${t2.address ? ` of ${t2.address}` : ""}`).join(" and ") : "my Executors";
+  const bensStr = beneficiaries.length ? beneficiaries.map((b) => `[[B]]${b.name}[[/B]]${b.relationship ? ` (${b.relationship})` : ""}`).join(" and ") : "my beneficiaries";
+  switch (tc.trustType) {
+    case "PPT": {
+      const propertyAddr = tc.propertyAddress || "the property";
+      const lifeTenantStr = lifeTenants.length ? lifeTenants.map((lt) => `[[B]]${lt.name}[[/B]]`).join(" and ") : "my surviving spouse/civil partner";
+      paras.push(clauseHeading3(`${clauseNum}. Protective Property Trust`));
+      paras.push(body2(`I direct my Trustees to hold my share of [[B]]${propertyAddr}[[/B]] upon trust for ${lifeTenantStr} during their lifetime or until they remarry or cohabit, and thereafter for ${bensStr} absolutely.`));
+      paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
+      break;
+    }
+    case "NRB": {
+      paras.push(clauseHeading3(`${clauseNum}. Nil Rate Band Discretionary Trust`));
+      paras.push(body2(`I give to my Trustees a sum equal to the nil rate band for inheritance tax purposes at the date of my death (the "NRB Sum") to hold upon the following trusts.`));
+      paras.push(body2(`My Trustees shall hold the NRB Sum upon discretionary trust for the benefit of ${bensStr}.`));
+      paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
+      break;
+    }
+    case "RNRB": {
+      paras.push(clauseHeading3(`${clauseNum}. Residence Nil Rate Band Trust`));
+      paras.push(body2(`I direct that my Trustees shall hold my residential property interest upon trust to ensure that the Residence Nil Rate Band is available and maximised for the benefit of my direct descendants.`));
+      paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
+      break;
+    }
+    case "BPR": {
+      const bizName = tc.namedBeneficiary || "my business interests";
+      const ownershipPct = tc.sharePercentage || "100";
+      paras.push(clauseHeading3(`${clauseNum}. Business Property Relief Trust`));
+      paras.push(body2(`I give to my Trustees my interest in [[B]]${bizName}[[/B]] (representing approximately ${ownershipPct}% ownership) to hold upon trust for ${bensStr}, with the intention that Business Property Relief shall apply pursuant to the Inheritance Tax Act 1984.`));
+      paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
+      break;
+    }
+    case "Vulnerable": {
+      const benName = tc.namedBeneficiary || "the vulnerable beneficiary";
+      const disability = tc.namedBeneficiaryDisability || "their disability";
+      paras.push(clauseHeading3(`${clauseNum}. Vulnerable Beneficiary Trust`));
+      paras.push(body2(`I give my Trustees a share of my Estate to hold upon a Vulnerable Beneficiary Trust for the benefit of [[B]]${benName}[[/B]] who has [[B]]${disability}[[/B]], in accordance with the Taxation of Chargeable Gains Act 1992 and the Finance Act 2005.`));
+      paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
+      break;
+    }
+    case "BereavedMinor": {
+      const benName = tc.namedBeneficiary || "my minor children";
+      paras.push(clauseHeading3(`${clauseNum}. Bereaved Minor Trust`));
+      paras.push(body2(`I direct my Trustees to hold the share of my Estate for [[B]]${benName}[[/B]] upon a Bereaved Minor Trust pursuant to section 71A of the Inheritance Tax Act 1984, until they attain the age of 18 years.`));
+      paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
+      break;
+    }
+    case "18to25": {
+      const benName = tc.namedBeneficiary || "my children";
+      const vestAge = tc.ageVesting || 25;
+      paras.push(clauseHeading3(`${clauseNum}. 18-to-25 Trust`));
+      paras.push(body2(`I direct my Trustees to hold the share of my Estate for [[B]]${benName}[[/B]] upon an 18-to-25 Trust pursuant to section 71D of the Inheritance Tax Act 1984, until they attain the age of ${vestAge} years.`));
+      paras.push(body2(`My Trustees for this trust shall be ${trusteeStr}.`));
+      break;
+    }
+    default:
+      if (tc.notes) {
+        paras.push(clauseHeading3(`${clauseNum}. Special Trust Provision`));
+        paras.push(body2(tc.notes));
+      }
+  }
+  if (tc.notes && tc.trustType !== "default") {
+    paras.push(body2(tc.notes));
+  }
+  return paras;
+}
+function buildAttestationBlock(name) {
+  const paras = [];
+  paras.push(hr());
+  paras.push(new Paragraph3({
+    children: [new TextRun3({ text: "The Testimonium and Attestation", bold: true, size: H2_SIZE, font: FONT })],
+    spacing: { before: 280, after: 100 },
+    keepNext: true
+  }));
+  paras.push(body2("IN WITNESS whereof I have hereunto set my hand to this my Last Will and Testament on the day and year first above written."));
+  paras.push(body2(`[[B]]SIGNED[[/B]] by the above-named Testator [[B]]${name}[[/B]] as their Last Will in our joint presence and then by each of us in the presence of the Testator and each other:`));
+  paras.push(...sigLine(`Signature of Testator \u2014 ${name}`));
+  paras.push(...sigLine("Date"));
+  paras.push(...blank(1));
+  paras.push(new Paragraph3({
+    children: [new TextRun3({ text: "Witnesses", bold: true, size: H3_SIZE, font: FONT })],
+    spacing: { before: 200, after: 80 }
+  }));
+  for (const n of [1, 2]) {
+    paras.push(new Paragraph3({
+      children: [new TextRun3({ text: `Witness ${n}`, bold: true, size: BODY_SIZE, font: FONT })],
+      spacing: { before: 200, after: 60 }
+    }));
+    paras.push(...sigLine(`Signature of Witness ${n}`));
+    paras.push(...sigLine("Full Name (print)"));
+    paras.push(...sigLine("Address"));
+    paras.push(...sigLine("Occupation"));
+    if (n === 1) paras.push(...blank(1));
+  }
+  return paras;
+}
+async function generateWillDocxFromMatter(matter, testatorRole = "testator1") {
+  const client = matter.clients.find((c) => c.clientRole === testatorRole);
+  const partnerRole = testatorRole === "testator1" ? "testator2" : "testator1";
+  const partner = matter.matterType === "mirror" ? matter.clients.find((c) => c.clientRole === partnerRole) : null;
+  const name = client?.fullName || "_______________";
+  const dob = formatDate2(client?.dateOfBirth);
+  const address = client?.address || "_______________";
+  const fileRef = matter.fileReference || "";
+  const execRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const primaryExecutors = matter.executors.filter((e) => e.clientRole === execRole && e.executorType === "primary");
+  const substituteExecutors = matter.executors.filter((e) => e.clientRole === execRole && e.executorType === "substitute");
+  const primaryGuardians = matter.guardians.filter((g) => g.guardianType === "primary");
+  const substituteGuardians = matter.guardians.filter((g) => g.guardianType === "substitute");
+  const benRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const primaryBeneficiaries = matter.beneficiaries.filter((b) => b.clientRole === benRole && b.beneficiaryType === "primary");
+  const fallbackBeneficiaries = matter.beneficiaries.filter((b) => b.clientRole === benRole && b.beneficiaryType === "fallback");
+  const wishRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const wishes = matter.wishes.find((w) => w.clientRole === wishRole) || matter.wishes[0];
+  const ageCondition = wishes?.ageCondition ?? 18;
+  const survivorshipDays = wishes?.survivorshipDays ?? 28;
+  const organDonation = !!wishes?.organDonation;
+  const organDonationText = wishes?.organDonationText || "I wish to donate my organs for medical purposes.";
+  const funeralWishes = wishes?.funeralWishes || "";
+  const residueToSpouseFirst = matter.matterType === "mirror" && (wishes?.residueToSpouseFirst ?? 1) === 1;
+  const hasMinorChildren = wishes?.hasMinorChildren !== 0;
+  const disasterClauseNotes = wishes?.disasterClauseNotes || "";
+  const generalNotes = wishes?.generalNotes || "";
+  const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const specificGifts = (matter.gifts || []).filter((g) => g.clientRole === giftRole);
+  const pets = matter.pets || [];
+  const properties = matter.properties || [];
+  const businesses = matter.businesses || [];
+  const trustRole = matter.matterType === "mirror" ? testatorRole : "shared";
+  const trustClauses = (matter.trustClauses || []).filter((tc) => tc.clientRole === trustRole && tc.enabled);
+  const exclusions = (matter.exclusions || []).filter((e) => e.clientRole === testatorRole && e.fullName?.trim());
+  const children = [];
+  const logoData = loadLogo();
+  if (logoData) {
+    children.push(new Paragraph3({
+      children: [new ImageRun2({ data: logoData, transformation: { width: 180, height: 90 }, type: "png" })],
+      alignment: AlignmentType3.CENTER,
+      spacing: { before: 720, after: 720 }
+    }));
+  } else {
+    children.push(...blank(4));
+  }
+  children.push(centred("The Last Will & Testament", COVER_TITLE_SIZE, true, 480, 120));
+  children.push(centred("of", COVER_NAME_SIZE, false, 0, 120));
+  children.push(centred(name.toUpperCase(), COVER_NAME_SIZE, true, 0, 240));
+  if (fileRef) children.push(centred(`(REFERENCE / ${fileRef})`, COVER_SMALL_SIZE, false, 0, 480));
+  children.push(...blank(3));
+  children.push(centred("Genesis Wills and Estate Planning Ltd", COVER_SMALL_SIZE + 2, true, 0, 60));
+  children.push(centred("The Business Village, Innovation Way, Barnsley, South Yorkshire S75 1JL", COVER_SMALL_SIZE, false, 0, 40));
+  children.push(centred("office@genesisestateplanning.info  |  0330 1180937", COVER_SMALL_SIZE, false, 0, 40));
+  children.push(centred("https://www.genesisestateplanning.net/", COVER_SMALL_SIZE, false, 0, 0));
+  children.push(new Paragraph3({ children: [new PageBreak3()] }));
+  children.push(new Paragraph3({
+    children: [
+      new TextRun3({ text: "THIS IS THE LAST WILL AND TESTAMENT", bold: true, size: BODY_SIZE, font: FONT }),
+      new TextRun3({ text: " of me, ", size: BODY_SIZE, font: FONT }),
+      new TextRun3({ text: name, bold: true, size: BODY_SIZE, font: FONT }),
+      ...dob !== "_______________" ? [
+        new TextRun3({ text: ", born on ", size: BODY_SIZE, font: FONT }),
+        new TextRun3({ text: dob, bold: true, size: BODY_SIZE, font: FONT }),
+        new TextRun3({ text: ",", size: BODY_SIZE, font: FONT })
+      ] : [],
+      new TextRun3({ text: " of ", size: BODY_SIZE, font: FONT }),
+      new TextRun3({ text: address, bold: true, size: BODY_SIZE, font: FONT }),
+      new TextRun3({ text: `, made this ${todayStr()}.`, size: BODY_SIZE, font: FONT })
+    ],
+    alignment: AlignmentType3.JUSTIFIED,
+    spacing: { before: 0, after: 200 }
+  }));
+  children.push(hr());
+  children.push(clauseHeading3("1. Revocation"));
+  children.push(body2("I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament."));
+  children.push(clauseHeading3("2. Appointment of Executors"));
+  children.push(...buildExecutorParagraphs(primaryExecutors, substituteExecutors));
+  let clauseNum = 3;
+  if (hasMinorChildren) {
+    children.push(clauseHeading3(`${clauseNum}. Appointment of Guardians`));
+    children.push(...buildGuardianParagraphs(primaryGuardians, substituteGuardians));
+    clauseNum++;
+  }
+  children.push(clauseHeading3(`${clauseNum}. Definition and Administration of my Estate`));
+  children.push(body2(`My "Estate" shall mean all property, assets and rights to which I am beneficially entitled at the date of my death, including all property over which I have a general power of appointment or disposition by Will.`));
+  children.push(body2("My Executors and Trustees shall have the widest powers of management and administration in relation to my Estate as are set out in this Will and as are conferred by law."));
+  clauseNum++;
+  if (properties.length > 0) {
+    children.push(clauseHeading3(`${clauseNum}. Property`));
+    for (const p of properties) {
+      const addr = p.address || "_______________";
+      const ownership = p.ownershipType === "joint_tenants" ? "held as joint tenants" : p.ownershipType === "tenants_in_common" ? "held as tenants in common" : "held in my sole name";
+      const mortgage = p.mortgageOutstanding ? ` There is an outstanding mortgage with [[B]]${p.mortgageLender || "the mortgage lender"}[[/B]] which my Executors shall discharge from my Estate.` : "";
+      const notes = p.propertyNotes ? ` ${p.propertyNotes}` : "";
+      children.push(body2(`The property at [[B]]${addr}[[/B]] is ${ownership}.${mortgage}${notes}`));
+    }
+    if (properties.some((p) => p.ownershipType === "tenants_in_common")) {
+      children.push(body2("Where any property is held as tenants in common, my share in that property shall form part of my Estate and shall pass in accordance with the terms of this Will."));
+    }
+    clauseNum++;
+  }
+  if (businesses.length > 0) {
+    children.push(clauseHeading3(`${clauseNum}. Business Interests`));
+    for (const b of businesses) {
+      const bizName = b.businessName ? `[[B]]${b.businessName}[[/B]]` : "my business interest";
+      const bizType = b.businessType ? ` (${b.businessType})` : "";
+      const share = b.sharePercentage ? `, representing approximately ${b.sharePercentage} of the issued share capital,` : "";
+      const notes = b.businessNotes ? ` ${b.businessNotes}` : "";
+      children.push(body2(`My interest in ${bizName}${bizType}${share} shall form part of my Estate. My Executors shall have full power to deal with, sell, or continue my business interests as they consider appropriate in the best interests of my Estate and beneficiaries.${notes}`));
+    }
+    children.push(body2("For the avoidance of doubt, my Executors shall be entitled to claim Business Property Relief where applicable in accordance with the Inheritance Tax Act 1984."));
+    clauseNum++;
+  }
+  if (specificGifts.length > 0) {
+    children.push(clauseHeading3(`${clauseNum}. Specific Gifts`));
+    for (const g of specificGifts) {
+      const recipient = g.recipientName ? `[[B]]${g.recipientName}[[/B]]${g.recipientAddress ? ` of ${g.recipientAddress}` : ""}` : "_______________";
+      const description = g.giftDescription || "_______________";
+      if (g.giftType === "monetary") {
+        children.push(body2(`I give the sum of ${description} to ${recipient} absolutely, provided they survive me.`));
+      } else {
+        children.push(body2(`I give ${description} to ${recipient} absolutely, provided they survive me.`));
+      }
+    }
+    clauseNum++;
+  }
+  if (pets.length > 0) {
+    children.push(clauseHeading3(`${clauseNum}. Provision for Pets`));
+    for (const p of pets) {
+      const petDesc = [p.petName, p.petType].filter(Boolean).join(" the ") || "my pet";
+      const carer = p.carerName ? `[[B]]${p.carerName}[[/B]]${p.carerAddress ? ` of ${p.carerAddress}` : ""}` : "my Executors";
+      const notes = p.careNotes ? ` ${p.careNotes}` : "";
+      children.push(body2(`I request that ${carer} take care of ${petDesc} and I ask that my Executors make such reasonable financial provision for their care as they see fit.${notes}`));
+    }
+    clauseNum++;
+  }
+  if (exclusions.length > 0) {
+    children.push(clauseHeading3(`${clauseNum}. Exclusion of Persons from Benefit`));
+    for (const e of exclusions) {
+      const rel = e.relationship ? `, my ${e.relationship},` : "";
+      children.push(body2(`I have intentionally made no provision in this my Will for [[B]]${e.fullName}[[/B]]${rel} and I do not wish for them to inherit any part of my estate, whether under this Will or on an intestacy. I have reached this decision after careful consideration, and it is my express wish that they receive no benefit from my estate.`));
+    }
+    clauseNum++;
+  }
+  for (const tc of trustClauses) {
+    const trustParas = buildTrustClauseParagraphs(tc, clauseNum);
+    if (trustParas.length > 0) {
+      children.push(...trustParas);
+      clauseNum++;
+    }
+  }
+  children.push(clauseHeading3(`${clauseNum}. Distribution of the Residue`));
+  children.push(...buildResidueParagraphs(primaryBeneficiaries, fallbackBeneficiaries, partner, residueToSpouseFirst, ageCondition, survivorshipDays));
+  clauseNum++;
+  children.push(clauseHeading3(`${clauseNum}. Conditional Gift at Specified Age of ${ageCondition} Years`));
+  children.push(body2(`Any beneficiary who has not yet attained the age of ${ageCondition} years at the date of my death shall not be entitled to receive their share of my Estate absolutely until they attain that age. Until such time, my Trustees shall hold the share on trust for that beneficiary, with power to apply the income and capital for their maintenance, education and benefit.`));
+  children.push(body2(`If any beneficiary should die before attaining the age of ${ageCondition} years, their share shall pass as if they had predeceased me.`));
+  clauseNum++;
+  children.push(clauseHeading3(`${clauseNum}. Executor and Trustee Powers`));
+  children.push(body2("My Executors and Trustees shall have the following powers in addition to those conferred by law:"));
+  children.push(body2("(a) Power to sell, call in and convert into money all or any part of my Estate at such time and in such manner as they think fit, with power to postpone such sale, calling in and conversion for so long as they think fit without being liable for any loss."));
+  children.push(body2("(b) Power to invest the proceeds of sale and any ready money forming part of my Estate in any investments authorised by law for the investment of trust funds."));
+  children.push(body2("(c) Power to apply the income or capital of any share held on trust for a minor beneficiary for or towards the maintenance, education or benefit of that beneficiary."));
+  children.push(body2("(d) Power to appropriate any part of my Estate in or towards satisfaction of any legacy or share without requiring the consent of any beneficiary."));
+  children.push(body2("(e) Power to insure any property forming part of my Estate against any risk and to pay the premiums out of the income or capital of my Estate."));
+  clauseNum++;
+  children.push(clauseHeading3(`${clauseNum}. Survivorship`));
+  children.push(body2(`Any beneficiary under this Will must survive me by a period of ${survivorshipDays} days in order to benefit under this Will. If any beneficiary fails to survive me by ${survivorshipDays} days, the gift to that beneficiary shall lapse and shall fall into the residue of my Estate to be distributed as if that beneficiary had predeceased me.`));
+  clauseNum++;
+  children.push(clauseHeading3(`${clauseNum}. Disaster Clause`));
+  children.push(body2(disasterClauseNotes || "In the event that all of my beneficiaries named in this Will predecease me or fail to survive me by the required survivorship period, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales at the date of my death."));
+  clauseNum++;
+  children.push(clauseHeading3(`${clauseNum}. Organ Donation`));
+  children.push(body2(organDonation ? organDonationText : "I do not wish to make any specific direction in relation to organ donation."));
+  clauseNum++;
+  children.push(clauseHeading3(`${clauseNum}. Funeral Wishes`));
+  children.push(body2(funeralWishes || "I leave the arrangements for my funeral to the discretion of my Executors."));
+  clauseNum++;
+  if (generalNotes) {
+    children.push(clauseHeading3(`${clauseNum}. General Notes`));
+    children.push(body2(generalNotes));
+    clauseNum++;
+  }
+  children.push(...buildAttestationBlock(name));
+  children.push(...blank(2));
+  children.push(new Paragraph3({
+    children: [new TextRun3({
+      text: `Genesis Wills and Estate Planning Ltd  \u2022  ${name}  \u2022  Last Will & Testament${fileRef ? `  \u2022  Ref: ${fileRef}` : ""}`,
+      size: COVER_SMALL_SIZE,
+      font: FONT,
+      color: "666666"
+    })],
+    alignment: AlignmentType3.CENTER,
+    spacing: { before: 200, after: 0 }
+  }));
+  const doc = new Document3({
+    title: `${name} \u2014 Last Will & Testament`,
+    creator: "Genesis Wills and Estate Planning Ltd",
+    description: "Last Will and Testament",
+    styles: { default: { document: { run: { font: FONT, size: BODY_SIZE } } } },
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: convertInchesToTwip(1.1),
+            right: convertInchesToTwip(1.2),
+            bottom: convertInchesToTwip(1.1),
+            left: convertInchesToTwip(1.2)
+          }
+        }
+      },
+      children
+    }]
+  });
+  return Packer3.toBuffer(doc);
+}
+async function htmlToDocx(html, title) {
+  const children = [];
+  const body22 = html.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<head[\s\S]*?<\/head>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<div[^>]*class="[^"]*cover[^"]*"[\s\S]*?(?=<div[^>]*class="[^"]*page[^"]*">)/i, "");
+  const simplified = body22.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "\n[[H1]]$1[[/H1]]\n").replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "\n[[H2]]$1[[/H2]]\n").replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "\n[[H3]]$1[[/H3]]\n").replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "\n[[P]]$1[[/P]]\n").replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "\n[[LI]]$1[[/LI]]\n").replace(/<hr[^>]*\/?>/gi, "\n[[HR]]\n").replace(/<br\s*\/?>/gi, "\n");
+  function decodeEntities(s) {
+    return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&ldquo;/g, "\u201C").replace(/&rdquo;/g, "\u201D").replace(/&lsquo;/g, "\u2018").replace(/&rsquo;/g, "\u2019").replace(/&mdash;/g, "\u2014").replace(/&ndash;/g, "\u2013").replace(/&#8203;/g, "").replace(/&[a-z]+;/gi, "");
+  }
+  function stripTags2(s) {
+    return decodeEntities(s.replace(/<[^>]+>/g, "").trim());
+  }
+  function parseInlineRuns(s) {
+    const runs = [];
+    const re = /<(\/?)(?:strong|b|em|i|u)(?:\s[^>]*)?>|<br\s*\/?>/gi;
+    let last = 0;
+    let bold = false;
+    let italic = false;
+    let m;
+    while ((m = re.exec(s)) !== null) {
+      if (m.index > last) {
+        const t2 = decodeEntities(s.slice(last, m.index).replace(/<[^>]+>/g, ""));
+        if (t2) runs.push(new TextRun3({ text: t2, bold, italics: italic, size: BODY_SIZE, font: FONT }));
+      }
+      const f = m[0].toLowerCase();
+      const closing = m[1] === "/";
+      if (f === "<br>" || f === "<br/>") runs.push(new TextRun3({ text: "\n", size: BODY_SIZE, font: FONT }));
+      else if (f.includes("strong") || f.includes("b>")) bold = !closing;
+      else if (f.includes("em") || f.includes("i>")) italic = !closing;
+      last = m.index + m[0].length;
+    }
+    if (last < s.length) {
+      const t2 = decodeEntities(s.slice(last).replace(/<[^>]+>/g, ""));
+      if (t2) runs.push(new TextRun3({ text: t2, bold, italics: italic, size: BODY_SIZE, font: FONT }));
+    }
+    return runs.filter((r) => {
+      return true;
+    });
+  }
+  children.push(centred(title, 36, true, 0, 240));
+  for (const line2 of simplified.split("\n")) {
+    const t2 = line2.trim();
+    if (!t2) continue;
+    const h1 = t2.match(/^\[\[H1\]\]([\s\S]*?)\[\[\/H1\]\]$/);
+    if (h1) {
+      children.push(centred(stripTags2(h1[1]), 36, true, 200, 120));
+      continue;
+    }
+    const h2 = t2.match(/^\[\[H2\]\]([\s\S]*?)\[\[\/H2\]\]$/);
+    if (h2) {
+      children.push(clauseHeading3(stripTags2(h2[1])));
+      continue;
+    }
+    const h3 = t2.match(/^\[\[H3\]\]([\s\S]*?)\[\[\/H3\]\]$/);
+    if (h3) {
+      children.push(subHeading(stripTags2(h3[1])));
+      continue;
+    }
+    const p = t2.match(/^\[\[P\]\]([\s\S]*?)\[\[\/P\]\]$/);
+    if (p) {
+      const inner = p[1].trim();
+      if (!inner) continue;
+      const runs = parseInlineRuns(inner);
+      children.push(new Paragraph3({ children: runs.length ? runs : [new TextRun3({ text: stripTags2(inner), size: BODY_SIZE, font: FONT })], alignment: AlignmentType3.JUSTIFIED, spacing: { before: 80, after: 120 } }));
+      continue;
+    }
+    const li = t2.match(/^\[\[LI\]\]([\s\S]*?)\[\[\/LI\]\]$/);
+    if (li) {
+      children.push(bullet(stripTags2(li[1])));
+      continue;
+    }
+    if (t2 === "[[HR]]") {
+      children.push(hr());
+      continue;
+    }
+  }
+  const doc = new Document3({
+    title,
+    creator: "Genesis Wills and Estate Planning Ltd",
+    styles: { default: { document: { run: { font: FONT, size: BODY_SIZE } } } },
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: convertInchesToTwip(1.1),
+            right: convertInchesToTwip(1.2),
+            bottom: convertInchesToTwip(1.1),
+            left: convertInchesToTwip(1.2)
+          }
+        }
+      },
+      children
+    }]
+  });
+  return Packer3.toBuffer(doc);
+}
+
 // server/_core/index.ts
 import { createRequire } from "module";
 var _require = createRequire(import.meta.url);
@@ -11416,17 +12035,11 @@ async function createApp() {
       const clientName = [record.client1FirstName, record.client1LastName].filter(Boolean).join("_") || String(id);
       const savedHtml = record.editedWelcomePackHtml;
       if (savedHtml) {
-        const HTMLtoDOCX = __require("html-to-docx");
-        const docxBuffer2 = await HTMLtoDOCX(savedHtml, null, {
-          title: `Welcome Pack - ${clientName || record.referenceNumber}`,
-          font: "Calibri",
-          fontSize: 22,
-          margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-        });
+        const docxBuffer2 = await htmlToDocx(savedHtml, `Welcome Pack - ${clientName || record.referenceNumber}`);
         const filename2 = `WelcomePack_${clientName}_${record.referenceNumber ?? id}_edited.docx`;
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         res.setHeader("Content-Disposition", `attachment; filename="${filename2}"`);
-        res.send(Buffer.from(docxBuffer2));
+        res.send(docxBuffer2);
         return;
       }
       const docxBuffer = await generateWelcomePackDocx(record);
@@ -11508,17 +12121,11 @@ async function createApp() {
       const savedHtmlKey = willType === "mirror_client2" ? "editedWillHtmlClient2" : willType === "mirror_client1" ? "editedWillHtmlClient1" : "editedWillHtmlSingle";
       const savedHtml = record[savedHtmlKey];
       if (savedHtml) {
-        const HTMLtoDOCX = __require("html-to-docx");
-        const docxBuffer2 = await HTMLtoDOCX(savedHtml, null, {
-          title: `Will - ${clientName || rows[0].referenceNumber}`,
-          font: "Times New Roman",
-          fontSize: 24,
-          margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-        });
+        const docxBuffer2 = await htmlToDocx(savedHtml, `Will - ${clientName || rows[0].referenceNumber}`);
         const filename2 = `Will_${clientName || rows[0].referenceNumber}_${willType}_edited.docx`;
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         res.setHeader("Content-Disposition", `attachment; filename="${filename2}"`);
-        res.send(Buffer.from(docxBuffer2));
+        res.send(docxBuffer2);
         return;
       }
       const opts = {
@@ -11964,19 +12571,12 @@ $1`);
         return;
       }
       const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
-      const html = savedHtml || generateWillHtml2(matter, testatorRole);
       const client = matter.clients.find((c) => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      const HTMLtoDOCX = _require("html-to-docx");
-      const docxBuffer = await HTMLtoDOCX(html, null, {
-        title: `${safeName} \u2014 Last Will & Testament`,
-        font: "Times New Roman",
-        fontSize: 24,
-        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-      });
+      const docxBuffer = savedHtml ? await htmlToDocx(savedHtml, `${safeName} \u2014 Last Will & Testament`) : await generateWillDocxFromMatter(matter, testatorRole);
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.docx"`);
-      res.send(Buffer.from(docxBuffer));
+      res.send(docxBuffer);
     } catch (err) {
       console.error("[Will V2 DOCX] Error:", err);
       res.status(500).json({ error: "Failed to generate Will Word document" });
@@ -11998,16 +12598,10 @@ $1`);
       const html = generateCommentaryHtml(matter, testatorRole);
       const client = matter.clients.find((c) => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      const HTMLtoDOCX = _require("html-to-docx");
-      const docxBuffer = await HTMLtoDOCX(html, null, {
-        title: `${safeName} \u2014 Will Commentary`,
-        font: "Times New Roman",
-        fontSize: 24,
-        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-      });
+      const docxBuffer = await htmlToDocx(html, `${safeName} \u2014 Will Commentary`);
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillCommentary.docx"`);
-      res.send(Buffer.from(docxBuffer));
+      res.send(docxBuffer);
     } catch (err) {
       console.error("[Commentary DOCX] Error:", err);
       res.status(500).json({ error: "Failed to generate commentary Word document" });

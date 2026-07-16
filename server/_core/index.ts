@@ -25,6 +25,7 @@ import { getMatterById } from "../mattersDb";
 import { htmlToPdf } from "../htmlToPdf";
 import { generateWelcomePackHtml } from "../welcomePackGenerator";
 import { generateWelcomePackDocx } from "../welcomePackDocxGenerator";
+import { htmlToDocx, generateWillDocxFromMatter } from "../willDocxConverter";
 import { createRequire } from "module";
 const _require = createRequire(import.meta.url);
 
@@ -182,19 +183,12 @@ async function createApp() {
       const clientName = [record.client1FirstName, record.client1LastName].filter(Boolean).join("_") || String(id);
       const savedHtml = record.editedWelcomePackHtml as string | null;
       if (savedHtml) {
-        // Convert saved edited HTML to DOCX
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const HTMLtoDOCX = require("html-to-docx");
-        const docxBuffer = await HTMLtoDOCX(savedHtml, null, {
-          title: `Welcome Pack - ${clientName || record.referenceNumber}`,
-          font: "Calibri",
-          fontSize: 22,
-          margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-        });
+        // Convert saved edited HTML to DOCX using bundled converter
+        const docxBuffer = await htmlToDocx(savedHtml, `Welcome Pack - ${clientName || record.referenceNumber}`);
         const filename = `WelcomePack_${clientName}_${record.referenceNumber ?? id}_edited.docx`;
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-        res.send(Buffer.from(docxBuffer));
+        res.send(docxBuffer);
         return;
       }
       const docxBuffer = await generateWelcomePackDocx(record);
@@ -272,18 +266,12 @@ async function createApp() {
         : "editedWillHtmlSingle";
       const savedHtml = record[savedHtmlKey] as string | null;
       if (savedHtml) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const HTMLtoDOCX = require("html-to-docx");
-        const docxBuffer = await HTMLtoDOCX(savedHtml, null, {
-          title: `Will - ${clientName || rows[0].referenceNumber}`,
-          font: "Times New Roman",
-          fontSize: 24,
-          margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-        });
+        // Convert saved edited HTML to DOCX using bundled converter
+        const docxBuffer = await htmlToDocx(savedHtml, `Will - ${clientName || rows[0].referenceNumber}`);
         const filename = `Will_${clientName || rows[0].referenceNumber}_${willType}_edited.docx`;
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-        res.send(Buffer.from(docxBuffer));
+        res.send(docxBuffer);
         return;
       }
       const opts = {
@@ -670,19 +658,15 @@ async function createApp() {
       const matter = await getMatterById(id);
       if (!matter) { res.status(404).json({ error: "Not found" }); return; }
       const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
-      const html = savedHtml || generateWillV2Html(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      const HTMLtoDOCX = _require("html-to-docx");
-      const docxBuffer = await HTMLtoDOCX(html, null, {
-        title: `${safeName} — Last Will & Testament`,
-        font: "Times New Roman",
-        fontSize: 24,
-        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-      });
+      // Use data-driven generator for clean professional DOCX; fall back to HTML parser only for saved edited HTML
+      const docxBuffer = savedHtml
+        ? await htmlToDocx(savedHtml, `${safeName} — Last Will & Testament`)
+        : await generateWillDocxFromMatter(matter, testatorRole);
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.docx"`);
-      res.send(Buffer.from(docxBuffer));
+      res.send(docxBuffer);
     } catch (err) {
       console.error("[Will V2 DOCX] Error:", err);
       res.status(500).json({ error: "Failed to generate Will Word document" });
@@ -699,17 +683,10 @@ async function createApp() {
       const html = generateCommentaryHtml(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Commentary").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      // html-to-docx is CJS — loaded via createRequire at module top
-      const HTMLtoDOCX = _require("html-to-docx");
-      const docxBuffer = await HTMLtoDOCX(html, null, {
-        title: `${safeName} — Will Commentary`,
-        font: "Times New Roman",
-        fontSize: 24,
-        margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-      });
+      const docxBuffer = await htmlToDocx(html, `${safeName} — Will Commentary`);
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-WillCommentary.docx"`);
-      res.send(Buffer.from(docxBuffer));
+      res.send(docxBuffer);
     } catch (err) {
       console.error("[Commentary DOCX] Error:", err);
       res.status(500).json({ error: "Failed to generate commentary Word document" });

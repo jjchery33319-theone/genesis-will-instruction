@@ -541,3 +541,9 @@
 - [x] Fix V2 will PDF HTML layout: proper margins, fonts, page breaks, heading hierarchy
 - [x] Add Word (.docx) export endpoint for V2 will (/api/matters/:id/will-docx/:clientRole)
 - [x] Add "Download Word" button to MatterPreview alongside existing PDF button
+
+## Word Document Fix (Phase 32)
+- [x] Fix Word document download errors: replace html-to-docx (not available at Vercel runtime) with bundled docx-based converter
+- [x] Create server/willDocxConverter.ts using the 'docx' package (bundled into api/index.mjs)
+- [x] Apply to will-docx, commentary-docx, and welcome-pack-docx endpoints
+- [x] Deploy to Vercel via GitHub push
