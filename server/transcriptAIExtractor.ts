@@ -1,233 +1,52 @@
 /**
- * AI-powered extraction of will instruction data from a transcript
- * Returns a partial WillInstruction object ready to pre-fill the V1 form
+ * AI-powered extraction of will instruction data from a transcript.
+ * Uses a plain JSON prompt (no json_schema response_format) to avoid strict schema validation issues.
  */
 import { invokeLLM } from "./_core/llm";
 
 const SYSTEM_PROMPT = `You are an expert will-writing assistant for Genesis Wills and Estate Planning Ltd (UK).
 Your task is to extract structured will instruction data from a consultation transcript or notes.
-Extract as much information as possible. Leave fields as null/undefined if not mentioned.
-Return ONLY valid JSON matching the schema — no markdown, no explanation.
+Extract as much information as possible. Omit fields that are not mentioned.
+Return ONLY a single valid JSON object — no markdown fences, no explanation, no extra text.
 
 Key rules:
 - Dates: use ISO format YYYY-MM-DD where possible, or the exact string as spoken
-- Names: extract prefix (Mr/Mrs/Miss/Ms/Dr), first name, middle name, last name separately where possible
+- Names: extract prefix (Mr/Mrs/Miss/Ms/Dr), firstName, middleName, lastName separately where possible
 - Addresses: split into addressLine1, city, postcode where possible
 - For executors/trustees/guardians/beneficiaries: extract as arrays of person objects
 - willType: "single" if one person, "mirror" if couple/two people
-- Products: infer from context (single_will, mirror_wills, lpa_property_finance, lpa_health_welfare, both_lpas, ppt, storage)
-- Residuary estate: who gets the estate after specific gifts
-- Funeral: cremation/burial, any specific wishes
-- Organ donation: yes/no
-`;
+- productsOrdered: array of strings from (single_will, mirror_wills, lpa_property_finance, lpa_health_welfare, both_lpas, ppt, storage)
+- funeralType: one of "cremation", "burial", "no_preference"
+- organDonation: one of "yes", "no", "not_stated"
+- propertyOwned: "yes" or "no"
+- mortgageOutstanding: "yes" or "no"
+- hasPets: "yes" or "no"
+- client1HasChildren / client2HasChildren: "yes" or "no"
+- extractionNotes: brief note about any ambiguities or missing information the user should review
 
-const EXTRACTION_SCHEMA = {
-  type: "object",
-  properties: {
-    // Appointment / meta
-    willType: { type: "string", enum: ["single", "mirror"], description: "single or mirror wills" },
-    consultantName: { type: "string" },
-    appointmentDate: { type: "string" },
-    appointmentLocation: { type: "string" },
-    productsOrdered: { type: "array", items: { type: "string" } },
-
-    // Client 1
-    client1Prefix: { type: "string" },
-    client1FirstName: { type: "string" },
-    client1MiddleName: { type: "string" },
-    client1LastName: { type: "string" },
-    client1Dob: { type: "string" },
-    client1AddressLine1: { type: "string" },
-    client1City: { type: "string" },
-    client1Postcode: { type: "string" },
-    client1MaritalStatus: { type: "string" },
-    client1JobTitle: { type: "string" },
-    client1DaytimePhone: { type: "string" },
-    client1Mobile: { type: "string" },
-    client1Email: { type: "string" },
-    client1Nationality: { type: "string" },
-
-    // Client 2 (mirror wills)
-    client2Prefix: { type: "string" },
-    client2FirstName: { type: "string" },
-    client2MiddleName: { type: "string" },
-    client2LastName: { type: "string" },
-    client2Dob: { type: "string" },
-    client2AddressLine1: { type: "string" },
-    client2City: { type: "string" },
-    client2Postcode: { type: "string" },
-    client2MaritalStatus: { type: "string" },
-    client2JobTitle: { type: "string" },
-    client2DaytimePhone: { type: "string" },
-    client2Mobile: { type: "string" },
-    client2Email: { type: "string" },
-
-    // Family
-    client1HasChildren: { type: "string", enum: ["yes", "no"] },
-    client1TotalChildren: { type: "string" },
-    client1ChildrenUnder18: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          dob: { type: "string" },
-          relationship: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-    client1ChildrenOver18: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          dob: { type: "string" },
-          relationship: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-    client2HasChildren: { type: "string", enum: ["yes", "no"] },
-    client2TotalChildren: { type: "string" },
-
-    // Executors
-    executors: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          prefix: { type: "string" },
-          firstName: { type: "string" },
-          lastName: { type: "string" },
-          relationship: { type: "string" },
-          address: { type: "string" },
-          phone: { type: "string" },
-          email: { type: "string" },
-          dob: { type: "string" },
-          notes: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-    reserveExecutors: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          prefix: { type: "string" },
-          firstName: { type: "string" },
-          lastName: { type: "string" },
-          relationship: { type: "string" },
-          address: { type: "string" },
-          phone: { type: "string" },
-          email: { type: "string" },
-          notes: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-
-    // Trustees
-    trustees: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          prefix: { type: "string" },
-          firstName: { type: "string" },
-          lastName: { type: "string" },
-          relationship: { type: "string" },
-          address: { type: "string" },
-          notes: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-
-    // Guardians
-    guardians: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          prefix: { type: "string" },
-          firstName: { type: "string" },
-          lastName: { type: "string" },
-          relationship: { type: "string" },
-          address: { type: "string" },
-          phone: { type: "string" },
-          notes: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-
-    // Beneficiaries
-    beneficiaries: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          prefix: { type: "string" },
-          firstName: { type: "string" },
-          lastName: { type: "string" },
-          relationship: { type: "string" },
-          address: { type: "string" },
-          dob: { type: "string" },
-          share: { type: "string" },
-          isVulnerable: { type: "boolean" },
-          notes: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-
-    // Specific gifts
-    specificGifts: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          description: { type: "string" },
-          recipient: { type: "string" },
-          recipientRelationship: { type: "string" },
-          notes: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    },
-
-    // Pets
-    hasPets: { type: "string", enum: ["yes", "no"] },
-    petsDetails: { type: "string" },
-    petsCarer: { type: "string" },
-
-    // Wishes
-    residuaryEstate: { type: "string" },
-    residuaryBackup: { type: "string" },
-    funeralType: { type: "string", enum: ["cremation", "burial", "no_preference"] },
-    funeralWishes: { type: "string" },
-    organDonation: { type: "string", enum: ["yes", "no", "not_stated"] },
-
-    // Property
-    propertyOwned: { type: "string", enum: ["yes", "no"] },
-    propertyAddress: { type: "string" },
-    propertyOwnership: { type: "string" },
-    propertyValue: { type: "string" },
-    mortgageOutstanding: { type: "string", enum: ["yes", "no"] },
-
-    // Additional notes
-    additionalNotes: { type: "string" },
-    specialNotes: { type: "string" },
-
-    // Confidence note
-    extractionNotes: { type: "string", description: "Any ambiguities or low-confidence extractions the user should review" }
-  },
-  required: [],
-  additionalProperties: false
-};
+Return a JSON object with any of these fields that are present in the transcript:
+willType, consultantName, appointmentDate, appointmentLocation, productsOrdered,
+client1Prefix, client1FirstName, client1MiddleName, client1LastName, client1Dob,
+client1AddressLine1, client1City, client1Postcode, client1MaritalStatus, client1JobTitle,
+client1DaytimePhone, client1Mobile, client1Email, client1Nationality,
+client2Prefix, client2FirstName, client2MiddleName, client2LastName, client2Dob,
+client2AddressLine1, client2City, client2Postcode, client2MaritalStatus, client2JobTitle,
+client2DaytimePhone, client2Mobile, client2Email,
+client1HasChildren, client1TotalChildren,
+client1ChildrenUnder18 (array of {name, dob, relationship}),
+client1ChildrenOver18 (array of {name, dob, relationship}),
+client2HasChildren, client2TotalChildren,
+executors (array of {prefix, firstName, lastName, relationship, address, phone, email, dob, notes}),
+reserveExecutors (array of {prefix, firstName, lastName, relationship, address, phone, email, notes}),
+trustees (array of {prefix, firstName, lastName, relationship, address, notes}),
+guardians (array of {prefix, firstName, lastName, relationship, address, phone, notes}),
+beneficiaries (array of {prefix, firstName, lastName, relationship, address, dob, share, isVulnerable, notes}),
+specificGifts (array of {description, recipient, recipientRelationship, notes}),
+hasPets, petsDetails, petsCarer,
+residuaryEstate, residuaryBackup,
+funeralType, funeralWishes, organDonation,
+propertyOwned, propertyAddress, propertyOwnership, propertyValue, mortgageOutstanding,
+additionalNotes, specialNotes, extractionNotes`;
 
 export async function extractWillDataFromTranscript(transcriptText: string): Promise<{
   extractedData: Record<string, unknown>;
@@ -241,17 +60,9 @@ export async function extractWillDataFromTranscript(transcriptText: string): Pro
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `Please extract will instruction data from the following transcript:\n\n---\n${truncated}\n---\n\nReturn structured JSON only.`
+        content: `Extract will instruction data from the following transcript and return a JSON object only:\n\n---\n${truncated}\n---`
       }
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "will_instruction_extraction",
-        strict: true,
-        schema: EXTRACTION_SCHEMA
-      }
-    }
+    ]
   });
 
   const rawContent = response.choices?.[0]?.message?.content;
@@ -259,11 +70,27 @@ export async function extractWillDataFromTranscript(transcriptText: string): Pro
     throw new Error("AI extraction returned no content");
   }
 
+  // Strip markdown code fences if the model wrapped the JSON
+  const cleaned = rawContent
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/, "")
+    .trim();
+
   let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(rawContent);
+    parsed = JSON.parse(cleaned);
   } catch {
-    throw new Error("AI extraction returned invalid JSON");
+    // Try to find JSON object within the response
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        parsed = JSON.parse(match[0]);
+      } catch {
+        throw new Error("AI extraction returned invalid JSON. Please try again.");
+      }
+    } else {
+      throw new Error("AI extraction returned invalid JSON. Please try again.");
+    }
   }
 
   const extractionNotes = (parsed.extractionNotes as string) ?? "";
@@ -271,7 +98,12 @@ export async function extractWillDataFromTranscript(transcriptText: string): Pro
 
   // Determine confidence based on how many key fields were extracted
   const keyFields = ["client1FirstName", "client1LastName", "willType", "executors"];
-  const filledKeys = keyFields.filter(k => parsed[k] !== null && parsed[k] !== undefined && parsed[k] !== "");
+  const filledKeys = keyFields.filter(k => {
+    const v = parsed[k];
+    if (v === null || v === undefined || v === "") return false;
+    if (Array.isArray(v) && v.length === 0) return false;
+    return true;
+  });
   const confidence: "high" | "medium" | "low" =
     filledKeys.length >= 3 ? "high" : filledKeys.length >= 2 ? "medium" : "low";
 
