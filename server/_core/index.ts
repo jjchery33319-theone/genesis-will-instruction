@@ -27,6 +27,9 @@ import { generateWelcomePackHtml } from "../welcomePackGenerator";
 import { generateWelcomePackDocx } from "../welcomePackDocxGenerator";
 import { htmlToDocx, generateWillDocxFromMatter } from "../willDocxConverter";
 import { createRequire } from "module";
+import multer from "multer";
+import { extractTextFromBuffer } from "../transcriptExtractor";
+import { extractWillDataFromTranscript } from "../transcriptAIExtractor";
 const _require = createRequire(import.meta.url);
 
 async function createApp() {
@@ -784,6 +787,24 @@ async function createApp() {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[Testimonium] Error:", msg, err);
       res.status(500).json({ error: "Failed to generate Testimonium", detail: msg });
+    }
+  });
+
+  // Transcript upload & AI extraction endpoint
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+  app.post("/api/admin/extract-transcript", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
+      const text = await extractTextFromBuffer(req.file.buffer, req.file.mimetype, req.file.originalname);
+      if (!text || text.trim().length < 20) {
+        res.status(400).json({ error: "Could not extract text from the uploaded file. Please check the file is not empty or password-protected." });
+        return;
+      }
+      const result = await extractWillDataFromTranscript(text);
+      res.json(result);
+    } catch (err: any) {
+      console.error("[TranscriptExtract] Error:", err);
+      res.status(500).json({ error: err?.message ?? "Failed to extract data from transcript" });
     }
   });
 

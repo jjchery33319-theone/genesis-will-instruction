@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import TranscriptUploadDialog from "../components/TranscriptUploadDialog";
 import { trpc } from "../lib/trpc";
 import { Link, useLocation } from "wouter";
 import {
@@ -92,6 +93,7 @@ export default function AdminDashboard() {
   // Delete confirmation dialog state
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | "all">("all");
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
 
   // Filtered submissions based on active status filter
   const filteredSubmissions = useMemo(() => {
@@ -194,6 +196,16 @@ export default function AdminDashboard() {
                   <span className="sm:hidden">Team</span>
                 </Button>
               </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
+                onClick={() => setTranscriptDialogOpen(true)}
+              >
+                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Upload Transcript</span>
+                <span className="sm:hidden">Transcript</span>
+              </Button>
               <Link href="/" className="flex-shrink-0">
                 <Button
                   variant="outline"
@@ -572,6 +584,11 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TranscriptUploadDialog
+        open={transcriptDialogOpen}
+        onOpenChange={setTranscriptDialogOpen}
+      />
     </div>
   );
 }

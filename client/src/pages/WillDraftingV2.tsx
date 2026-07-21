@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, Eye, ChevronRight, Users, UserCheck, Baby, Heart, Scroll, Download, RotateCcw, Save, FileCheck, ExternalLink, ClipboardList } from "lucide-react";
+import { Plus, FileText, Trash2, Eye, ChevronRight, Users, UserCheck, Baby, Heart, Scroll, Download, RotateCcw, Save, FileCheck, ExternalLink, ClipboardList, Search, X } from "lucide-react";
 import { MatterForm } from "@/components/will-v2/MatterForm";
 import { MatterPreview } from "@/components/will-v2/MatterPreview";
 import { useLocation } from "wouter";
@@ -34,6 +34,7 @@ export default function WillDraftingV2() {
   const [newMatterType, setNewMatterType] = useState<"single" | "mirror">("single");
   const [newFileRef, setNewFileRef] = useState("");
   const [lpaDialog, setLpaDialog] = useState<LpaOrderDialogState>({ open: false, createPF: true, createHW: true, useExecutorsAsAttorneys: true });
+  const [searchQuery, setSearchQuery] = useState("");
 
   // ── Unsaved-changes guard ─────────────────────────────────────────────────
   const [isDirty, setIsDirty] = useState(false);
@@ -150,6 +151,27 @@ export default function WillDraftingV2() {
     return t1?.fullName || matter.fileReference || `Matter #${matter.id}`;
   };
 
+  const getClientEmail = (matter: any) => {
+    const t1 = matter.clients?.find((c: any) => c.clientRole === "testator1");
+    const t2 = matter.clients?.find((c: any) => c.clientRole === "testator2");
+    return [t1?.email, t2?.email].filter(Boolean).join(" / ");
+  };
+
+  const filteredMatters = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return matters;
+    return matters.filter(m => {
+      const t1 = m.clients?.find((c: any) => c.clientRole === "testator1");
+      const t2 = m.clients?.find((c: any) => c.clientRole === "testator2");
+      const name1 = (t1?.fullName || "").toLowerCase();
+      const name2 = (t2?.fullName || "").toLowerCase();
+      const email1 = (t1?.email || "").toLowerCase();
+      const email2 = (t2?.email || "").toLowerCase();
+      const fileRef = (m.fileReference || "").toLowerCase();
+      return name1.includes(q) || name2.includes(q) || email1.includes(q) || email2.includes(q) || fileRef.includes(q);
+    });
+  }, [matters, searchQuery]);
+
   const selectedMatter = matters.find(m => m.id === selectedMatterId);
 
   return (
@@ -164,7 +186,27 @@ export default function WillDraftingV2() {
               New
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">{matters.length} matter{matters.length !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-muted-foreground">
+            {searchQuery ? `${filteredMatters.length} of ${matters.length}` : matters.length} matter{matters.length !== 1 ? "s" : ""}
+          </p>
+          {/* Search bar */}
+          <div className="relative mt-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name or email…"
+              className="h-8 pl-8 pr-7 text-xs"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -178,7 +220,14 @@ export default function WillDraftingV2() {
               <p className="text-xs text-muted-foreground mt-1">Click "New" to create one.</p>
             </div>
           )}
-          {matters.map((matter) => (
+          {!isLoading && matters.length > 0 && filteredMatters.length === 0 && (
+            <div className="p-6 text-center">
+              <Search className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No matches found.</p>
+              <button onClick={() => setSearchQuery("")} className="text-xs text-primary mt-1 hover:underline">Clear search</button>
+            </div>
+          )}
+          {filteredMatters.map((matter) => (
             <div
               key={matter.id}
               onClick={() => handleMatterClick(matter.id)}
@@ -188,6 +237,9 @@ export default function WillDraftingV2() {
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-sm font-medium truncate">{getClientName(matter)}</span>
                 </div>
+                {getClientEmail(matter) && (
+                  <p className="text-[10px] text-muted-foreground truncate mb-0.5">{getClientEmail(matter)}</p>
+                )}
                 <div className="flex items-center gap-1.5">
                   <Badge variant="outline" className="text-[10px] h-4 px-1">
                     {matter.matterType === "mirror" ? "Mirror" : "Single"}

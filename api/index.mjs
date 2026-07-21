@@ -1522,6 +1522,225 @@ import { eq as eq2, desc } from "drizzle-orm";
 
 // server/_core/llm.ts
 init_env();
+var ensureArray = (value) => Array.isArray(value) ? value : [value];
+var normalizeContentPart = (part) => {
+  if (typeof part === "string") {
+    return { type: "text", text: part };
+  }
+  if (part.type === "text") {
+    return part;
+  }
+  if (part.type === "image_url") {
+    return part;
+  }
+  if (part.type === "file_url") {
+    return part;
+  }
+  throw new Error("Unsupported message content part");
+};
+var normalizeMessage = (message) => {
+  const { role, name, tool_call_id } = message;
+  if (role === "tool" || role === "function") {
+    const content = ensureArray(message.content).map((part) => typeof part === "string" ? part : JSON.stringify(part)).join("\n");
+    return {
+      role,
+      name,
+      tool_call_id,
+      content
+    };
+  }
+  const contentParts = ensureArray(message.content).map(normalizeContentPart);
+  if (contentParts.length === 1 && contentParts[0].type === "text") {
+    return {
+      role,
+      name,
+      content: contentParts[0].text
+    };
+  }
+  return {
+    role,
+    name,
+    content: contentParts
+  };
+};
+var normalizeToolChoice = (toolChoice, tools) => {
+  if (!toolChoice) return void 0;
+  if (toolChoice === "none" || toolChoice === "auto") {
+    return toolChoice;
+  }
+  if (toolChoice === "required") {
+    if (!tools || tools.length === 0) {
+      throw new Error(
+        "tool_choice 'required' was provided but no tools were configured"
+      );
+    }
+    if (tools.length > 1) {
+      throw new Error(
+        "tool_choice 'required' needs a single tool or specify the tool name explicitly"
+      );
+    }
+    return {
+      type: "function",
+      function: { name: tools[0].function.name }
+    };
+  }
+  if ("name" in toolChoice) {
+    return {
+      type: "function",
+      function: { name: toolChoice.name }
+    };
+  }
+  return toolChoice;
+};
+var resolveApiUrl = () => ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0 ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions` : "https://forge.manus.im/v1/chat/completions";
+var assertApiKey = () => {
+  if (!ENV.forgeApiKey) {
+    throw new Error("OPENAI_API_KEY is not configured");
+  }
+};
+var normalizeResponseFormat = ({
+  responseFormat,
+  response_format,
+  outputSchema,
+  output_schema
+}) => {
+  const explicitFormat = responseFormat || response_format;
+  if (explicitFormat) {
+    if (explicitFormat.type === "json_schema" && !explicitFormat.json_schema?.schema) {
+      throw new Error(
+        "responseFormat json_schema requires a defined schema object"
+      );
+    }
+    return explicitFormat;
+  }
+  const schema = outputSchema || output_schema;
+  if (!schema) return void 0;
+  if (!schema.name || !schema.schema) {
+    throw new Error("outputSchema requires both name and schema");
+  }
+  return {
+    type: "json_schema",
+    json_schema: {
+      name: schema.name,
+      schema: schema.schema,
+      ...typeof schema.strict === "boolean" ? { strict: schema.strict } : {}
+    }
+  };
+};
+var RETRY_MAX_RETRIES = 4;
+var RETRY_BASE_DELAY_MS = 500;
+var RETRY_MAX_DELAY_MS = 3e4;
+var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+var parseRetryAfter = (value) => {
+  if (!value) return void 0;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1e3);
+  const at = Date.parse(value);
+  return Number.isNaN(at) ? void 0 : Math.max(0, at - Date.now());
+};
+var computeBackoffDelay = (attempt, retryAfterMs) => {
+  const cap = Math.min(RETRY_BASE_DELAY_MS * 2 ** attempt, RETRY_MAX_DELAY_MS);
+  const jittered = cap / 2 + Math.random() * (cap / 2);
+  return Math.min(Math.max(jittered, retryAfterMs ?? 0), RETRY_MAX_DELAY_MS);
+};
+var fetchWithBackoff = async (url, init) => {
+  let lastError;
+  for (let attempt = 0; attempt <= RETRY_MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(url, init);
+      if (response.ok || attempt === RETRY_MAX_RETRIES) {
+        return response;
+      }
+      const retryAfterMs = parseRetryAfter(
+        response.headers.get("retry-after")
+      );
+      try {
+        await response.body?.cancel();
+      } catch {
+      }
+      console.warn(
+        `LLM request retry ${attempt + 1}/${RETRY_MAX_RETRIES} after status ${response.status}`
+      );
+      await sleep(computeBackoffDelay(attempt, retryAfterMs));
+    } catch (error) {
+      lastError = error;
+      if (attempt === RETRY_MAX_RETRIES) throw error;
+      console.warn(
+        `LLM request retry ${attempt + 1}/${RETRY_MAX_RETRIES} after network error`
+      );
+      await sleep(computeBackoffDelay(attempt));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("LLM request failed after exhausting retries");
+};
+async function invokeLLM(params) {
+  assertApiKey();
+  const {
+    messages,
+    tools,
+    toolChoice,
+    tool_choice,
+    outputSchema,
+    output_schema,
+    responseFormat,
+    response_format,
+    model,
+    thinking,
+    reasoning,
+    maxTokens,
+    max_tokens
+  } = params;
+  const payload = {
+    messages: messages.map(normalizeMessage)
+  };
+  if (model) {
+    payload.model = model;
+  }
+  if (tools && tools.length > 0) {
+    payload.tools = tools;
+  }
+  const normalizedToolChoice = normalizeToolChoice(
+    toolChoice || tool_choice,
+    tools
+  );
+  if (normalizedToolChoice) {
+    payload.tool_choice = normalizedToolChoice;
+  }
+  const resolvedMaxTokens = max_tokens ?? maxTokens;
+  if (typeof resolvedMaxTokens === "number") {
+    payload.max_tokens = resolvedMaxTokens;
+  }
+  if (thinking) {
+    payload.thinking = thinking;
+  }
+  if (reasoning) {
+    payload.reasoning = reasoning;
+  }
+  const normalizedResponseFormat = normalizeResponseFormat({
+    responseFormat,
+    response_format,
+    outputSchema,
+    output_schema
+  });
+  if (normalizedResponseFormat) {
+    payload.response_format = normalizedResponseFormat;
+  }
+  const response = await fetchWithBackoff(resolveApiUrl(), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${ENV.forgeApiKey}`
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `LLM invoke failed: ${response.status} ${response.statusText} \u2013 ${errorText}`
+    );
+  }
+  return await response.json();
+}
 
 // server/emailService.ts
 import nodemailer from "nodemailer";
@@ -11841,6 +12060,285 @@ async function htmlToDocx(html, title) {
 
 // server/_core/index.ts
 import { createRequire } from "module";
+import multer from "multer";
+
+// server/transcriptExtractor.ts
+async function extractTextFromBuffer(buffer, mimetype, originalname) {
+  const ext = originalname.split(".").pop()?.toLowerCase() ?? "";
+  if (mimetype === "text/plain" || ext === "txt") {
+    return buffer.toString("utf-8");
+  }
+  if (mimetype === "application/pdf" || ext === "pdf") {
+    const pdfParseModule = await import("pdf-parse");
+    const pdfParse = pdfParseModule.default ?? pdfParseModule;
+    const result = await pdfParse(buffer);
+    return result.text;
+  }
+  if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || mimetype === "application/msword" || ext === "docx" || ext === "doc") {
+    const mammoth = await import("mammoth");
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  }
+  throw new Error(
+    `Unsupported file type: ${mimetype || ext}. Please upload a PDF, Word (.docx), or plain text (.txt) file.`
+  );
+}
+
+// server/transcriptAIExtractor.ts
+var SYSTEM_PROMPT = `You are an expert will-writing assistant for Genesis Wills and Estate Planning Ltd (UK).
+Your task is to extract structured will instruction data from a consultation transcript or notes.
+Extract as much information as possible. Leave fields as null/undefined if not mentioned.
+Return ONLY valid JSON matching the schema \u2014 no markdown, no explanation.
+
+Key rules:
+- Dates: use ISO format YYYY-MM-DD where possible, or the exact string as spoken
+- Names: extract prefix (Mr/Mrs/Miss/Ms/Dr), first name, middle name, last name separately where possible
+- Addresses: split into addressLine1, city, postcode where possible
+- For executors/trustees/guardians/beneficiaries: extract as arrays of person objects
+- willType: "single" if one person, "mirror" if couple/two people
+- Products: infer from context (single_will, mirror_wills, lpa_property_finance, lpa_health_welfare, both_lpas, ppt, storage)
+- Residuary estate: who gets the estate after specific gifts
+- Funeral: cremation/burial, any specific wishes
+- Organ donation: yes/no
+`;
+var EXTRACTION_SCHEMA = {
+  type: "object",
+  properties: {
+    // Appointment / meta
+    willType: { type: "string", enum: ["single", "mirror"], description: "single or mirror wills" },
+    consultantName: { type: "string" },
+    appointmentDate: { type: "string" },
+    appointmentLocation: { type: "string" },
+    productsOrdered: { type: "array", items: { type: "string" } },
+    // Client 1
+    client1Prefix: { type: "string" },
+    client1FirstName: { type: "string" },
+    client1MiddleName: { type: "string" },
+    client1LastName: { type: "string" },
+    client1Dob: { type: "string" },
+    client1AddressLine1: { type: "string" },
+    client1City: { type: "string" },
+    client1Postcode: { type: "string" },
+    client1MaritalStatus: { type: "string" },
+    client1JobTitle: { type: "string" },
+    client1DaytimePhone: { type: "string" },
+    client1Mobile: { type: "string" },
+    client1Email: { type: "string" },
+    client1Nationality: { type: "string" },
+    // Client 2 (mirror wills)
+    client2Prefix: { type: "string" },
+    client2FirstName: { type: "string" },
+    client2MiddleName: { type: "string" },
+    client2LastName: { type: "string" },
+    client2Dob: { type: "string" },
+    client2AddressLine1: { type: "string" },
+    client2City: { type: "string" },
+    client2Postcode: { type: "string" },
+    client2MaritalStatus: { type: "string" },
+    client2JobTitle: { type: "string" },
+    client2DaytimePhone: { type: "string" },
+    client2Mobile: { type: "string" },
+    client2Email: { type: "string" },
+    // Family
+    client1HasChildren: { type: "string", enum: ["yes", "no"] },
+    client1TotalChildren: { type: "string" },
+    client1ChildrenUnder18: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          dob: { type: "string" },
+          relationship: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    client1ChildrenOver18: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          dob: { type: "string" },
+          relationship: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    client2HasChildren: { type: "string", enum: ["yes", "no"] },
+    client2TotalChildren: { type: "string" },
+    // Executors
+    executors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          prefix: { type: "string" },
+          firstName: { type: "string" },
+          lastName: { type: "string" },
+          relationship: { type: "string" },
+          address: { type: "string" },
+          phone: { type: "string" },
+          email: { type: "string" },
+          dob: { type: "string" },
+          notes: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    reserveExecutors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          prefix: { type: "string" },
+          firstName: { type: "string" },
+          lastName: { type: "string" },
+          relationship: { type: "string" },
+          address: { type: "string" },
+          phone: { type: "string" },
+          email: { type: "string" },
+          notes: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    // Trustees
+    trustees: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          prefix: { type: "string" },
+          firstName: { type: "string" },
+          lastName: { type: "string" },
+          relationship: { type: "string" },
+          address: { type: "string" },
+          notes: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    // Guardians
+    guardians: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          prefix: { type: "string" },
+          firstName: { type: "string" },
+          lastName: { type: "string" },
+          relationship: { type: "string" },
+          address: { type: "string" },
+          phone: { type: "string" },
+          notes: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    // Beneficiaries
+    beneficiaries: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          prefix: { type: "string" },
+          firstName: { type: "string" },
+          lastName: { type: "string" },
+          relationship: { type: "string" },
+          address: { type: "string" },
+          dob: { type: "string" },
+          share: { type: "string" },
+          isVulnerable: { type: "boolean" },
+          notes: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    // Specific gifts
+    specificGifts: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          description: { type: "string" },
+          recipient: { type: "string" },
+          recipientRelationship: { type: "string" },
+          notes: { type: "string" }
+        },
+        additionalProperties: false
+      }
+    },
+    // Pets
+    hasPets: { type: "string", enum: ["yes", "no"] },
+    petsDetails: { type: "string" },
+    petsCarer: { type: "string" },
+    // Wishes
+    residuaryEstate: { type: "string" },
+    residuaryBackup: { type: "string" },
+    funeralType: { type: "string", enum: ["cremation", "burial", "no_preference"] },
+    funeralWishes: { type: "string" },
+    organDonation: { type: "string", enum: ["yes", "no", "not_stated"] },
+    // Property
+    propertyOwned: { type: "string", enum: ["yes", "no"] },
+    propertyAddress: { type: "string" },
+    propertyOwnership: { type: "string" },
+    propertyValue: { type: "string" },
+    mortgageOutstanding: { type: "string", enum: ["yes", "no"] },
+    // Additional notes
+    additionalNotes: { type: "string" },
+    specialNotes: { type: "string" },
+    // Confidence note
+    extractionNotes: { type: "string", description: "Any ambiguities or low-confidence extractions the user should review" }
+  },
+  required: [],
+  additionalProperties: false
+};
+async function extractWillDataFromTranscript(transcriptText) {
+  const truncated = transcriptText.slice(0, 12e3);
+  const response = await invokeLLM({
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: `Please extract will instruction data from the following transcript:
+
+---
+${truncated}
+---
+
+Return structured JSON only.`
+      }
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "will_instruction_extraction",
+        strict: true,
+        schema: EXTRACTION_SCHEMA
+      }
+    }
+  });
+  const rawContent = response.choices?.[0]?.message?.content;
+  if (!rawContent || typeof rawContent !== "string") {
+    throw new Error("AI extraction returned no content");
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(rawContent);
+  } catch {
+    throw new Error("AI extraction returned invalid JSON");
+  }
+  const extractionNotes = parsed.extractionNotes ?? "";
+  delete parsed.extractionNotes;
+  const keyFields = ["client1FirstName", "client1LastName", "willType", "executors"];
+  const filledKeys = keyFields.filter((k) => parsed[k] !== null && parsed[k] !== void 0 && parsed[k] !== "");
+  const confidence = filledKeys.length >= 3 ? "high" : filledKeys.length >= 2 ? "medium" : "low";
+  return { extractedData: parsed, extractionNotes, confidence };
+}
+
+// server/_core/index.ts
 var _require = createRequire(import.meta.url);
 async function createApp() {
   const app = express();
@@ -12707,6 +13205,25 @@ $1`);
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[Testimonium] Error:", msg, err);
       res.status(500).json({ error: "Failed to generate Testimonium", detail: msg });
+    }
+  });
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+  app.post("/api/admin/extract-transcript", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: "No file uploaded" });
+        return;
+      }
+      const text2 = await extractTextFromBuffer(req.file.buffer, req.file.mimetype, req.file.originalname);
+      if (!text2 || text2.trim().length < 20) {
+        res.status(400).json({ error: "Could not extract text from the uploaded file. Please check the file is not empty or password-protected." });
+        return;
+      }
+      const result = await extractWillDataFromTranscript(text2);
+      res.json(result);
+    } catch (err) {
+      console.error("[TranscriptExtract] Error:", err);
+      res.status(500).json({ error: err?.message ?? "Failed to extract data from transcript" });
     }
   });
   app.use(

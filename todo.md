@@ -547,3 +547,18 @@
 - [x] Create server/willDocxConverter.ts using the 'docx' package (bundled into api/index.mjs)
 - [x] Apply to will-docx, commentary-docx, and welcome-pack-docx endpoints
 - [x] Deploy to Vercel via GitHub push
+
+## Customer Search in Will Drafting (Phase 32)
+- [x] Add search bar to Will Drafting matters list to filter by client name and email
+- [x] Backend: filtering done client-side (no extra round-trip needed — all matters already loaded)
+- [x] Frontend: live search input with clear button, email shown in list, match count displayed
+
+## AI Transcript Upload for V1 Welcome Pack (Phase 33)
+- [ ] Add "Upload Transcript" button in admin back office (V1 submissions list page)
+- [ ] Backend: file upload endpoint that accepts PDF, Word (.docx), plain text
+- [ ] Backend: text extraction from uploaded file (PDF via pdf-parse, docx via mammoth, txt direct)
+- [ ] Backend: tRPC procedure that sends extracted text to LLM and returns structured will instruction data
+- [ ] Frontend: upload modal/dialog with file picker and progress indicator
+- [ ] Frontend: AI review panel showing extracted fields for user to review and edit before saving
+- [ ] Frontend: pre-fill V1 submission form with extracted data on confirmation
+- [ ] Deploy to Vercel
