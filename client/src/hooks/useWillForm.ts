@@ -300,22 +300,114 @@ const initialData: WillFormData = {
 // ─── Local-storage key ───────────────────────────────────────────────────────
 const LS_KEY = "genesis_will_form_autosave";
 
+/**
+ * The AI transcript extractor may return string fields as arrays.
+ * This helper coerces them back to strings so Zod validation passes on submit.
+ */
+function coerceStringField(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    // Join array items into a single string
+    return value
+      .map(v => (typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)))
+      .filter(Boolean)
+      .join(", ");
+  }
+  return String(value);
+}
+
+/** All fields in WillFormData that must be strings (not arrays or objects) */
+const STRING_FIELDS: (keyof WillFormData)[] = [
+  "appointmentDate", "appointmentTime", "consultantName", "consultantEmail", "consultantPhone",
+  "caseCoordinatorName", "caseCoordinatorEmail", "caseCoordinatorPhone", "priceQuoted", "estimatedDraftDate",
+  "willType", "lpaType",
+  "client1Prefix", "client1FirstName", "client1MiddleName", "client1LastName", "client1Dob",
+  "client1AddressLine1", "client1City", "client1Postcode", "client1MaritalStatus", "client1JobTitle",
+  "client1DaytimePhone", "client1Mobile", "client1Email", "client1Nationality",
+  "client2Prefix", "client2FirstName", "client2MiddleName", "client2LastName", "client2Dob",
+  "client2AddressLine1", "client2City", "client2Postcode", "client2MaritalStatus", "client2JobTitle",
+  "client2DaytimePhone", "client2Mobile", "client2Email", "client2Nationality",
+  "client1MarriagePlans", "client1MarriagePlanDetails", "client1HasChildren", "client1TotalChildren",
+  "client1ChildrenSpecialNeeds", "client1ChildrenSpecialNeedsDetails", "client1ChildrenDetails", "client1FamilyCircumstances",
+  "client2MarriagePlans", "client2MarriagePlanDetails", "client2HasChildren", "client2TotalChildren",
+  "client2ChildrenSpecialNeeds", "client2ChildrenSpecialNeedsDetails", "client2ChildrenDetails", "client2FamilyCircumstances",
+  "client1Residency", "client1DomiciledUK", "client1MentalCapacity", "client1MentalCapacityNotes",
+  "client1ChildrenPastRelationships", "client1ChildrenPastDetails",
+  "client2Residency", "client2DomiciledUK", "client2MentalCapacity", "client2MentalCapacityNotes",
+  "client2ChildrenPastRelationships", "client2ChildrenPastDetails",
+  "ddArrangedAppointment", "ddArrangedAppointmentNotes", "ddKnowledgeOfEstate", "ddKnowledgeOfEstateNotes",
+  "ddKnewBeneficiaries", "ddKnewBeneficiariesNotes", "ddSignsOfInfluence", "ddSignsOfInfluenceNotes",
+  "ddKnewAppointees", "ddKnewAppointeesNotes",
+  "client1ResidualEstate", "client1ResidualBackup", "client1ChildrenBenefitAge",
+  "client1HasVulnerableBeneficiary", "client1VulnerableBeneficiaryDetails",
+  "client2ResidualEstate", "client2ResidualBackup", "client2ChildrenBenefitAge",
+  "client2HasVulnerableBeneficiary", "client2VulnerableBeneficiaryDetails",
+  "childrenBenefitAge", "disasterClauseClient1", "disasterClauseClient2",
+  "hasVulnerableBeneficiary", "vulnerableBeneficiaryDetails",
+  "propertyOwned", "propertyAddress", "propertyOwnership", "mortgageOutstanding",
+  "mortgageBalance", "mortgageTermRemaining", "mortgageLender", "propertyValue",
+  "hasOtherProperties", "otherProperties", "assetsOutsideUK", "assetsOutsideUKDetails",
+  "bankAccounts", "investments", "pensionDetails", "estimatedEstateValue",
+  "careConcerns", "careConcernDetails",
+  "client2BankAccounts", "client2Investments", "client2PensionDetails", "client2EstimatedEstateValue",
+  "hasLifeInsurance", "lifeInsuranceNotes", "hasBusinessInterests", "businessInterests",
+  "hasPets", "petsDetails", "petsCarer",
+  "client1FuneralType", "client1FuneralWishes", "client1OrganDonation",
+  "client2FuneralType", "client2FuneralWishes", "client2OrganDonation",
+  "residuaryEstate", "residuaryBackup", "funeralType", "funeralWishes", "organDonation",
+  "disasterClauseNotes", "additionalNotes", "specialNotes", "manualNeedsAssessment",
+];
+
 function loadFromLocalStorage(): WillFormData {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return initialData;
     const parsed = JSON.parse(raw) as Partial<WillFormData>;
+
+    // Coerce all string fields — the AI extractor may return them as arrays
+    const stringCoerced: Partial<WillFormData> = { ...parsed };
+    for (const key of STRING_FIELDS) {
+      if (key in parsed) {
+        (stringCoerced as Record<string, unknown>)[key] = coerceStringField(parsed[key as keyof WillFormData]);
+      }
+    }
+
+    // Migrate legacy shared `beneficiaries` into per-client fields if the
+    // per-client fields are empty (happens when AI extractor pre-fills the form).
+    const legacyBeneficiaries = (parsed.beneficiaries as PersonEntry[] | null) ?? [];
+    const c1Beneficiaries = (parsed.client1Beneficiaries as PersonEntry[] | null) ?? [];
+    const c2Beneficiaries = (parsed.client2Beneficiaries as PersonEntry[] | null) ?? [];
+    const migratedC1 = c1Beneficiaries.length === 0 && legacyBeneficiaries.length > 0
+      ? legacyBeneficiaries
+      : c1Beneficiaries;
+
+    // Migrate legacy shared `specificGifts` into per-client fields similarly
+    const legacyGifts = (parsed.specificGifts as SpecificGift[] | null) ?? [];
+    const c1Gifts = (parsed.client1SpecificGifts as SpecificGift[] | null) ?? [];
+    const migratedC1Gifts = c1Gifts.length === 0 && legacyGifts.length > 0
+      ? legacyGifts
+      : c1Gifts;
+
+    // Migrate legacy residuaryEstate / residuaryBackup / funeralType etc.
+    const migratedC1ResidualEstate = parsed.client1ResidualEstate ?? (parsed as Record<string, unknown>).residuaryEstate as string | undefined;
+    const migratedC1ResidualBackup = parsed.client1ResidualBackup ?? (parsed as Record<string, unknown>).residuaryBackup as string | undefined;
+    const migratedC1FuneralType = parsed.client1FuneralType ?? (parsed as Record<string, unknown>).funeralType as string | undefined;
+    const migratedC1FuneralWishes = parsed.client1FuneralWishes ?? (parsed as Record<string, unknown>).funeralWishes as string | undefined;
+    const migratedC1OrganDonation = parsed.client1OrganDonation ?? (parsed as Record<string, unknown>).organDonation as string | undefined;
+
     return {
       ...initialData,
-      ...parsed,
+      ...stringCoerced,
       productsOrdered: (parsed.productsOrdered as string[] | null) ?? [],
       executors: (parsed.executors as PersonEntry[] | null) ?? [],
       reservedExecutors: (parsed.reservedExecutors as PersonEntry[] | null) ?? [],
       trustees: (parsed.trustees as PersonEntry[] | null) ?? [],
       guardians: (parsed.guardians as PersonEntry[] | null) ?? [],
       reservedGuardians: (parsed.reservedGuardians as PersonEntry[] | null) ?? [],
-      beneficiaries: (parsed.beneficiaries as PersonEntry[] | null) ?? [],
-      specificGifts: (parsed.specificGifts as SpecificGift[] | null) ?? [],
+      // Keep legacy field cleared after migration so it doesn't show in review
+      beneficiaries: [],
+      specificGifts: [],
       client1Executors: (parsed.client1Executors as PersonEntry[] | null) ?? [],
       client1ReservedExecutors: (parsed.client1ReservedExecutors as PersonEntry[] | null) ?? [],
       client2Executors: (parsed.client2Executors as PersonEntry[] | null) ?? [],
@@ -324,9 +416,9 @@ function loadFromLocalStorage(): WillFormData {
       client1ReservedGuardians: (parsed.client1ReservedGuardians as PersonEntry[] | null) ?? [],
       client2Guardians: (parsed.client2Guardians as PersonEntry[] | null) ?? [],
       client2ReservedGuardians: (parsed.client2ReservedGuardians as PersonEntry[] | null) ?? [],
-      client1Beneficiaries: (parsed.client1Beneficiaries as PersonEntry[] | null) ?? [],
-      client2Beneficiaries: (parsed.client2Beneficiaries as PersonEntry[] | null) ?? [],
-      client1SpecificGifts: (parsed.client1SpecificGifts as SpecificGift[] | null) ?? [],
+      client1Beneficiaries: migratedC1,
+      client2Beneficiaries: c2Beneficiaries,
+      client1SpecificGifts: migratedC1Gifts,
       client2SpecificGifts: (parsed.client2SpecificGifts as SpecificGift[] | null) ?? [],
       client1ChildrenUnder18: (parsed.client1ChildrenUnder18 as ChildEntry[] | null) ?? [],
       client1ChildrenOver18: (parsed.client1ChildrenOver18 as ChildEntry[] | null) ?? [],
@@ -334,6 +426,12 @@ function loadFromLocalStorage(): WillFormData {
       client2ChildrenOver18: (parsed.client2ChildrenOver18 as ChildEntry[] | null) ?? [],
       lifeInsurancePolicies: (parsed.lifeInsurancePolicies as LifeInsurancePolicy[] | null) ?? [],
       businessInterestsDetails: (parsed.businessInterestsDetails as BusinessInterestEntry[] | null) ?? [],
+      // Migrate legacy single-client fields to per-client
+      client1ResidualEstate: migratedC1ResidualEstate,
+      client1ResidualBackup: migratedC1ResidualBackup,
+      client1FuneralType: migratedC1FuneralType,
+      client1FuneralWishes: migratedC1FuneralWishes,
+      client1OrganDonation: migratedC1OrganDonation,
     };
   } catch {
     return initialData;

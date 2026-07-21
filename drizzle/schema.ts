@@ -163,10 +163,10 @@ export const willInstructions = mysqlTable("will_instructions", {
   // ── Per-client funeral wishes ──────────────────────────────────────────────
   client1FuneralType: varchar("client1FuneralType", { length: 32 }),
   client1FuneralWishes: text("client1FuneralWishes"),
-  client1OrganDonation: varchar("client1OrganDonation", { length: 8 }),
+  client1OrganDonation: varchar("client1OrganDonation", { length: 512 }),
   client2FuneralType: varchar("client2FuneralType", { length: 32 }),
   client2FuneralWishes: text("client2FuneralWishes"),
-  client2OrganDonation: varchar("client2OrganDonation", { length: 8 }),
+  client2OrganDonation: varchar("client2OrganDonation", { length: 512 }),
 
   // ── Property & Assets ──────────────────────────────────────────────────────
   propertyOwned: varchar("propertyOwned", { length: 8 }),
@@ -215,7 +215,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   residuaryBackup: text("residuaryBackup"),
   funeralType: varchar("funeralType", { length: 32 }),
   funeralWishes: text("funeralWishes"),
-  organDonation: varchar("organDonation", { length: 8 }),
+  organDonation: varchar("organDonation", { length: 512 }),
 
   // ── Vulnerable & Care ──────────────────────────────────────────────────────
   hasVulnerableBeneficiary: varchar("hasVulnerableBeneficiary", { length: 8 }),

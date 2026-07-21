@@ -12,6 +12,22 @@ import { generateWillPdf } from "../pdfGenerator";
 import { uploadToOneDrive } from "../oneDriveService";
 import { formatWillDocument, buildFilename } from "../willDocumentFormatter";
 
+// Helper: coerce arrays/objects to string for fields the AI extractor may return as arrays
+const coerceToString = z
+  .union([z.string(), z.array(z.unknown()), z.unknown()])
+  .optional()
+  .transform((val): string | undefined => {
+    if (val === null || val === undefined) return undefined;
+    if (typeof val === "string") return val;
+    if (Array.isArray(val)) {
+      return val
+        .map((v: unknown) => (typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)))
+        .filter(Boolean)
+        .join(", ") || undefined;
+    }
+    return String(val);
+  });
+
 // Zod schema for a person (executor/trustee/guardian/beneficiary)
 const personSchema = z.object({
   prefix: z.string().optional(),
@@ -207,12 +223,12 @@ const willInstructionInputSchema = z.object({
   mortgageTermRemaining: z.string().optional(),
   mortgageLender: z.string().optional(),
   propertyValue: z.string().optional(),
-  hasOtherProperties: z.string().optional(),
-  otherProperties: z.string().optional(),
-  bankAccounts: z.string().optional(),
-  investments: z.string().optional(),
-  pensionDetails: z.string().optional(),
-  estimatedEstateValue: z.string().optional(),
+  hasOtherProperties: coerceToString,
+  otherProperties: coerceToString,
+  bankAccounts: coerceToString,
+  investments: coerceToString,
+  pensionDetails: coerceToString,
+  estimatedEstateValue: coerceToString,
 
   // Per-client beneficiaries
   client1Beneficiaries: z.array(personSchema).optional(),
@@ -434,9 +450,21 @@ export const willInstructionsRouter = router({
         await db.insert(willInstructions).values(insertData);
       } catch (insertErr: unknown) {
         const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
-        console.error("[Submit] DB insert failed. Keys in insertData:", Object.keys(insertData).join(", "));
-        console.error("[Submit] DB insert error:", msg);
-        throw new Error(`Failed query: ${msg}`);
+        // Drizzle wraps MySQL errors in a 'Failed query:' error with the original in .cause
+        const cause = (insertErr as Record<string, unknown>).cause;
+        const mysqlErr = (cause ?? insertErr) as Record<string, unknown>;
+        const sqlMsg = mysqlErr.sqlMessage as string | undefined;
+        const errCode = mysqlErr.code as string | undefined;
+        const errno = mysqlErr.errno as number | undefined;
+        const causeMsg = cause instanceof Error ? cause.message : undefined;
+        console.error("[Submit] DB insert failed:");
+        console.error("  code:", errCode);
+        console.error("  errno:", errno);
+        console.error("  sqlMessage:", sqlMsg);
+        console.error("  message:", msg);
+        console.error("  causeMessage:", causeMsg);
+        const displayMsg = sqlMsg ?? causeMsg ?? msg;
+        throw new Error(`Failed query: ${displayMsg}`);
       }
 
       // Fetch the newly inserted record
