@@ -745,7 +745,17 @@ async function d() {
 async function listMatters() {
   const db = await d();
   const rows = await db.select().from(matters).orderBy(desc2(matters.createdAt));
-  return Promise.all(rows.map(enrichMatter));
+  console.log(`[listMatters] Found ${rows.length} matters, enriching...`);
+  const results = await Promise.allSettled(rows.map(enrichMatter));
+  const succeeded = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      succeeded.push(r.value);
+    } else {
+      console.error("[listMatters] enrichMatter failed:", r.reason?.message || r.reason, r.reason?.cause?.message || "");
+    }
+  }
+  return succeeded;
 }
 async function getMatterById(id) {
   const db = await d();

@@ -98,7 +98,17 @@ export type FullMatter = Matter & {
 export async function listMatters(): Promise<FullMatter[]> {
   const db = await d();
   const rows = await db.select().from(matters).orderBy(desc(matters.createdAt));
-  return Promise.all(rows.map(enrichMatter));
+  console.log(`[listMatters] Found ${rows.length} matters, enriching...`);
+  const results = await Promise.allSettled(rows.map(enrichMatter));
+  const succeeded: FullMatter[] = [];
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      succeeded.push(r.value);
+    } else {
+      console.error('[listMatters] enrichMatter failed:', r.reason?.message || r.reason, r.reason?.cause?.message || '');
+    }
+  }
+  return succeeded;
 }
 
 export async function getMatterById(id: number): Promise<FullMatter | null> {
