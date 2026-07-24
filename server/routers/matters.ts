@@ -71,6 +71,10 @@ const giftSchema = z.object({
   recipientGroup: z.string().optional(),
   recipientName: z.string().optional(),
   recipientAddress: z.string().optional(),
+  recipientDob: z.string().optional(),
+  recipientTitle: z.string().optional(),
+  recipientGender: z.string().optional(),
+  recipientRelationship: z.string().optional(),
   giftDescription: z.string().optional(),
   giftType: z.enum(["monetary", "asset", "residue", "property"]).default("asset"),
   onSecondDeath: z.union([z.boolean(), z.number()]).transform(v => v ? 1 : 0).optional(),
@@ -84,6 +88,10 @@ const petSchema = z.object({
   carerName: z.string().optional(),
   carerAddress: z.string().optional(),
   careNotes: z.string().optional(),
+  carerDob: z.string().optional(),
+  carerTitle: z.string().optional(),
+  carerGender: z.string().optional(),
+  carerRelationship: z.string().optional(),
 });
 
 const propertySchema = z.object({

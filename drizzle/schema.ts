@@ -472,6 +472,10 @@ export const matterGifts = mysqlTable("matter_gifts", {
   onSecondDeath: tinyint("on_second_death").default(0).notNull(),
   divisionType: varchar("division_type", { length: 20 }).default("equally"),
   divisionNotes: text("division_notes"),
+  recipientDob: varchar("recipient_dob", { length: 50 }),
+  recipientTitle: varchar("recipient_title", { length: 20 }),
+  recipientGender: varchar("recipient_gender", { length: 20 }),
+  recipientRelationship: varchar("recipient_relationship", { length: 100 }),
 });
 export type MatterGift = typeof matterGifts.$inferSelect;
 export type InsertMatterGift = typeof matterGifts.$inferInsert;
@@ -486,6 +490,10 @@ export const matterPets = mysqlTable("matter_pets", {
   carerName: varchar("carer_name", { length: 255 }),
   carerAddress: text("carer_address"),
   careNotes: text("care_notes"),
+  carerDob: varchar("carer_dob", { length: 50 }),
+  carerTitle: varchar("carer_title", { length: 20 }),
+  carerGender: varchar("carer_gender", { length: 20 }),
+  carerRelationship: varchar("carer_relationship", { length: 100 }),
 });
 export type MatterPet = typeof matterPets.$inferSelect;
 export type InsertMatterPet = typeof matterPets.$inferInsert;

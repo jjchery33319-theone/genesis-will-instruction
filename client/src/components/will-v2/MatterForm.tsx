@@ -335,6 +335,10 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       recipientGroup: g.recipientGroup || "__named",
       recipientName: g.recipientName || "",
       recipientAddress: g.recipientAddress || "",
+      recipientDob: g.recipientDob || "",
+      recipientTitle: g.recipientTitle || "",
+      recipientGender: g.recipientGender || "",
+      recipientRelationship: g.recipientRelationship || "",
       giftDescription: g.giftDescription || "",
       giftType: g.giftType || "asset",
       onSecondDeath: !!g.onSecondDeath,
@@ -342,12 +346,14 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       divisionNotes: g.divisionNotes || "",
     }));
 
-  const [gifts1, setGifts1] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; divisionType: string; divisionNotes: string; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
-  const [gifts2, setGifts2] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; giftDescription: string; giftType: string; onSecondDeath: boolean; divisionType: string; divisionNotes: string; _poolId?: number }>>(toGiftRows("testator2"));
+  const [gifts1, setGifts1] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; recipientDob: string; recipientTitle: string; recipientGender: string; recipientRelationship: string; giftDescription: string; giftType: string; onSecondDeath: boolean; divisionType: string; divisionNotes: string; _poolId?: number }>>(toGiftRows(isMirror ? "testator1" : "shared"));
+  const [gifts2, setGifts2] = useState<Array<{ recipientGroup: string; recipientName: string; recipientAddress: string; recipientDob: string; recipientTitle: string; recipientGender: string; recipientRelationship: string; giftDescription: string; giftType: string; onSecondDeath: boolean; divisionType: string; divisionNotes: string; _poolId?: number }>>(toGiftRows("testator2"));
 
   // ── Pets state ────────────────────────────────────────────────────────────
   const [pets, setPets] = useState<Array<{
-    petName: string; petType: string; carerName: string; carerAddress: string; careNotes: string; _carerPoolId?: number;
+    petName: string; petType: string; carerName: string; carerAddress: string; careNotes: string;
+    carerDob: string; carerTitle: string; carerGender: string; carerRelationship: string;
+    _carerPoolId?: number;
   }>>(
     (m.pets || []).map((p: any) => ({
       petName: p.petName || "",
@@ -355,6 +361,10 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       carerName: p.carerName || "",
       carerAddress: p.carerAddress || "",
       careNotes: p.careNotes || "",
+      carerDob: p.carerDob || "",
+      carerTitle: p.carerTitle || "",
+      carerGender: p.carerGender || "",
+      carerRelationship: p.carerRelationship || "",
     }))
   );
 
@@ -660,9 +670,9 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       // Beneficiaries
       [...bens1, ...(isMirror ? bens2 : [])].forEach(b => syncPerson(b.fullName, b.address || "", b.relationship || "", "beneficiary", b._poolId, b.dateOfBirth, b.title, b.gender));
       // Gifts recipients
-      [...gifts1, ...(isMirror ? gifts2 : [])].forEach(g => syncPerson(g.recipientName, g.recipientAddress, "", "gift_recipient", g._poolId, (g as any).recipientDob));
+      [...gifts1, ...(isMirror ? gifts2 : [])].forEach(g => syncPerson(g.recipientName, g.recipientAddress, g.recipientRelationship, "gift_recipient", g._poolId, g.recipientDob, g.recipientTitle, g.recipientGender));
       // Pets carers
-      pets.forEach(p => syncPerson(p.carerName, p.carerAddress, "", "pet_carer", p._carerPoolId, (p as any).carerDob));
+      pets.forEach(p => syncPerson(p.carerName, p.carerAddress, p.carerRelationship, "pet_carer", p._carerPoolId, p.carerDob, p.carerTitle, p.carerGender));
       // Exclusions
       [...exclusions1, ...(isMirror ? exclusions2 : [])].forEach(e => syncPerson(e.fullName, "", e.relationship || "", "exclusion", (e as any)._poolId, (e as any).dateOfBirth));
       if (poolOps.length > 0) {
@@ -1373,7 +1383,7 @@ const GIFT_RECIPIENT_GROUPS = [
 ];
 
 function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
-  const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", giftDescription: "", giftType: "asset", onSecondDeath: false, divisionType: "equally", divisionNotes: "", _poolId: undefined }]);
+  const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", recipientDob: "", recipientTitle: "", recipientGender: "", recipientRelationship: "", giftDescription: "", giftType: "asset", onSecondDeath: false, divisionType: "equally", divisionNotes: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
 
@@ -1460,7 +1470,7 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                       matterId={matterId}
                       selectedId={r._poolId}
                       onSelect={p => {
-                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "", recipientDob: p ? (p.dateOfBirth ?? "") : "" }));
+                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "", recipientDob: p ? (p.dateOfBirth ?? "") : "", recipientTitle: p ? (p.title ?? "") : "", recipientGender: p ? (p.gender ?? "") : "", recipientRelationship: p ? (p.relationship ?? "") : "" }));
                       }}
                       label="Select existing recipient or add new"
                     />
@@ -1573,7 +1583,7 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
                 matterId={matterId}
                 selectedId={r._carerPoolId}
                 onSelect={p => {
-                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: p?.id, carerName: p ? (p.fullName ?? "") : "", carerAddress: p ? (p.address ?? "") : "" }));
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: p?.id, carerName: p ? (p.fullName ?? "") : "", carerAddress: p ? (p.address ?? "") : "", carerDob: p ? (p.dateOfBirth ?? "") : "", carerTitle: p ? (p.title ?? "") : "", carerGender: p ? (p.gender ?? "") : "", carerRelationship: p ? (p.relationship ?? "") : "" }));
                 }}
                 label="Select existing carer or add new"
               />
@@ -2459,7 +2469,7 @@ function ExclusionsSection({
                 matterId={matterId}
                 selectedId={r._poolId}
                 onSelect={p => {
-                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", address: p ? (p.address ?? "") : "" }));
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", address: p ? (p.address ?? "") : "", title: p ? (p.title ?? "") : "", gender: p ? (p.gender ?? "") : "" }));
                 }}
                 label="Select existing person or add new"
               />
