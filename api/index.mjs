@@ -192,10 +192,10 @@ var init_schema = __esm({
       // ── Per-client funeral wishes ──────────────────────────────────────────────
       client1FuneralType: varchar("client1FuneralType", { length: 32 }),
       client1FuneralWishes: text("client1FuneralWishes"),
-      client1OrganDonation: varchar("client1OrganDonation", { length: 8 }),
+      client1OrganDonation: varchar("client1OrganDonation", { length: 512 }),
       client2FuneralType: varchar("client2FuneralType", { length: 32 }),
       client2FuneralWishes: text("client2FuneralWishes"),
-      client2OrganDonation: varchar("client2OrganDonation", { length: 8 }),
+      client2OrganDonation: varchar("client2OrganDonation", { length: 512 }),
       // ── Property & Assets ──────────────────────────────────────────────────────
       propertyOwned: varchar("propertyOwned", { length: 8 }),
       propertyAddress: text("propertyAddress"),
@@ -247,7 +247,7 @@ var init_schema = __esm({
       residuaryBackup: text("residuaryBackup"),
       funeralType: varchar("funeralType", { length: 32 }),
       funeralWishes: text("funeralWishes"),
-      organDonation: varchar("organDonation", { length: 8 }),
+      organDonation: varchar("organDonation", { length: 512 }),
       // ── Vulnerable & Care ──────────────────────────────────────────────────────
       hasVulnerableBeneficiary: varchar("hasVulnerableBeneficiary", { length: 8 }),
       vulnerableBeneficiaryDetails: text("vulnerableBeneficiaryDetails"),
@@ -471,7 +471,11 @@ var init_schema = __esm({
       giftType: mysqlEnum("gift_type", ["monetary", "asset", "residue", "property"]).default("asset").notNull(),
       onSecondDeath: tinyint("on_second_death").default(0).notNull(),
       divisionType: varchar("division_type", { length: 20 }).default("equally"),
-      divisionNotes: text("division_notes")
+      divisionNotes: text("division_notes"),
+      recipientDob: varchar("recipient_dob", { length: 50 }),
+      recipientTitle: varchar("recipient_title", { length: 20 }),
+      recipientGender: varchar("recipient_gender", { length: 20 }),
+      recipientRelationship: varchar("recipient_relationship", { length: 100 })
     });
     matterPets = mysqlTable("matter_pets", {
       id: int("id").primaryKey().autoincrement(),
@@ -481,7 +485,11 @@ var init_schema = __esm({
       petType: varchar("pet_type", { length: 100 }),
       carerName: varchar("carer_name", { length: 255 }),
       carerAddress: text("carer_address"),
-      careNotes: text("care_notes")
+      careNotes: text("care_notes"),
+      carerDob: varchar("carer_dob", { length: 50 }),
+      carerTitle: varchar("carer_title", { length: 20 }),
+      carerGender: varchar("carer_gender", { length: 20 }),
+      carerRelationship: varchar("carer_relationship", { length: 100 })
     });
     matterProperty = mysqlTable("matter_property", {
       id: int("id").primaryKey().autoincrement(),
@@ -3263,6 +3271,14 @@ function buildFilename(record) {
 }
 
 // server/routers/willInstructions.ts
+var coerceToString = z2.union([z2.string(), z2.array(z2.unknown()), z2.unknown()]).optional().transform((val) => {
+  if (val === null || val === void 0) return void 0;
+  if (typeof val === "string") return val;
+  if (Array.isArray(val)) {
+    return val.map((v) => typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)).filter(Boolean).join(", ") || void 0;
+  }
+  return String(val);
+});
 var personSchema = z2.object({
   prefix: z2.string().optional(),
   firstName: z2.string().optional(),
@@ -3433,12 +3449,12 @@ var willInstructionInputSchema = z2.object({
   mortgageTermRemaining: z2.string().optional(),
   mortgageLender: z2.string().optional(),
   propertyValue: z2.string().optional(),
-  hasOtherProperties: z2.string().optional(),
-  otherProperties: z2.string().optional(),
-  bankAccounts: z2.string().optional(),
-  investments: z2.string().optional(),
-  pensionDetails: z2.string().optional(),
-  estimatedEstateValue: z2.string().optional(),
+  hasOtherProperties: coerceToString,
+  otherProperties: coerceToString,
+  bankAccounts: coerceToString,
+  investments: coerceToString,
+  pensionDetails: coerceToString,
+  estimatedEstateValue: coerceToString,
   // Per-client beneficiaries
   client1Beneficiaries: z2.array(personSchema).optional(),
   client1ResidualEstate: z2.string().optional(),
@@ -3630,9 +3646,20 @@ var willInstructionsRouter = router({
       await db.insert(willInstructions).values(insertData);
     } catch (insertErr) {
       const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
-      console.error("[Submit] DB insert failed. Keys in insertData:", Object.keys(insertData).join(", "));
-      console.error("[Submit] DB insert error:", msg);
-      throw new Error(`Failed query: ${msg}`);
+      const cause = insertErr.cause;
+      const mysqlErr = cause ?? insertErr;
+      const sqlMsg = mysqlErr.sqlMessage;
+      const errCode = mysqlErr.code;
+      const errno = mysqlErr.errno;
+      const causeMsg = cause instanceof Error ? cause.message : void 0;
+      console.error("[Submit] DB insert failed:");
+      console.error("  code:", errCode);
+      console.error("  errno:", errno);
+      console.error("  sqlMessage:", sqlMsg);
+      console.error("  message:", msg);
+      console.error("  causeMessage:", causeMsg);
+      const displayMsg = sqlMsg ?? causeMsg ?? msg;
+      throw new Error(`Failed query: ${displayMsg}`);
     }
     const [record] = await db.select().from(willInstructions).where(eq2(willInstructions.referenceNumber, referenceNumber)).limit(1);
     let pdfBuffer;
@@ -4397,6 +4424,10 @@ var giftSchema = z4.object({
   recipientGroup: z4.string().optional(),
   recipientName: z4.string().optional(),
   recipientAddress: z4.string().optional(),
+  recipientDob: z4.string().optional(),
+  recipientTitle: z4.string().optional(),
+  recipientGender: z4.string().optional(),
+  recipientRelationship: z4.string().optional(),
   giftDescription: z4.string().optional(),
   giftType: z4.enum(["monetary", "asset", "residue", "property"]).default("asset"),
   onSecondDeath: z4.union([z4.boolean(), z4.number()]).transform((v) => v ? 1 : 0).optional(),
@@ -4408,7 +4439,11 @@ var petSchema = z4.object({
   petType: z4.string().optional(),
   carerName: z4.string().optional(),
   carerAddress: z4.string().optional(),
-  careNotes: z4.string().optional()
+  careNotes: z4.string().optional(),
+  carerDob: z4.string().optional(),
+  carerTitle: z4.string().optional(),
+  carerGender: z4.string().optional(),
+  carerRelationship: z4.string().optional()
 });
 var propertySchema = z4.object({
   address: z4.string().optional(),
@@ -7086,6 +7121,19 @@ function formatDate(iso) {
   if (isNaN(d3.getTime())) return iso;
   return d3.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
+function resolveRecipientDisplay(b) {
+  const group = b.recipientGroup;
+  if (!group || group === "__named") {
+    return [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+  }
+  if (group === "other") {
+    return b.fullName || "_______________";
+  }
+  if (group === "charity") {
+    return b.fullName ? `${b.fullName} (charity)` : "the charity named";
+  }
+  return group;
+}
 function nameAndAddress(p) {
   const displayName = [p.title, p.fullName].filter(Boolean).join(" ") || "_______________";
   const parts = [displayName];
@@ -7720,16 +7768,19 @@ function buildResidueClause(primary, fallback, partner, residueToSpouseFirst, ag
     const b = primary[0];
     const share = b.shareFraction ? ` (${b.shareFraction})` : "";
     const { subj, poss } = benPronoun(b);
-    const bDisplayName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
-    parts.push(`<p>I give the whole of my Estate${share} to <strong>${bDisplayName}</strong>${b.relationship ? `, my ${b.relationship},` : ""} absolutely, provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days.</p>`);
-    if (b.includeIssue) {
+    const bDisplayName = resolveRecipientDisplay(b);
+    const isGroup = b.recipientGroup && b.recipientGroup !== "__named";
+    const survivalClause = isGroup ? `provided they survive me by ${survivorshipDays} days` : `provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days`;
+    parts.push(`<p>I give the whole of my Estate${share} to <strong>${bDisplayName}</strong>${!isGroup && b.relationship ? `, my ${b.relationship},` : ""} absolutely, ${survivalClause}.</p>`);
+    if (!isGroup && b.includeIssue) {
       parts.push(`<p>If <strong>${bDisplayName}</strong> does not survive me by ${survivorshipDays} days, ${poss} share shall pass to ${poss} issue in equal shares per stirpes.</p>`);
     }
   } else {
     const shareText = primary.map((b) => {
       const share = b.shareFraction ? ` (${b.shareFraction})` : "";
-      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
-      return `<strong>${bName}</strong>${b.relationship ? `, my ${b.relationship},` : ""}${share}`;
+      const bName = resolveRecipientDisplay(b);
+      const isGroup = b.recipientGroup && b.recipientGroup !== "__named";
+      return `<strong>${bName}</strong>${!isGroup && b.relationship ? `, my ${b.relationship},` : ""}${share}`;
     }).join("; ");
     parts.push(`<p>I give the residue of my Estate to the following beneficiaries in the shares set out: ${shareText}; provided each survives me by ${survivorshipDays} days.</p>`);
     const withIssue = primary.filter((b) => b.includeIssue);
@@ -7739,8 +7790,9 @@ function buildResidueClause(primary, fallback, partner, residueToSpouseFirst, ag
   }
   if (fallback.length > 0) {
     const fallbackText = fallback.map((b) => {
-      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
-      return `<strong>${bName}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`;
+      const bName = resolveRecipientDisplay(b);
+      const isGroup = b.recipientGroup && b.recipientGroup !== "__named";
+      return `<strong>${bName}</strong>${!isGroup && b.relationship ? `, my ${b.relationship}` : ""}`;
     }).join(" and ");
     parts.push(`<p>In the event that all of the above gifts fail, I give the residue of my Estate to ${fallbackText} in equal shares absolutely.</p>`);
   } else {
@@ -7952,7 +8004,8 @@ function buildTrustClauseHtml(tc, num) {
 function buildGiftsClause(gifts) {
   if (gifts.length === 0) return "";
   const items = gifts.map((g) => {
-    const recipient = g.recipientName ? `<strong>${g.recipientName}</strong>${g.recipientAddress ? ` of ${g.recipientAddress}` : ""}` : "_______________";
+    const resolvedName = resolveRecipientDisplay({ fullName: g.recipientName, recipientGroup: g.recipientGroup });
+    const recipient = `<strong>${resolvedName}</strong>${(!g.recipientGroup || g.recipientGroup === "__named") && g.recipientAddress ? ` of ${g.recipientAddress}` : ""}`;
     const description = g.giftDescription || "_______________";
     if (g.giftType === "monetary") {
       return `<p>I give the sum of ${description} to ${recipient} absolutely, provided they survive me.</p>`;
@@ -12121,11 +12174,19 @@ executors (array of {prefix, firstName, lastName, relationship, address, phone, 
 reserveExecutors (array of {prefix, firstName, lastName, relationship, address, phone, email, notes}),
 trustees (array of {prefix, firstName, lastName, relationship, address, notes}),
 guardians (array of {prefix, firstName, lastName, relationship, address, phone, notes}),
-beneficiaries (array of {prefix, firstName, lastName, relationship, address, dob, share, isVulnerable, notes}),
-specificGifts (array of {description, recipient, recipientRelationship, notes}),
+client1Beneficiaries (array of {prefix, firstName, lastName, relationship, address, dob, share, isVulnerable, notes}) - named beneficiaries for Client 1,
+client2Beneficiaries (array of {prefix, firstName, lastName, relationship, address, dob, share, isVulnerable, notes}) - named beneficiaries for Client 2 (mirror wills only),
+client1ResidualEstate (string) - who inherits the residue for Client 1,
+client1ResidualBackup (string) - backup/substitution clause for Client 1,
+client2ResidualEstate (string) - who inherits the residue for Client 2 (mirror wills only),
+client2ResidualBackup (string) - backup/substitution clause for Client 2 (mirror wills only),
+client1SpecificGifts (array of {description, recipient, recipientRelationship, notes}) - specific gifts for Client 1,
+client2SpecificGifts (array of {description, recipient, recipientRelationship, notes}) - specific gifts for Client 2 (mirror wills only),
+client1FuneralType (one of: cremation, burial, no_preference), client1FuneralWishes (string), client1OrganDonation (one of: yes, no, not_stated),
+client2FuneralType (one of: cremation, burial, no_preference), client2FuneralWishes (string), client2OrganDonation (one of: yes, no, not_stated),
 hasPets, petsDetails, petsCarer,
-residuaryEstate, residuaryBackup,
-funeralType, funeralWishes, organDonation,
+otherProperties (string - plain text description of additional properties, NOT an array),
+bankAccounts (string), investments (string), pensionDetails (string), estimatedEstateValue (string),
 propertyOwned, propertyAddress, propertyOwnership, propertyValue, mortgageOutstanding,
 additionalNotes, specialNotes, extractionNotes`;
 async function extractWillDataFromTranscript(transcriptText) {
