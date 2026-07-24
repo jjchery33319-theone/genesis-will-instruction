@@ -53,6 +53,24 @@ function today(): string {
   return `the ${ordinal(d.getDate())} day of ${d.toLocaleDateString("en-GB", { month: "long" })} ${d.getFullYear()}`;
 }
 
+/** Resolve a beneficiary/gift recipient's display name from either a named individual or a group */
+function resolveRecipientDisplay(b: { title?: string | null; fullName?: string | null; recipientGroup?: string | null; relationship?: string | null }): string {
+  const group = b.recipientGroup;
+  if (!group || group === "__named") {
+    return [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
+  }
+  if (group === "other") {
+    // fullName stores the custom group text for 'other'
+    return b.fullName || "_______________";
+  }
+  if (group === "charity") {
+    // fullName stores the charity name
+    return b.fullName ? `${b.fullName} (charity)` : "the charity named";
+  }
+  // Standard groups — use the stored value directly (e.g. "my children", "my siblings")
+  return group;
+}
+
 function nameAndAddress(p: { title?: string | null; fullName?: string | null; address?: string | null }): string {
   const displayName = [p.title, p.fullName].filter(Boolean).join(" ") || "_______________";
   const parts = [displayName];
@@ -794,16 +812,21 @@ function buildResidueClause(
     const b = primary[0];
     const share = b.shareFraction ? ` (${b.shareFraction})` : "";
     const { subj, poss } = benPronoun(b);
-    const bDisplayName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
-    parts.push(`<p>I give the whole of my Estate${share} to <strong>${bDisplayName}</strong>${b.relationship ? `, my ${b.relationship},` : ""} absolutely, provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days.</p>`);
-    if (b.includeIssue) {
+    const bDisplayName = resolveRecipientDisplay(b);
+    const isGroup = b.recipientGroup && b.recipientGroup !== "__named";
+    const survivalClause = isGroup
+      ? `provided they survive me by ${survivorshipDays} days`
+      : `provided ${subj} survive${subj === "they" ? "" : "s"} me by ${survivorshipDays} days`;
+    parts.push(`<p>I give the whole of my Estate${share} to <strong>${bDisplayName}</strong>${!isGroup && b.relationship ? `, my ${b.relationship},` : ""} absolutely, ${survivalClause}.</p>`);
+    if (!isGroup && b.includeIssue) {
       parts.push(`<p>If <strong>${bDisplayName}</strong> does not survive me by ${survivorshipDays} days, ${poss} share shall pass to ${poss} issue in equal shares per stirpes.</p>`);
     }
   } else {
     const shareText = primary.map(b => {
       const share = b.shareFraction ? ` (${b.shareFraction})` : "";
-      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
-      return `<strong>${bName}</strong>${b.relationship ? `, my ${b.relationship},` : ""}${share}`;
+      const bName = resolveRecipientDisplay(b);
+      const isGroup = b.recipientGroup && b.recipientGroup !== "__named";
+      return `<strong>${bName}</strong>${!isGroup && b.relationship ? `, my ${b.relationship},` : ""}${share}`;
     }).join("; ");
     parts.push(`<p>I give the residue of my Estate to the following beneficiaries in the shares set out: ${shareText}; provided each survives me by ${survivorshipDays} days.</p>`);
     const withIssue = primary.filter(b => b.includeIssue);
@@ -814,8 +837,9 @@ function buildResidueClause(
 
   if (fallback.length > 0) {
     const fallbackText = fallback.map(b => {
-      const bName = [b.title, b.fullName].filter(Boolean).join(" ") || "_______________";
-      return `<strong>${bName}</strong>${b.relationship ? `, my ${b.relationship}` : ""}`;
+      const bName = resolveRecipientDisplay(b);
+      const isGroup = b.recipientGroup && b.recipientGroup !== "__named";
+      return `<strong>${bName}</strong>${!isGroup && b.relationship ? `, my ${b.relationship}` : ""}`;
     }).join(" and ");
     parts.push(`<p>In the event that all of the above gifts fail, I give the residue of my Estate to ${fallbackText} in equal shares absolutely.</p>`);
   } else {
@@ -1061,7 +1085,8 @@ function buildTrustClauseHtml(tc: { trustType: string; trustees?: Array<{ name: 
 function buildGiftsClause(gifts: FullMatter["gifts"]): string {
   if (gifts.length === 0) return "";
   const items = gifts.map(g => {
-    const recipient = g.recipientName ? `<strong>${g.recipientName}</strong>${g.recipientAddress ? ` of ${g.recipientAddress}` : ""}` : "_______________";
+    const resolvedName = resolveRecipientDisplay({ fullName: g.recipientName, recipientGroup: g.recipientGroup });
+    const recipient = `<strong>${resolvedName}</strong>${(!g.recipientGroup || g.recipientGroup === "__named") && g.recipientAddress ? ` of ${g.recipientAddress}` : ""}`;
     const description = g.giftDescription || "_______________";
     if (g.giftType === "monetary") {
       return `<p>I give the sum of ${description} to ${recipient} absolutely, provided they survive me.</p>`;

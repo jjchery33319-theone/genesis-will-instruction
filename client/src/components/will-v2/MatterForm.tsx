@@ -871,6 +871,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
                   onWishesChange={(v) => { setWishes2(v); markDirty(); }}
                   matterId={matter.id}
                   clientAddress={t2.address || undefined}
+                  client1People={bens1}
                 />
               </>
             )}
@@ -1443,8 +1444,15 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                 <Input value={r.recipientName} onChange={e => updateRow(i, "recipientName", e.target.value)} placeholder="e.g. my step-grandchildren" className="h-8 text-sm" />
               </div>
             )}
+            {/* Charity name field */}
+            {r.recipientGroup === "charity" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Charity Name</Label>
+                <Input value={r.recipientName} onChange={e => updateRow(i, "recipientName", e.target.value)} placeholder="e.g. Cancer Research UK" className="h-8 text-sm" />
+              </div>
+            )}
             {/* Named individual fields */}
-            {!isGroup && r.recipientGroup !== "other" && (
+            {!isGroup && r.recipientGroup !== "other" && r.recipientGroup !== "charity" && (
               <>
                 {matterId !== undefined && (
                   <div className="grid grid-cols-2 gap-2">
@@ -1599,7 +1607,7 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
   );
 }
 
-function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange, matterId, clientAddress }: {
+function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange, matterId, clientAddress, client1People }: {
   label: string;
   partnerName?: string;
   rows: any[];
@@ -1608,7 +1616,20 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
   onWishesChange: (w: any) => void;
   matterId?: number;
   clientAddress?: string;
+  /** Unsaved Client 1 beneficiary rows to show in the person picker for Client 2 */
+  client1People?: any[];
 }) {
+  // Build extra people list from client1People for the picker
+  const extraPeopleForPicker = (client1People || []).filter(p => p.fullName?.trim()).map((p, idx) => ({
+    _tempKey: `c1-${idx}`,
+    fullName: p.fullName || "",
+    title: p.title || "",
+    address: p.address || "",
+    dateOfBirth: p.dateOfBirth || "",
+    gender: p.gender || "",
+    relationship: p.relationship || "",
+    sourceRole: "beneficiary",
+  }));
   const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, recipientGroup: "__named", divisionType: "equally", divisionNotes: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -1650,6 +1671,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
               <button onClick={() => removeRow(i)} className="text-muted-foreground hover:text-destructive transition-colors">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
+              {/* PRIMARY_BENEFICIARY_MARKER */}
             </div>
             {/* Group / Individual picker */}
             <div className="space-y-1">
@@ -1680,6 +1702,12 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="e.g. my step-grandchildren" className="h-8 text-sm" />
               </div>
             )}
+            {r.recipientGroup === "charity" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Charity Name</Label>
+                <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="e.g. Cancer Research UK" className="h-8 text-sm" />
+              </div>
+            )}
             {(!r.recipientGroup || r.recipientGroup === "__named") && (
               <>
             {matterId !== undefined && (
@@ -1689,6 +1717,10 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   selectedId={r._poolId}
                   onSelect={p => {
                     onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", address: p ? (p.address ?? "") : "" }));
+                  }}
+                  extraPeople={extraPeopleForPicker}
+                  onSelectExtra={p => {
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, title: p.title ?? "", fullName: p.fullName ?? "", relationship: p.relationship ?? "", dateOfBirth: p.dateOfBirth ?? "", gender: p.gender ?? "", address: p.address ?? "" }));
                   }}
                   label="Select existing beneficiary or add new"
                 />
@@ -1853,6 +1885,12 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                 <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="e.g. my step-grandchildren" className="h-8 text-sm" />
               </div>
             )}
+            {r.recipientGroup === "charity" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Charity Name</Label>
+                <Input value={r.fullName} onChange={e => updateRow(i, "fullName", e.target.value)} placeholder="e.g. Cancer Research UK" className="h-8 text-sm" />
+              </div>
+            )}
             {(!r.recipientGroup || r.recipientGroup === "__named") && (
               <>
             {matterId !== undefined && (
@@ -1862,6 +1900,10 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
                   selectedId={r._poolId}
                   onSelect={p => {
                     onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", relationship: p ? (p.relationship ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", address: p ? (p.address ?? "") : "" }));
+                  }}
+                  extraPeople={extraPeopleForPicker}
+                  onSelectExtra={p => {
+                    onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, title: p.title ?? "", fullName: p.fullName ?? "", relationship: p.relationship ?? "", dateOfBirth: p.dateOfBirth ?? "", gender: p.gender ?? "", address: p.address ?? "" }));
                   }}
                   label="Select existing beneficiary or add new"
                 />
