@@ -1164,7 +1164,7 @@ var SDKServer = class {
     return new Map(Object.entries(parsed));
   }
   getSessionSecret() {
-    const secret = ENV.cookieSecret;
+    const secret = ENV.cookieSecret || "genesis-default-secret";
     return new TextEncoder().encode(secret);
   }
   /**
@@ -1382,6 +1382,9 @@ function registerStorageProxy(app) {
     }
   });
 }
+
+// server/routers.ts
+init_env();
 
 // server/_core/systemRouter.ts
 import { z } from "zod";
@@ -4936,7 +4939,7 @@ var appRouter = router({
         loginMethod: "password",
         lastSignedIn: /* @__PURE__ */ new Date()
       });
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "genesis-default-secret");
+      const secret = new TextEncoder().encode(ENV.cookieSecret || "genesis-default-secret");
       const token = await new SignJWT2({ openId, appId: "local", name: "Admin" }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setExpirationTime(Math.floor((Date.now() + ONE_YEAR_MS) / 1e3)).sign(secret);
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, token, {

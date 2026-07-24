@@ -1,5 +1,6 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { ENV } from "./_core/env";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
@@ -40,8 +41,8 @@ export const appRouter = router({
           lastSignedIn: new Date(),
         });
 
-        // Sign a JWT session token
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET || "genesis-default-secret");
+        // Sign a JWT session token — must use same secret as verifySession in sdk.ts
+        const secret = new TextEncoder().encode(ENV.cookieSecret || "genesis-default-secret");
         const token = await new SignJWT({ openId, appId: "local", name: "Admin" })
           .setProtectedHeader({ alg: "HS256", typ: "JWT" })
           .setExpirationTime(Math.floor((Date.now() + ONE_YEAR_MS) / 1000))
