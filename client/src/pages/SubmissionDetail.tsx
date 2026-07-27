@@ -201,6 +201,52 @@ function formatTrustClauses(trusts: unknown, type: string): React.ReactNode {
   );
 }
 
+
+// ─── LPA Details section helper ──────────────────────────────────────────────
+type LpaData = { donors?: Array<Record<string, string>>; attorneys?: Array<Record<string, string>>; certProvider?: Record<string, string> };
+function LpaDetailsSection({ lpaDetails }: { lpaDetails: LpaData }): React.ReactElement {
+  return (
+    <Section title="LPA Details" icon={<Scale className="w-4 h-4" />} collapsible>
+      {(lpaDetails.donors ?? []).length > 0 && (
+        <SubSection title="Donors">
+          {(lpaDetails.donors ?? []).map((d, i) => (
+            <div key={i} className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
+              <p className="font-medium">{[d.title, d.firstName, d.lastName].filter(Boolean).join(" ") || `Donor ${i + 1}`}</p>
+              {d.dob && <p className="text-xs text-muted-foreground">DOB: {d.dob}</p>}
+              {d.address && <p className="text-xs text-muted-foreground">Address: {d.address}{d.postcode ? `, ${d.postcode}` : ""}</p>}
+              {d.phone && <p className="text-xs text-muted-foreground">Phone: {d.phone}</p>}
+              {d.email && <p className="text-xs text-muted-foreground">Email: {d.email}</p>}
+            </div>
+          ))}
+        </SubSection>
+      )}
+      {(lpaDetails.attorneys ?? []).length > 0 && (
+        <SubSection title="Attorneys">
+          {(lpaDetails.attorneys ?? []).map((a, i) => (
+            <div key={i} className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
+              <p className="font-medium">{[a.title, a.firstName, a.lastName].filter(Boolean).join(" ") || `Attorney ${i + 1}`}{a.relationship ? <span className="font-normal text-muted-foreground"> — {a.relationship}</span> : null}</p>
+              {a.dob && <p className="text-xs text-muted-foreground">DOB: {a.dob}</p>}
+              {a.address && <p className="text-xs text-muted-foreground">Address: {a.address}{a.postcode ? `, ${a.postcode}` : ""}</p>}
+              {a.phone && <p className="text-xs text-muted-foreground">Phone: {a.phone}</p>}
+              {a.email && <p className="text-xs text-muted-foreground">Email: {a.email}</p>}
+            </div>
+          ))}
+        </SubSection>
+      )}
+      {lpaDetails.certProvider && (
+        <SubSection title="Certificate Provider">
+          <div className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
+            <p className="font-medium">{[lpaDetails.certProvider.title, lpaDetails.certProvider.firstName, lpaDetails.certProvider.lastName].filter(Boolean).join(" ") || "Certificate Provider"}</p>
+            {lpaDetails.certProvider.relationship && <p className="text-xs text-muted-foreground">Relationship: {lpaDetails.certProvider.relationship}</p>}
+            {lpaDetails.certProvider.address && <p className="text-xs text-muted-foreground">Address: {lpaDetails.certProvider.address}{lpaDetails.certProvider.postcode ? `, ${lpaDetails.certProvider.postcode}` : ""}</p>}
+            {lpaDetails.certProvider.phone && <p className="text-xs text-muted-foreground">Phone: {lpaDetails.certProvider.phone}</p>}
+            {lpaDetails.certProvider.email && <p className="text-xs text-muted-foreground">Email: {lpaDetails.certProvider.email}</p>}
+          </div>
+        </SubSection>
+      )}
+    </Section>
+  );
+}
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function SubmissionDetail() {
@@ -483,50 +529,7 @@ export default function SubmissionDetail() {
         </Section>
 
         {/* ── LPA Details (LPA-only instructions) ── */}
-        {record.lpaDetails && !(products).some((id: string) => WILL_PRODUCT_IDS.has(id)) && (() => {
-          const lpa = record.lpaDetails as { donors?: Array<Record<string, string>>; attorneys?: Array<Record<string, string>>; certProvider?: Record<string, string> };
-          return (
-            <Section title="LPA Details" icon={<Scale className="w-4 h-4" />} collapsible>
-              {(lpa.donors ?? []).length > 0 && (
-                <SubSection title="Donors">
-                  {(lpa.donors ?? []).map((d, i) => (
-                    <div key={i} className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
-                      <p className="font-medium">{[d.title, d.firstName, d.lastName].filter(Boolean).join(" ") || `Donor ${i + 1}`}</p>
-                      {d.dob && <p className="text-xs text-muted-foreground">DOB: {d.dob}</p>}
-                      {d.address && <p className="text-xs text-muted-foreground">Address: {d.address}{d.postcode ? `, ${d.postcode}` : ""}</p>}
-                      {d.phone && <p className="text-xs text-muted-foreground">Phone: {d.phone}</p>}
-                      {d.email && <p className="text-xs text-muted-foreground">Email: {d.email}</p>}
-                    </div>
-                  ))}
-                </SubSection>
-              )}
-              {(lpa.attorneys ?? []).length > 0 && (
-                <SubSection title="Attorneys">
-                  {(lpa.attorneys ?? []).map((a, i) => (
-                    <div key={i} className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
-                      <p className="font-medium">{[a.title, a.firstName, a.lastName].filter(Boolean).join(" ") || `Attorney ${i + 1}`}{a.relationship ? <span className="font-normal text-muted-foreground"> — {a.relationship}</span> : null}</p>
-                      {a.dob && <p className="text-xs text-muted-foreground">DOB: {a.dob}</p>}
-                      {a.address && <p className="text-xs text-muted-foreground">Address: {a.address}{a.postcode ? `, ${a.postcode}` : ""}</p>}
-                      {a.phone && <p className="text-xs text-muted-foreground">Phone: {a.phone}</p>}
-                      {a.email && <p className="text-xs text-muted-foreground">Email: {a.email}</p>}
-                    </div>
-                  ))}
-                </SubSection>
-              )}
-              {lpa.certProvider && (
-                <SubSection title="Certificate Provider">
-                  <div className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
-                    <p className="font-medium">{[lpa.certProvider.title, lpa.certProvider.firstName, lpa.certProvider.lastName].filter(Boolean).join(" ") || "Certificate Provider"}</p>
-                    {lpa.certProvider.relationship && <p className="text-xs text-muted-foreground">Relationship: {lpa.certProvider.relationship}</p>}
-                    {lpa.certProvider.address && <p className="text-xs text-muted-foreground">Address: {lpa.certProvider.address}{lpa.certProvider.postcode ? `, ${lpa.certProvider.postcode}` : ""}</p>}
-                    {lpa.certProvider.phone && <p className="text-xs text-muted-foreground">Phone: {lpa.certProvider.phone}</p>}
-                    {lpa.certProvider.email && <p className="text-xs text-muted-foreground">Email: {lpa.certProvider.email}</p>}
-                  </div>
-                </SubSection>
-              )}
-            </Section>
-          );
-        })()}
+        {record.lpaDetails && !(products).some((id: string) => WILL_PRODUCT_IDS.has(id)) && LpaDetailsSection({ lpaDetails: record.lpaDetails as { donors?: Array<Record<string, string>>; attorneys?: Array<Record<string, string>>; certProvider?: Record<string, string> } })}
         {/* ── 7. Executors, Trustees & Guardians ── */}
         <Section title="Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} collapsible>
           <SubSection title={isMirror ? "Client 1 — Executors" : "Executors"}>
