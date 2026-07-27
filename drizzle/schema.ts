@@ -246,7 +246,7 @@ export const willInstructions = mysqlTable("will_instructions", {
   // JSON: { donors: [{title,firstName,lastName,dob,address,postcode,email}],
   //         attorneys: [{title,firstName,lastName,dob,address,postcode,email,relationship}],
   //         certProvider: {title,firstName,lastName,address,postcode,email,relationship} }
-  lpaDetails: json("lpaDetails"),
+  lpaDetails: json("lpaDetails").$type<{ donors?: Array<Record<string, string>>; attorneys?: Array<Record<string, string>>; certProvider?: Record<string, string> }>(),
   considerAAT: tinyint("considerAAT").default(0),
 
   // ── AI Output ─────────────────────────────────────────────────────────────

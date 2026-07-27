@@ -283,7 +283,7 @@ var init_schema = __esm({
       // JSON: { donors: [{title,firstName,lastName,dob,address,postcode,email}],
       //         attorneys: [{title,firstName,lastName,dob,address,postcode,email,relationship}],
       //         certProvider: {title,firstName,lastName,address,postcode,email,relationship} }
-      lpaDetails: json("lpaDetails"),
+      lpaDetails: json("lpaDetails").$type(),
       considerAAT: tinyint("considerAAT").default(0),
       // ── AI Output ─────────────────────────────────────────────────────────────
       recommendationsJson: json("recommendationsJson"),
