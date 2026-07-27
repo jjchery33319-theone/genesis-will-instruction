@@ -93,6 +93,36 @@ export const PROPERTY_OWNERSHIP_TYPES = [
 
 export const FUNERAL_TYPES = ["Burial", "Cremation", "No Preference"] as const;
 
+// Product IDs that are LPA-only (no Will content)
+export const LPA_PRODUCT_IDS = new Set([
+  "lpa_property_finance",
+  "lpa_health_welfare",
+  "both_lpas",
+]);
+
+// Will/Trust product IDs — if any of these are selected, full Will form is shown
+export const WILL_PRODUCT_IDS = new Set([
+  "single_will",
+  "mirror_wills",
+  "ppt",
+  "aat",
+  "right_to_occupy",
+  "discretionary_trust",
+  "vulnerable_trust",
+  "storage",
+  "bpr_trust",
+]);
+
+// Steps shown when ONLY LPA products are ordered (no Will products)
+export const LPA_ONLY_STEPS = [
+  { id: 1,  title: "Appointment",   subtitle: "Consultant & products" },
+  { id: 2,  title: "Clients",       subtitle: "Client 1 & Client 2" },
+  { id: 3,  title: "Family",        subtitle: "Background & children" },
+  { id: 4,  title: "Background",    subtitle: "Residency & capacity" },
+  { id: 5,  title: "Due Diligence", subtitle: "Compliance questions" },
+  { id: 6,  title: "Review",        subtitle: "Preview & submit" },
+] as const;
+
 export const FORM_STEPS = [
   { id: 1,  title: "Appointment",    subtitle: "Consultant & products" },
   { id: 2,  title: "Clients",        subtitle: "Client 1 & Client 2" },

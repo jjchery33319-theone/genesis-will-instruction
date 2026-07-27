@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FORM_STEPS } from "../../../shared/willConstants";
+import { FORM_STEPS, LPA_ONLY_STEPS, WILL_PRODUCT_IDS } from "../../../shared/willConstants";
 import StepIndicator from "../components/form/StepIndicator";
 import FormHeader from "../components/form/FormHeader";
 import Step1Appointment from "../components/form/steps/Step1Appointment";
@@ -22,7 +22,20 @@ import { useWillForm } from "../hooks/useWillForm";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Save, Loader2 } from "lucide-react";
 
-const TOTAL_STEPS = FORM_STEPS.length;
+// ─── LPA-only detection ───────────────────────────────────────────────────────
+/**
+ * Returns true when the user has selected at least one LPA product
+ * AND no Will/Trust products — i.e. this is a pure LPA-only instruction.
+ */
+function detectLpaOnly(productsOrdered: string[] | undefined): boolean {
+  if (!productsOrdered || productsOrdered.length === 0) return false;
+  const hasWill = productsOrdered.some(id => WILL_PRODUCT_IDS.has(id));
+  if (hasWill) return false;
+  // Must have at least one LPA product
+  return productsOrdered.some(id =>
+    id === "lpa_property_finance" || id === "lpa_health_welfare" || id === "both_lpas"
+  );
+}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function WillForm() {
@@ -38,43 +51,75 @@ export default function WillForm() {
     isLoadingResume,
   } = useWillForm();
 
-  const goNext = useCallback(() => {
-    goToStep(Math.min(currentStep + 1, TOTAL_STEPS));
-  }, [currentStep, goToStep]);
-
-  const goPrev = useCallback(() => {
-    goToStep(Math.max(currentStep - 1, 1));
-  }, [currentStep, goToStep]);
-
+  const isLpaOnly = detectLpaOnly(formData.productsOrdered);
   const isMirrorWill =
     formData.productsOrdered?.includes("mirror_wills") ||
     formData.willType === "Mirror Wills";
 
-  const stepComponents: Record<number, React.ReactNode> = {
-    1:  <Step1Appointment data={formData} onChange={updateFormData} />,
-    2:  <Step2Clients data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    3:  <Step3FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    4:  <Step4AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    5:  <Step5DueDiligence data={formData} onChange={updateFormData} />,
-    6:  <Step6Executors data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    7:  <Step7Property data={formData} onChange={updateFormData} />,
-    8:  <Step8LifeInsurance data={formData} onChange={updateFormData} />,
-    9:  <Step9BusinessInterests data={formData} onChange={updateFormData} />,
-    10: <Step10Pets data={formData} onChange={updateFormData} />,
-    11: <Step11FuneralWishes data={formData} onChange={updateFormData} />,
-    12: <Step12Gifts data={formData} onChange={updateFormData} />,
-    13: <Step13Beneficiaries data={formData} onChange={updateFormData} />,
-    14: <Step14DisasterClause data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
-    15: (
-      <Step15Review
-        data={formData}
-        onChange={updateFormData}
-        onEdit={goToStep}
-        onSubmit={submitForm}
-        isSubmitting={isSubmitting}
-      />
-    ),
-  };
+  // The active step list depends on whether this is LPA-only
+  const activeSteps = isLpaOnly ? LPA_ONLY_STEPS : FORM_STEPS;
+  const TOTAL_STEPS = activeSteps.length;
+
+  // In LPA-only mode, step 6 (the last step) maps to the Review component.
+  // In full mode, step 15 is Review.
+  // We use a mapping from "virtual step number" → component.
+  const stepComponents = useMemo((): Record<number, React.ReactNode> => {
+    if (isLpaOnly) {
+      return {
+        1: <Step1Appointment data={formData} onChange={updateFormData} />,
+        2: <Step2Clients data={formData} onChange={updateFormData} isMirrorWill={false} />,
+        3: <Step3FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={false} />,
+        4: <Step4AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={false} />,
+        5: <Step5DueDiligence data={formData} onChange={updateFormData} />,
+        6: (
+          <Step15Review
+            data={formData}
+            onChange={updateFormData}
+            onEdit={goToStep}
+            onSubmit={submitForm}
+            isSubmitting={isSubmitting}
+          />
+        ),
+      };
+    }
+    return {
+      1:  <Step1Appointment data={formData} onChange={updateFormData} />,
+      2:  <Step2Clients data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+      3:  <Step3FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+      4:  <Step4AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+      5:  <Step5DueDiligence data={formData} onChange={updateFormData} />,
+      6:  <Step6Executors data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+      7:  <Step7Property data={formData} onChange={updateFormData} />,
+      8:  <Step8LifeInsurance data={formData} onChange={updateFormData} />,
+      9:  <Step9BusinessInterests data={formData} onChange={updateFormData} />,
+      10: <Step10Pets data={formData} onChange={updateFormData} />,
+      11: <Step11FuneralWishes data={formData} onChange={updateFormData} />,
+      12: <Step12Gifts data={formData} onChange={updateFormData} />,
+      13: <Step13Beneficiaries data={formData} onChange={updateFormData} />,
+      14: <Step14DisasterClause data={formData} onChange={updateFormData} isMirrorWill={isMirrorWill} />,
+      15: (
+        <Step15Review
+          data={formData}
+          onChange={updateFormData}
+          onEdit={goToStep}
+          onSubmit={submitForm}
+          isSubmitting={isSubmitting}
+        />
+      ),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLpaOnly, isMirrorWill, formData, updateFormData, goToStep, submitForm, isSubmitting]);
+
+  // When switching between LPA-only and full mode, clamp currentStep to valid range
+  const effectiveStep = Math.min(currentStep, TOTAL_STEPS);
+
+  const goNext = useCallback(() => {
+    goToStep(Math.min(effectiveStep + 1, TOTAL_STEPS));
+  }, [effectiveStep, TOTAL_STEPS, goToStep]);
+
+  const goPrev = useCallback(() => {
+    goToStep(Math.max(effectiveStep - 1, 1));
+  }, [effectiveStep, goToStep]);
 
   if (isLoadingResume) {
     return (
@@ -93,32 +138,49 @@ export default function WillForm() {
 
       <div className="container py-6 max-w-5xl">
         <StepIndicator
-          steps={FORM_STEPS}
-          currentStep={currentStep}
+          steps={activeSteps}
+          currentStep={effectiveStep}
           onStepClick={goToStep}
         />
+
+        {/* LPA-only banner */}
+        {isLpaOnly && (
+          <div
+            className="mt-4 px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2"
+            style={{
+              background: "oklch(0.93 0.05 250)",
+              color: "oklch(0.25 0.1 250)",
+              border: "1.5px solid oklch(0.75 0.12 250)",
+            }}
+          >
+            <span>📋</span>
+            <span>
+              <strong>LPA-only instruction</strong> — Will-specific sections are hidden. Only Appointment, Client details, Family, Background, Due Diligence and Review are required.
+            </span>
+          </div>
+        )}
 
         <div className="mt-6">
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentStep}
+              key={`${isLpaOnly ? "lpa" : "full"}-${effectiveStep}`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
             >
-              {stepComponents[currentStep]}
+              {stepComponents[effectiveStep]}
             </motion.div>
           </AnimatePresence>
         </div>
 
         {/* Navigation */}
-        {currentStep < TOTAL_STEPS && (
+        {effectiveStep < TOTAL_STEPS && (
           <div className="flex items-center justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border gap-2">
             <Button
               variant="outline"
               onClick={goPrev}
-              disabled={currentStep === 1}
+              disabled={effectiveStep === 1}
               className="gap-1.5 text-xs sm:text-sm px-3 sm:px-4"
             >
               <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -138,7 +200,7 @@ export default function WillForm() {
                 <span>Save Draft</span>
               </Button>
               <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
-                Step {currentStep} of {TOTAL_STEPS}
+                Step {effectiveStep} of {TOTAL_STEPS}
               </span>
             </div>
 
