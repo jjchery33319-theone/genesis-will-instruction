@@ -18,6 +18,7 @@ import Step12Gifts from "../components/form/steps/Step12Gifts";
 import Step13Beneficiaries from "../components/form/steps/Step5Beneficiaries";
 import Step14DisasterClause from "../components/form/steps/Step15DisasterClause";
 import Step15Review from "../components/form/steps/Step8Review";
+import { StepLpaDetails } from "../components/form/steps/StepLpaDetails";
 import { useWillForm } from "../hooks/useWillForm";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Save, Loader2 } from "lucide-react";
@@ -60,7 +61,7 @@ export default function WillForm() {
   const activeSteps = isLpaOnly ? LPA_ONLY_STEPS : FORM_STEPS;
   const TOTAL_STEPS = activeSteps.length;
 
-  // In LPA-only mode, step 6 (the last step) maps to the Review component.
+  // In LPA-only mode, step 7 (the last step) maps to the Review component.
   // In full mode, step 15 is Review.
   // We use a mapping from "virtual step number" → component.
   const stepComponents = useMemo((): Record<number, React.ReactNode> => {
@@ -71,7 +72,8 @@ export default function WillForm() {
         3: <Step3FamilyBackground data={formData} onChange={updateFormData} isMirrorWill={false} />,
         4: <Step4AdditionalBackground data={formData} onChange={updateFormData} isMirrorWill={false} />,
         5: <Step5DueDiligence data={formData} onChange={updateFormData} />,
-        6: (
+        6: <StepLpaDetails data={formData} onChange={updateFormData} />,
+        7: (
           <Step15Review
             data={formData}
             onChange={updateFormData}
@@ -155,7 +157,7 @@ export default function WillForm() {
           >
             <span>📋</span>
             <span>
-              <strong>LPA-only instruction</strong> — Will-specific sections are hidden. Only Appointment, Client details, Family, Background, Due Diligence and Review are required.
+              <strong>LPA-only instruction</strong> — Will-specific sections are hidden. Only Appointment, Clients, Family, Background, Due Diligence, LPA Details (donors, attorneys &amp; certificate provider) and Review are required.
             </span>
           </div>
         )}

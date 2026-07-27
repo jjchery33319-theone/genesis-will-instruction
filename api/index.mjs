@@ -279,6 +279,11 @@ var init_schema = __esm({
       manualNeedsAssessment: text("manualNeedsAssessment"),
       considerLPA: tinyint("considerLPA").default(0),
       considerPPT: tinyint("considerPPT").default(0),
+      // ── LPA Details (V1 LPA-only instructions) ──────────────────────────────────────
+      // JSON: { donors: [{title,firstName,lastName,dob,address,postcode,email}],
+      //         attorneys: [{title,firstName,lastName,dob,address,postcode,email,relationship}],
+      //         certProvider: {title,firstName,lastName,address,postcode,email,relationship} }
+      lpaDetails: json("lpaDetails"),
       considerAAT: tinyint("considerAAT").default(0),
       // ── AI Output ─────────────────────────────────────────────────────────────
       recommendationsJson: json("recommendationsJson"),
@@ -3594,7 +3599,41 @@ var willInstructionInputSchema = z2.object({
   manualNeedsAssessment: z2.string().optional(),
   considerLPA: z2.union([z2.boolean(), z2.number()]).transform((v) => Boolean(v)).optional(),
   considerPPT: z2.union([z2.boolean(), z2.number()]).transform((v) => Boolean(v)).optional(),
-  considerAAT: z2.union([z2.boolean(), z2.number()]).transform((v) => Boolean(v)).optional()
+  considerAAT: z2.union([z2.boolean(), z2.number()]).transform((v) => Boolean(v)).optional(),
+  // LPA Details (for LPA-only V1 instructions)
+  lpaDetails: z2.object({
+    donors: z2.array(z2.object({
+      title: z2.string().optional(),
+      firstName: z2.string().optional(),
+      lastName: z2.string().optional(),
+      dob: z2.string().optional(),
+      address: z2.string().optional(),
+      postcode: z2.string().optional(),
+      email: z2.string().optional(),
+      phone: z2.string().optional()
+    })).optional(),
+    attorneys: z2.array(z2.object({
+      title: z2.string().optional(),
+      firstName: z2.string().optional(),
+      lastName: z2.string().optional(),
+      dob: z2.string().optional(),
+      address: z2.string().optional(),
+      postcode: z2.string().optional(),
+      email: z2.string().optional(),
+      phone: z2.string().optional(),
+      relationship: z2.string().optional()
+    })).optional(),
+    certProvider: z2.object({
+      title: z2.string().optional(),
+      firstName: z2.string().optional(),
+      lastName: z2.string().optional(),
+      address: z2.string().optional(),
+      postcode: z2.string().optional(),
+      email: z2.string().optional(),
+      phone: z2.string().optional(),
+      relationship: z2.string().optional()
+    }).optional()
+  }).optional()
 });
 var willInstructionsRouter = router({
   submit: publicProcedure.input(willInstructionInputSchema).mutation(async ({ input }) => {
@@ -3649,6 +3688,7 @@ var willInstructionsRouter = router({
       considerLPA: input.considerLPA ? 1 : 0,
       considerPPT: input.considerPPT ? 1 : 0,
       considerAAT: input.considerAAT ? 1 : 0,
+      lpaDetails: input.lpaDetails ?? null,
       recommendationsJson: recommendations,
       aiRecommendationNarrative: narrative,
       aiClientEmailDraft: clientEmailDraft,
@@ -3766,6 +3806,7 @@ var willInstructionsRouter = router({
       considerLPA: formData.considerLPA ? 1 : 0,
       considerPPT: formData.considerPPT ? 1 : 0,
       considerAAT: formData.considerAAT ? 1 : 0,
+      lpaDetails: formData.lpaDetails ?? null,
       status: "draft",
       currentStep: currentStep ?? 1,
       emailSent: 0
@@ -3873,6 +3914,7 @@ var willInstructionsRouter = router({
       considerLPA: formData.considerLPA ? 1 : 0,
       considerPPT: formData.considerPPT ? 1 : 0,
       considerAAT: formData.considerAAT ? 1 : 0,
+      lpaDetails: formData.lpaDetails ?? void 0,
       updatedAt: /* @__PURE__ */ new Date()
     });
     try {

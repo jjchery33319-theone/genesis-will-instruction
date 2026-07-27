@@ -261,6 +261,12 @@ export type WillFormData = {
   considerLPA?: boolean;
   considerPPT?: boolean;
   considerAAT?: boolean;
+  // LPA Details (for LPA-only V1 instructions)
+  lpaDetails?: {
+    donors: Array<{ title?: string; firstName?: string; lastName?: string; dob?: string; address?: string; postcode?: string; email?: string; phone?: string }>;
+    attorneys: Array<{ title?: string; firstName?: string; lastName?: string; dob?: string; address?: string; postcode?: string; email?: string; phone?: string; relationship?: string }>;
+    certProvider?: { title?: string; firstName?: string; lastName?: string; address?: string; postcode?: string; email?: string; phone?: string; relationship?: string };
+  };
 };
 
 const initialData: WillFormData = {
@@ -291,6 +297,7 @@ const initialData: WillFormData = {
   specificGifts: [],
   lifeInsurancePolicies: [],
   businessInterestsDetails: [],
+  lpaDetails: { donors: [], attorneys: [], certProvider: undefined },
   client1ChildrenUnder18: [],
   client1ChildrenOver18: [],
   client2ChildrenUnder18: [],

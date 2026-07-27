@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { WillFormData } from "../../../hooks/useWillForm";
-import { PRODUCTS } from "../../../../../shared/willConstants";
+import { PRODUCTS, WILL_PRODUCT_IDS } from "../../../../../shared/willConstants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -414,6 +414,53 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
         </div>
       </ReviewSection>
 
+      {/* ── LPA DETAILS (LPA-only mode) ── */}
+      {data.lpaDetails && !(data.productsOrdered ?? []).some(id => WILL_PRODUCT_IDS.has(id)) && (
+        <ReviewSection title="Step 6 — LPA Details" icon={<Scale className="w-4 h-4" />} step={6} onEdit={onEdit}>
+          <div className="space-y-4">
+            {(data.lpaDetails.donors ?? []).length > 0 && (
+              <div>
+                <SubHeading label="Donors" />
+                {(data.lpaDetails.donors ?? []).map((d, i) => (
+                  <div key={i} className="mb-2 pl-3 border-l-2 border-border space-y-0.5">
+                    <p className="text-sm font-medium">{[d.title, d.firstName, d.lastName].filter(Boolean).join(" ") || `Donor ${i + 1}`}</p>
+                    {d.dob && <p className="text-xs text-muted-foreground">DOB: {d.dob}</p>}
+                    {d.address && <p className="text-xs text-muted-foreground">{d.address}{d.postcode ? `, ${d.postcode}` : ""}</p>}
+                    {d.phone && <p className="text-xs text-muted-foreground">📞 {d.phone}</p>}
+                    {d.email && <p className="text-xs text-muted-foreground">✉ {d.email}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {(data.lpaDetails.attorneys ?? []).length > 0 && (
+              <div>
+                <SubHeading label="Attorneys" />
+                {(data.lpaDetails.attorneys ?? []).map((a, i) => (
+                  <div key={i} className="mb-2 pl-3 border-l-2 border-border space-y-0.5">
+                    <p className="text-sm font-medium">{[a.title, a.firstName, a.lastName].filter(Boolean).join(" ") || `Attorney ${i + 1}`}{a.relationship ? <span className="text-muted-foreground font-normal"> — {a.relationship}</span> : null}</p>
+                    {a.dob && <p className="text-xs text-muted-foreground">DOB: {a.dob}</p>}
+                    {a.address && <p className="text-xs text-muted-foreground">{a.address}{a.postcode ? `, ${a.postcode}` : ""}</p>}
+                    {a.phone && <p className="text-xs text-muted-foreground">📞 {a.phone}</p>}
+                    {a.email && <p className="text-xs text-muted-foreground">✉ {a.email}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {data.lpaDetails.certProvider && (
+              <div>
+                <SubHeading label="Certificate Provider" />
+                <div className="pl-3 border-l-2 border-border space-y-0.5">
+                  <p className="text-sm font-medium">{[data.lpaDetails.certProvider.title, data.lpaDetails.certProvider.firstName, data.lpaDetails.certProvider.lastName].filter(Boolean).join(" ") || "Certificate Provider"}</p>
+                  {data.lpaDetails.certProvider.relationship && <p className="text-xs text-muted-foreground">{data.lpaDetails.certProvider.relationship}</p>}
+                  {data.lpaDetails.certProvider.address && <p className="text-xs text-muted-foreground">{data.lpaDetails.certProvider.address}{data.lpaDetails.certProvider.postcode ? `, ${data.lpaDetails.certProvider.postcode}` : ""}</p>}
+                  {data.lpaDetails.certProvider.phone && <p className="text-xs text-muted-foreground">📞 {data.lpaDetails.certProvider.phone}</p>}
+                  {data.lpaDetails.certProvider.email && <p className="text-xs text-muted-foreground">✉ {data.lpaDetails.certProvider.email}</p>}
+                </div>
+              </div>
+            )}
+          </div>
+        </ReviewSection>
+      )}
       {/* ── STEP 6: Executors / Trustees / Guardians ── */}
       <ReviewSection title="Step 6 — Executors, Trustees & Guardians" icon={<Scale className="w-4 h-4" />} step={6} onEdit={onEdit}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

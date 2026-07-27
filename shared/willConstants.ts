@@ -120,7 +120,8 @@ export const LPA_ONLY_STEPS = [
   { id: 3,  title: "Family",        subtitle: "Background & children" },
   { id: 4,  title: "Background",    subtitle: "Residency & capacity" },
   { id: 5,  title: "Due Diligence", subtitle: "Compliance questions" },
-  { id: 6,  title: "Review",        subtitle: "Preview & submit" },
+  { id: 6,  title: "LPA Details",   subtitle: "Donors, attorneys & certificate provider" },
+  { id: 7,  title: "Review",        subtitle: "Preview & submit" },
 ] as const;
 
 export const FORM_STEPS = [

@@ -374,6 +374,40 @@ const willInstructionInputSchema = z.object({
   considerLPA: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
   considerPPT: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
   considerAAT: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
+  // LPA Details (for LPA-only V1 instructions)
+  lpaDetails: z.object({
+    donors: z.array(z.object({
+      title: z.string().optional(),
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      dob: z.string().optional(),
+      address: z.string().optional(),
+      postcode: z.string().optional(),
+      email: z.string().optional(),
+      phone: z.string().optional(),
+    })).optional(),
+    attorneys: z.array(z.object({
+      title: z.string().optional(),
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      dob: z.string().optional(),
+      address: z.string().optional(),
+      postcode: z.string().optional(),
+      email: z.string().optional(),
+      phone: z.string().optional(),
+      relationship: z.string().optional(),
+    })).optional(),
+    certProvider: z.object({
+      title: z.string().optional(),
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      address: z.string().optional(),
+      postcode: z.string().optional(),
+      email: z.string().optional(),
+      phone: z.string().optional(),
+      relationship: z.string().optional(),
+    }).optional(),
+  }).optional(),
 });
 
 export const willInstructionsRouter = router({
@@ -439,6 +473,7 @@ export const willInstructionsRouter = router({
         considerLPA: input.considerLPA ? 1 : 0,
         considerPPT: input.considerPPT ? 1 : 0,
         considerAAT: input.considerAAT ? 1 : 0,
+        lpaDetails: input.lpaDetails ?? null,
         recommendationsJson: recommendations,
         aiRecommendationNarrative: narrative,
         aiClientEmailDraft: clientEmailDraft,
@@ -596,6 +631,7 @@ export const willInstructionsRouter = router({
         considerLPA: formData.considerLPA ? 1 : 0,
         considerPPT: formData.considerPPT ? 1 : 0,
         considerAAT: formData.considerAAT ? 1 : 0,
+        lpaDetails: formData.lpaDetails ?? null,
         status: "draft" as const,
         currentStep: currentStep ?? 1,
         emailSent: 0,
@@ -742,6 +778,7 @@ export const willInstructionsRouter = router({
         considerLPA: formData.considerLPA ? 1 : 0,
         considerPPT: formData.considerPPT ? 1 : 0,
         considerAAT: formData.considerAAT ? 1 : 0,
+        lpaDetails: formData.lpaDetails ?? undefined,
         updatedAt: new Date(),
       });
 

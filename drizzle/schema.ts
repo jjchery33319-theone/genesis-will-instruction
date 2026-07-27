@@ -241,6 +241,12 @@ export const willInstructions = mysqlTable("will_instructions", {
   manualNeedsAssessment: text("manualNeedsAssessment"),
   considerLPA: tinyint("considerLPA").default(0),
   considerPPT: tinyint("considerPPT").default(0),
+
+  // ── LPA Details (V1 LPA-only instructions) ──────────────────────────────────────
+  // JSON: { donors: [{title,firstName,lastName,dob,address,postcode,email}],
+  //         attorneys: [{title,firstName,lastName,dob,address,postcode,email,relationship}],
+  //         certProvider: {title,firstName,lastName,address,postcode,email,relationship} }
+  lpaDetails: json("lpaDetails"),
   considerAAT: tinyint("considerAAT").default(0),
 
   // ── AI Output ─────────────────────────────────────────────────────────────
