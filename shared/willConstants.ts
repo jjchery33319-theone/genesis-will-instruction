@@ -31,7 +31,7 @@ export const CONSULTANTS = [
   },
   {
     name: "Lee Mellon",
-    email: "lee.mellon@genesisestateplanning.info",
+    email: "lee@genesisestateplanning.info",
     phone: "+44 7790 892524",
   },
 ] as const;
