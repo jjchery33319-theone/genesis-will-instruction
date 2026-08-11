@@ -461,6 +461,8 @@ var init_schema = __esm({
       hasMinorChildren: tinyint("has_minor_children").default(1),
       disasterClauseNotes: text("disaster_clause_notes"),
       generalNotes: text("general_notes"),
+      contemplationOfMarriage: tinyint("contemplation_of_marriage").default(0),
+      contemplationOfMarriageName: varchar("contemplation_of_marriage_name", { length: 256 }),
       createdAt: timestamp("created_at").defaultNow().notNull(),
       updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull()
     });
@@ -4473,7 +4475,9 @@ var wishesSchema = z4.object({
   residueToSpouseFirst: z4.number().int().min(0).max(1).default(1),
   hasMinorChildren: z4.number().int().min(0).max(1).default(1),
   disasterClauseNotes: z4.string().optional(),
-  generalNotes: z4.string().optional()
+  generalNotes: z4.string().optional(),
+  contemplationOfMarriage: z4.number().int().min(0).max(1).default(0),
+  contemplationOfMarriageName: z4.string().optional()
 });
 var giftSchema = z4.object({
   recipientGroup: z4.string().optional(),
@@ -7221,6 +7225,8 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   const hasMinorChildren = wishes?.hasMinorChildren !== 0;
   const disasterClauseNotes = wishes?.disasterClauseNotes || "";
   const generalNotes = wishes?.generalNotes || "";
+  const contemplationOfMarriage = !!wishes?.contemplationOfMarriage;
+  const contemplationOfMarriageName = wishes?.contemplationOfMarriageName || "";
   const fileRef = matter.fileReference || "";
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
   const specificGifts = (matter.gifts || []).filter((g) => g.clientRole === giftRole);
@@ -7697,6 +7703,7 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
 <div class="clause">
   <h2>1. Revocation</h2>
   <p>I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.</p>
+  ${contemplationOfMarriage && contemplationOfMarriageName ? `<p>I declare that as at the date of this Will, I am expecting to marry ${contemplationOfMarriageName}, and I declare that this Will is not to be revoked by such marriage.</p>` : ""}
 </div>
 
 <!-- 2. Appointment of Executors -->

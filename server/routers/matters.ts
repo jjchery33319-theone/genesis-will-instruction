@@ -65,6 +65,8 @@ const wishesSchema = z.object({
   hasMinorChildren: z.number().int().min(0).max(1).default(1),
   disasterClauseNotes: z.string().optional(),
   generalNotes: z.string().optional(),
+  contemplationOfMarriage: z.number().int().min(0).max(1).default(0),
+  contemplationOfMarriageName: z.string().optional(),
 });
 
 const giftSchema = z.object({

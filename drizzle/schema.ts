@@ -458,6 +458,8 @@ export const matterWishes = mysqlTable("matter_wishes", {
   hasMinorChildren: tinyint("has_minor_children").default(1),
   disasterClauseNotes: text("disaster_clause_notes"),
   generalNotes: text("general_notes"),
+  contemplationOfMarriage: tinyint("contemplation_of_marriage").default(0),
+  contemplationOfMarriageName: varchar("contemplation_of_marriage_name", { length: 256 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
