@@ -9810,23 +9810,23 @@ function generateWelcomePackHtml(record) {
       return value;
     }
   }
-  function hasStoredValue2(value) {
+  function hasStoredValue(value) {
     const parsed = parseStoredValue2(value);
     if (parsed === null || parsed === void 0 || parsed === "") return false;
     if (Array.isArray(parsed)) return parsed.length > 0;
     if (typeof parsed === "object") return Object.keys(parsed).length > 0;
     return true;
   }
-  function humaniseKey2(key) {
+  function humaniseKey(key) {
     return key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
   }
-  function recordValue2(value) {
+  function recordValue(value) {
     const parsed = parseStoredValue2(value);
     if (parsed === true || parsed === "yes") return "Yes";
     if (parsed === false || parsed === "no") return "No";
-    if (Array.isArray(parsed)) return parsed.map((item, index) => `${index + 1}. ${recordValue2(item)}`).join(" | ");
+    if (Array.isArray(parsed)) return parsed.map((item, index) => `${index + 1}. ${recordValue(item)}`).join(" | ");
     if (parsed && typeof parsed === "object") {
-      return Object.entries(parsed).filter(([, item]) => hasStoredValue2(item)).map(([key, item]) => `${humaniseKey2(key)}: ${recordValue2(item)}`).join("; ");
+      return Object.entries(parsed).filter(([, item]) => hasStoredValue(item)).map(([key, item]) => `${humaniseKey(key)}: ${recordValue(item)}`).join("; ");
     }
     return String(parsed);
   }
@@ -9834,9 +9834,9 @@ function generateWelcomePackHtml(record) {
     return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>");
   }
   function completeRecordSection(title, fields) {
-    const presentFields = fields.filter(([, value]) => hasStoredValue2(value));
+    const presentFields = fields.filter(([, value]) => hasStoredValue(value));
     if (!presentFields.length) return "";
-    return `${sectionHeading2(iconCheck, title)}<div class="info-cards-row">${presentFields.map(([label, value]) => infoCard(label, escapeRecordValue(recordValue2(value)))).join("")}</div>`;
+    return `${sectionHeading2(iconCheck, title)}<div class="info-cards-row">${presentFields.map(([label, value]) => infoCard(label, escapeRecordValue(recordValue(value)))).join("")}</div>`;
   }
   const asArray = (value) => {
     const parsed = parseStoredValue2(value);
@@ -9878,8 +9878,8 @@ function generateWelcomePackHtml(record) {
     "editedWillHtmlClient2",
     "editedWelcomePackHtml"
   ]);
-  const allEnteredFields = Object.entries(record).filter(([key, value]) => !welcomePackExcludedFields.has(key) && hasStoredValue2(value)).map(([key, value]) => [
-    humaniseKey2(key),
+  const allEnteredFields = Object.entries(record).filter(([key, value]) => !welcomePackExcludedFields.has(key) && hasStoredValue(value)).map(([key, value]) => [
+    humaniseKey(key),
     key === "productsOrdered" ? productLabels.join(", ") : key.toLowerCase().endsWith("date") ? fmtDate(value) : value
   ]);
   const css = `
@@ -11405,65 +11405,9 @@ function parseStoredValue(value) {
     return value;
   }
 }
-function hasStoredValue(value) {
+function storedArray(value) {
   const parsed = parseStoredValue(value);
-  if (parsed === null || parsed === void 0 || parsed === "") return false;
-  if (Array.isArray(parsed)) return parsed.length > 0;
-  if (typeof parsed === "object") return Object.keys(parsed).length > 0;
-  return true;
-}
-function humaniseKey(key) {
-  return key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-}
-function recordValue(value) {
-  const parsed = parseStoredValue(value);
-  if (parsed === true || parsed === "yes") return "Yes";
-  if (parsed === false || parsed === "no") return "No";
-  if (Array.isArray(parsed)) return parsed.map((item, index) => `${index + 1}. ${recordValue(item)}`).join(" | ");
-  if (parsed && typeof parsed === "object") {
-    return Object.entries(parsed).filter(([, item]) => hasStoredValue(item)).map(([key, item]) => `${humaniseKey(key)}: ${recordValue(item)}`).join("; ");
-  }
-  return String(parsed);
-}
-function completeRecordParas(record) {
-  const excluded = /* @__PURE__ */ new Set([
-    "id",
-    "referenceNumber",
-    "status",
-    "currentStep",
-    "emailSent",
-    "createdAt",
-    "updatedAt",
-    "manualNeedsAssessment",
-    "considerLPA",
-    "considerPPT",
-    "considerAAT",
-    "recommendationsJson",
-    "aiRecommendationNarrative",
-    "aiClientEmailDraft",
-    "editedWillHtmlSingle",
-    "editedWillHtmlClient1",
-    "editedWillHtmlClient2",
-    "editedWelcomePackHtml"
-  ]);
-  const productNames = {
-    single_will: "Single Will",
-    mirror_wills: "Mirror Wills",
-    lpa_property_finance: "LPA \u2013 Property & Finance",
-    lpa_health_welfare: "LPA \u2013 Health & Welfare",
-    both_lpas: "Both LPAs (Property & Finance + Health & Welfare)",
-    ppt: "Protective Property Trust (PPT)",
-    aat: "Family Trust (Asset Allocation Trust / AAT)",
-    right_to_occupy: "Right To Occupy",
-    discretionary_trust: "Discretionary Trust",
-    vulnerable_trust: "Vulnerable Person's Trust",
-    storage: "Will Storage",
-    bpr_trust: "BPR Trust (Business Property Relief Trust)"
-  };
-  return Object.entries(record).filter(([key, value]) => !excluded.has(key) && hasStoredValue(value)).map(([key, value]) => {
-    const rendered = key === "productsOrdered" ? Array.isArray(parseStoredValue(value)) ? parseStoredValue(value).map((product) => productNames[String(product)] || String(product)).join(", ") : recordValue(value) : key.toLowerCase().endsWith("date") ? fmtDate2(value) : recordValue(value);
-    return boldBodyPara(humaniseKey(key), rendered);
-  });
+  return Array.isArray(parsed) ? parsed : [];
 }
 async function generateWelcomePackDocx(record) {
   const today = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -11492,8 +11436,8 @@ async function generateWelcomePackDocx(record) {
   const c2ResExecs = Array.isArray(record.client2ReservedExecutors) ? record.client2ReservedExecutors : [];
   const c1Guards = Array.isArray(record.client1Guardians) ? record.client1Guardians : Array.isArray(record.guardians) ? record.guardians : [];
   const c1ResGuards = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : Array.isArray(record.reservedGuardians) ? record.reservedGuardians : [];
-  const c1Bens = Array.isArray(record.client1Beneficiaries) ? record.client1Beneficiaries : Array.isArray(record.beneficiaries) ? record.beneficiaries : [];
-  const c2Bens = Array.isArray(record.client2Beneficiaries) ? record.client2Beneficiaries : [];
+  const c1Bens = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
+  const c2Bens = storedArray(record.client2Beneficiaries);
   const c1Gifts = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : Array.isArray(record.specificGifts) ? record.specificGifts : [];
   const c2Gifts = Array.isArray(record.client2SpecificGifts) ? record.client2SpecificGifts : [];
   const c1Under18 = Array.isArray(record.client1ChildrenUnder18) ? record.client1ChildrenUnder18 : [];
@@ -11739,13 +11683,6 @@ async function generateWelcomePackDocx(record) {
     children.push(bodyPara(record.additionalNotes || record.specialNotes));
   }
   children.push(pageBreakPara());
-  children.push(
-    heading1("Complete Record of Your Instructions"),
-    bodyPara("This appendix records every completed item from your Will Instruction Form, so you can check that your information has been captured correctly before drafting begins."),
-    dividerPara(),
-    ...completeRecordParas(record),
-    pageBreakPara()
-  );
   children.push(heading1("Next Steps & Our Services"));
   children.push(dividerPara());
   children.push(sectionHeading("Additional Services We Offer"));

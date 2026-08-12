@@ -565,3 +565,6 @@
 
 ## V1 Welcome Pack Completeness
 - [x] Audit every V1 instruction field against both Welcome Pack PDF and Word outputs, then add only omitted relevant fields
+
+## V1 Word Welcome Pack Correction
+- [x] Restore the Distribution of Your Estate section and remove only the Complete Record appendix from the Word output

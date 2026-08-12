@@ -339,52 +339,9 @@ function parseStoredValue(value: any): any {
   try { return JSON.parse(trimmed); } catch { return value; }
 }
 
-function hasStoredValue(value: any): boolean {
+function storedArray(value: any): any[] {
   const parsed = parseStoredValue(value);
-  if (parsed === null || parsed === undefined || parsed === "") return false;
-  if (Array.isArray(parsed)) return parsed.length > 0;
-  if (typeof parsed === "object") return Object.keys(parsed).length > 0;
-  return true;
-}
-
-function humaniseKey(key: string): string {
-  return key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
-}
-
-function recordValue(value: any): string {
-  const parsed = parseStoredValue(value);
-  if (parsed === true || parsed === "yes") return "Yes";
-  if (parsed === false || parsed === "no") return "No";
-  if (Array.isArray(parsed)) return parsed.map((item, index) => `${index + 1}. ${recordValue(item)}`).join(" | ");
-  if (parsed && typeof parsed === "object") {
-    return Object.entries(parsed).filter(([, item]) => hasStoredValue(item))
-      .map(([key, item]) => `${humaniseKey(key)}: ${recordValue(item)}`).join("; ");
-  }
-  return String(parsed);
-}
-
-function completeRecordParas(record: WillRecord): Paragraph[] {
-  const excluded = new Set([
-    "id", "referenceNumber", "status", "currentStep", "emailSent", "createdAt", "updatedAt",
-    "manualNeedsAssessment", "considerLPA", "considerPPT", "considerAAT", "recommendationsJson",
-    "aiRecommendationNarrative", "aiClientEmailDraft", "editedWillHtmlSingle", "editedWillHtmlClient1",
-    "editedWillHtmlClient2", "editedWelcomePackHtml",
-  ]);
-  const productNames: Record<string, string> = {
-    single_will: "Single Will", mirror_wills: "Mirror Wills", lpa_property_finance: "LPA – Property & Finance",
-    lpa_health_welfare: "LPA – Health & Welfare", both_lpas: "Both LPAs (Property & Finance + Health & Welfare)",
-    ppt: "Protective Property Trust (PPT)", aat: "Family Trust (Asset Allocation Trust / AAT)",
-    right_to_occupy: "Right To Occupy", discretionary_trust: "Discretionary Trust", vulnerable_trust: "Vulnerable Person's Trust",
-    storage: "Will Storage", bpr_trust: "BPR Trust (Business Property Relief Trust)",
-  };
-  return Object.entries(record)
-    .filter(([key, value]) => !excluded.has(key) && hasStoredValue(value))
-    .map(([key, value]) => {
-      const rendered = key === "productsOrdered"
-        ? (Array.isArray(parseStoredValue(value)) ? parseStoredValue(value).map((product: any) => productNames[String(product)] || String(product)).join(", ") : recordValue(value))
-        : key.toLowerCase().endsWith("date") ? fmtDate(value) : recordValue(value);
-      return boldBodyPara(humaniseKey(key), rendered);
-    });
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 // ── Main generator ─────────────────────────────────────────────────────────────
@@ -422,8 +379,8 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   const c2ResExecs: any[] = Array.isArray(record.client2ReservedExecutors) ? record.client2ReservedExecutors : [];
   const c1Guards: any[] = Array.isArray(record.client1Guardians) ? record.client1Guardians : (Array.isArray(record.guardians) ? record.guardians : []);
   const c1ResGuards: any[] = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : (Array.isArray(record.reservedGuardians) ? record.reservedGuardians : []);
-  const c1Bens: any[] = Array.isArray(record.client1Beneficiaries) ? record.client1Beneficiaries : (Array.isArray(record.beneficiaries) ? record.beneficiaries : []);
-  const c2Bens: any[] = Array.isArray(record.client2Beneficiaries) ? record.client2Beneficiaries : [];
+  const c1Bens: any[] = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
+  const c2Bens: any[] = storedArray(record.client2Beneficiaries);
   const c1Gifts: any[] = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : (Array.isArray(record.specificGifts) ? record.specificGifts : []);
   const c2Gifts: any[] = Array.isArray(record.client2SpecificGifts) ? record.client2SpecificGifts : [];
 
@@ -698,15 +655,6 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   }
 
   children.push(pageBreakPara());
-
-  // ── COMPLETE RECORD OF ENTERED INSTRUCTIONS ─────────────────────────────────
-  children.push(
-    heading1("Complete Record of Your Instructions"),
-    bodyPara("This appendix records every completed item from your Will Instruction Form, so you can check that your information has been captured correctly before drafting begins."),
-    dividerPara(),
-    ...completeRecordParas(record),
-    pageBreakPara(),
-  );
 
   // ── NEXT STEPS & SERVICES ──────────────────────────────────────────────────
   children.push(heading1("Next Steps & Our Services"));
