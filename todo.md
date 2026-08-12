@@ -568,3 +568,7 @@
 
 ## V1 Word Welcome Pack Correction
 - [x] Restore the Distribution of Your Estate section and remove only the Complete Record appendix from the Word output
+
+## V1 Welcome Pack Distribution Rendering
+- [x] Restore populated beneficiary and residuary-estate details in both the editable PDF preview and Word welcome pack
+- [x] Render every named beneficiary and their recorded share under Distribution of Your Estate in both outputs

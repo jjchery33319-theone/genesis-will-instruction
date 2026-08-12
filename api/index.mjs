@@ -9604,6 +9604,16 @@ function willTypeLabel(wt) {
   };
   return map[wt] || wt || "Will";
 }
+function storedArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 function generateWelcomePackHtml(record) {
   const today = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const isMirror = (record.willType || "").toLowerCase().includes("mirror");
@@ -9641,8 +9651,8 @@ function generateWelcomePackHtml(record) {
   const c2ResExecs = Array.isArray(record.client2ReservedExecutors) ? record.client2ReservedExecutors : [];
   const c1Guards = Array.isArray(record.client1Guardians) ? record.client1Guardians : Array.isArray(record.guardians) ? record.guardians : [];
   const c1ResGuards = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : Array.isArray(record.reservedGuardians) ? record.reservedGuardians : [];
-  const c1Bens = Array.isArray(record.client1Beneficiaries) ? record.client1Beneficiaries : Array.isArray(record.beneficiaries) ? record.beneficiaries : [];
-  const c2Bens = Array.isArray(record.client2Beneficiaries) ? record.client2Beneficiaries : [];
+  const c1Bens = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
+  const c2Bens = storedArray(record.client2Beneficiaries);
   const c1Gifts = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : Array.isArray(record.specificGifts) ? record.specificGifts : [];
   const c2Gifts = Array.isArray(record.client2SpecificGifts) ? record.client2SpecificGifts : [];
   const hasGifts = c1Gifts.length > 0 || c2Gifts.length > 0;
@@ -9737,8 +9747,8 @@ function generateWelcomePackHtml(record) {
   function benList(bens) {
     if (!bens.length) return "";
     return `<ul class="ben-list">` + bens.map((b) => {
-      const name = personName(b);
-      const share = b.share || b.shareFraction || b.sharePercentage || "";
+      const name = personName(b) || b.fullName || b.name || b.recipient || "Named beneficiary";
+      const share = b.share || b.shareFraction || b.sharePercentage || b.percentage || b.entitlement || "";
       const shareStr = share ? ` <span class="share-badge">${share}</span>` : "";
       const rel = b.relationship ? ` <span class="rel-tag">${b.relationship}</span>` : "";
       return `<li class="ben-item"><span class="ben-name">${name}</span>${rel}${shareStr}</li>`;
@@ -11351,8 +11361,8 @@ function clientTable(record, num) {
 function benListParas(bens) {
   if (!bens.length) return [];
   return bens.map((b) => {
-    const name = personName2(b);
-    const share = b.share || b.shareFraction || b.sharePercentage || "";
+    const name = personName2(b) || b.fullName || b.name || b.recipient || "Named beneficiary";
+    const share = b.share || b.shareFraction || b.sharePercentage || b.percentage || b.entitlement || "";
     const rel = b.relationship || "";
     const parts = [name, rel ? `(${rel})` : "", share ? `\u2014 ${share}` : ""].filter(Boolean).join("  ");
     return bulletPara(parts);
@@ -11405,7 +11415,7 @@ function parseStoredValue(value) {
     return value;
   }
 }
-function storedArray(value) {
+function storedArray2(value) {
   const parsed = parseStoredValue(value);
   return Array.isArray(parsed) ? parsed : [];
 }
@@ -11436,8 +11446,8 @@ async function generateWelcomePackDocx(record) {
   const c2ResExecs = Array.isArray(record.client2ReservedExecutors) ? record.client2ReservedExecutors : [];
   const c1Guards = Array.isArray(record.client1Guardians) ? record.client1Guardians : Array.isArray(record.guardians) ? record.guardians : [];
   const c1ResGuards = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : Array.isArray(record.reservedGuardians) ? record.reservedGuardians : [];
-  const c1Bens = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
-  const c2Bens = storedArray(record.client2Beneficiaries);
+  const c1Bens = storedArray2(record.client1Beneficiaries).length ? storedArray2(record.client1Beneficiaries) : storedArray2(record.beneficiaries);
+  const c2Bens = storedArray2(record.client2Beneficiaries);
   const c1Gifts = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : Array.isArray(record.specificGifts) ? record.specificGifts : [];
   const c2Gifts = Array.isArray(record.client2SpecificGifts) ? record.client2SpecificGifts : [];
   const c1Under18 = Array.isArray(record.client1ChildrenUnder18) ? record.client1ChildrenUnder18 : [];

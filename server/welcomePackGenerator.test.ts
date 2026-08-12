@@ -53,4 +53,28 @@ describe("V1 welcome pack completeness", () => {
       "certificate@example.test",
     ].forEach(value => expect(html).toContain(value));
   });
+
+  it("renders JSON-stored named beneficiaries and their shares in Distribution of Your Estate", () => {
+    const html = generateWelcomePackHtml({
+      willType: "Mirror Wills",
+      client1FirstName: "Alice",
+      client1LastName: "Example",
+      client2FirstName: "Brian",
+      client2LastName: "Example",
+      client1Beneficiaries: JSON.stringify([
+        { firstName: "Sophie", lastName: "Beneficiary", relationship: "Daughter", share: "60%" },
+      ]),
+      client2Beneficiaries: JSON.stringify([
+        { firstName: "David", lastName: "Beneficiary", relationship: "Son", sharePercentage: "40%" },
+      ]),
+      client1ResidualEstate: "The Example Children",
+      client2ResidualEstate: "The Example Children",
+    });
+
+    expect(html).toContain("Distribution of Your Estate");
+    expect(html).toContain("Sophie Beneficiary");
+    expect(html).toContain("60%");
+    expect(html).toContain("David Beneficiary");
+    expect(html).toContain("40%");
+  });
 });

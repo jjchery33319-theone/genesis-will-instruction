@@ -59,6 +59,17 @@ function willTypeLabel(wt: string): string {
   return map[wt] || wt || "Will";
 }
 
+function storedArray(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export function generateWelcomePackHtml(record: WillRecord): string {
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const isMirror = (record.willType || "").toLowerCase().includes("mirror");
@@ -111,8 +122,8 @@ export function generateWelcomePackHtml(record: WillRecord): string {
   const c1ResGuards: any[] = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : (Array.isArray(record.reservedGuardians) ? record.reservedGuardians : []);
 
   // Beneficiaries
-  const c1Bens: any[] = Array.isArray(record.client1Beneficiaries) ? record.client1Beneficiaries : (Array.isArray(record.beneficiaries) ? record.beneficiaries : []);
-  const c2Bens: any[] = Array.isArray(record.client2Beneficiaries) ? record.client2Beneficiaries : [];
+  const c1Bens: any[] = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
+  const c2Bens: any[] = storedArray(record.client2Beneficiaries);
 
   // Gifts
   const c1Gifts: any[] = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : (Array.isArray(record.specificGifts) ? record.specificGifts : []);
@@ -228,8 +239,8 @@ export function generateWelcomePackHtml(record: WillRecord): string {
   function benList(bens: any[]): string {
     if (!bens.length) return "";
     return `<ul class="ben-list">` + bens.map(b => {
-      const name = personName(b);
-      const share = b.share || b.shareFraction || b.sharePercentage || "";
+      const name = personName(b) || b.fullName || b.name || b.recipient || "Named beneficiary";
+      const share = b.share || b.shareFraction || b.sharePercentage || b.percentage || b.entitlement || "";
       const shareStr = share ? ` <span class="share-badge">${share}</span>` : "";
       const rel = b.relationship ? ` <span class="rel-tag">${b.relationship}</span>` : "";
       return `<li class="ben-item"><span class="ben-name">${name}</span>${rel}${shareStr}</li>`;

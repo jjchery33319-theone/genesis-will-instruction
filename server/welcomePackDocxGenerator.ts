@@ -278,8 +278,8 @@ function clientTable(record: WillRecord, num: 1 | 2): (Paragraph | Table)[] {
 function benListParas(bens: any[]): Paragraph[] {
   if (!bens.length) return [];
   return bens.map(b => {
-    const name = personName(b);
-    const share = b.share || b.shareFraction || b.sharePercentage || "";
+    const name = personName(b) || b.fullName || b.name || b.recipient || "Named beneficiary";
+    const share = b.share || b.shareFraction || b.sharePercentage || b.percentage || b.entitlement || "";
     const rel = b.relationship || "";
     const parts = [name, rel ? `(${rel})` : "", share ? `— ${share}` : ""].filter(Boolean).join("  ");
     return bulletPara(parts);
