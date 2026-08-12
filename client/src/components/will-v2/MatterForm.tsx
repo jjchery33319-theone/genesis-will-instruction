@@ -323,8 +323,6 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       hasMinorChildren: w.hasMinorChildren ?? 1,
       disasterClauseNotes: w.disasterClauseNotes || "",
       generalNotes: w.generalNotes || "",
-      contemplationOfMarriage: w.contemplationOfMarriage ?? 0,
-      contemplationOfMarriageName: w.contemplationOfMarriageName || "",
     };
   };
 
@@ -2051,33 +2049,6 @@ function WishesSection({ label, data, onChange }: { label: string; data: any; on
           </p>
         </div>
       </div>
-      {/* Contemplation of marriage toggle */}
-      <div className="flex items-center gap-3 p-3 border border-border rounded-lg bg-muted/30">
-        <Switch
-          id="contemplation-of-marriage"
-          checked={!!data.contemplationOfMarriage}
-          onCheckedChange={v => onChange({ ...data, contemplationOfMarriage: v ? 1 : 0, contemplationOfMarriageName: v ? data.contemplationOfMarriageName : "" })}
-        />
-        <div>
-          <Label htmlFor="contemplation-of-marriage" className="text-sm cursor-pointer font-medium">
-            In contemplation of marriage
-          </Label>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Adds a clause declaring this Will is not revoked by the forthcoming marriage.
-          </p>
-        </div>
-      </div>
-      {!!data.contemplationOfMarriage && (
-        <div className="space-y-1">
-          <Label className="text-xs">Name of person to be married</Label>
-          <Input
-            value={data.contemplationOfMarriageName || ""}
-            onChange={e => onChange({ ...data, contemplationOfMarriageName: e.target.value })}
-            placeholder="Full name of the intended spouse"
-            className="h-8 text-sm"
-          />
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">

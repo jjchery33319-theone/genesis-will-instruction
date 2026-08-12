@@ -116,8 +116,6 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   const hasMinorChildren = (wishes as any)?.hasMinorChildren !== 0; // default true
   const disasterClauseNotes = (wishes as any)?.disasterClauseNotes || "";
   const generalNotes = (wishes as any)?.generalNotes || "";
-  const contemplationOfMarriage = !!((wishes as any)?.contemplationOfMarriage);
-  const contemplationOfMarriageName = (wishes as any)?.contemplationOfMarriageName || "";
 
   const fileRef = matter.fileReference || "";
 
@@ -654,7 +652,6 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 <div class="clause">
   <h2>1. Revocation</h2>
   <p>I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.</p>
-  ${contemplationOfMarriage && contemplationOfMarriageName ? `<p>I declare that as at the date of this Will, I am expecting to marry ${contemplationOfMarriageName}, and I declare that this Will is not to be revoked by such marriage.</p>` : ""}
 </div>
 
 <!-- 2. Appointment of Executors -->

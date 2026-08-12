@@ -562,3 +562,6 @@
 - [ ] Frontend: AI review panel showing extracted fields for user to review and edit before saving
 - [ ] Frontend: pre-fill V1 submission form with extracted data on confirmation
 - [ ] Deploy to Vercel
+
+## V1 Welcome Pack Completeness
+- [x] Audit every V1 instruction field against both Welcome Pack PDF and Word outputs, then add only omitted relevant fields

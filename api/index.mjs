@@ -461,8 +461,6 @@ var init_schema = __esm({
       hasMinorChildren: tinyint("has_minor_children").default(1),
       disasterClauseNotes: text("disaster_clause_notes"),
       generalNotes: text("general_notes"),
-      contemplationOfMarriage: tinyint("contemplation_of_marriage").default(0),
-      contemplationOfMarriageName: varchar("contemplation_of_marriage_name", { length: 256 }),
       createdAt: timestamp("created_at").defaultNow().notNull(),
       updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull()
     });
@@ -4475,9 +4473,7 @@ var wishesSchema = z4.object({
   residueToSpouseFirst: z4.number().int().min(0).max(1).default(1),
   hasMinorChildren: z4.number().int().min(0).max(1).default(1),
   disasterClauseNotes: z4.string().optional(),
-  generalNotes: z4.string().optional(),
-  contemplationOfMarriage: z4.number().int().min(0).max(1).default(0),
-  contemplationOfMarriageName: z4.string().optional()
+  generalNotes: z4.string().optional()
 });
 var giftSchema = z4.object({
   recipientGroup: z4.string().optional(),
@@ -7225,8 +7221,6 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   const hasMinorChildren = wishes?.hasMinorChildren !== 0;
   const disasterClauseNotes = wishes?.disasterClauseNotes || "";
   const generalNotes = wishes?.generalNotes || "";
-  const contemplationOfMarriage = !!wishes?.contemplationOfMarriage;
-  const contemplationOfMarriageName = wishes?.contemplationOfMarriageName || "";
   const fileRef = matter.fileReference || "";
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
   const specificGifts = (matter.gifts || []).filter((g) => g.clientRole === giftRole);
@@ -7703,7 +7697,6 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
 <div class="clause">
   <h2>1. Revocation</h2>
   <p>I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.</p>
-  ${contemplationOfMarriage && contemplationOfMarriageName ? `<p>I declare that as at the date of this Will, I am expecting to marry ${contemplationOfMarriageName}, and I declare that this Will is not to be revoked by such marriage.</p>` : ""}
 </div>
 
 <!-- 2. Appointment of Executors -->
@@ -9807,6 +9800,88 @@ function generateWelcomePackHtml(record) {
     html += `</div>`;
     return html;
   }
+  function parseStoredValue2(value) {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    if (!(trimmed.startsWith("[") && trimmed.endsWith("]") || trimmed.startsWith("{") && trimmed.endsWith("}"))) return value;
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
+    }
+  }
+  function hasStoredValue2(value) {
+    const parsed = parseStoredValue2(value);
+    if (parsed === null || parsed === void 0 || parsed === "") return false;
+    if (Array.isArray(parsed)) return parsed.length > 0;
+    if (typeof parsed === "object") return Object.keys(parsed).length > 0;
+    return true;
+  }
+  function humaniseKey2(key) {
+    return key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  }
+  function recordValue2(value) {
+    const parsed = parseStoredValue2(value);
+    if (parsed === true || parsed === "yes") return "Yes";
+    if (parsed === false || parsed === "no") return "No";
+    if (Array.isArray(parsed)) return parsed.map((item, index) => `${index + 1}. ${recordValue2(item)}`).join(" | ");
+    if (parsed && typeof parsed === "object") {
+      return Object.entries(parsed).filter(([, item]) => hasStoredValue2(item)).map(([key, item]) => `${humaniseKey2(key)}: ${recordValue2(item)}`).join("; ");
+    }
+    return String(parsed);
+  }
+  function escapeRecordValue(value) {
+    return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>");
+  }
+  function completeRecordSection(title, fields) {
+    const presentFields = fields.filter(([, value]) => hasStoredValue2(value));
+    if (!presentFields.length) return "";
+    return `${sectionHeading2(iconCheck, title)}<div class="info-cards-row">${presentFields.map(([label, value]) => infoCard(label, escapeRecordValue(recordValue2(value)))).join("")}</div>`;
+  }
+  const asArray = (value) => {
+    const parsed = parseStoredValue2(value);
+    return Array.isArray(parsed) ? parsed : [];
+  };
+  const productLabels = asArray(record.productsOrdered).map((product) => ({
+    single_will: "Single Will",
+    mirror_wills: "Mirror Wills",
+    lpa_property_finance: "LPA \u2013 Property & Finance",
+    lpa_health_welfare: "LPA \u2013 Health & Welfare",
+    both_lpas: "Both LPAs (Property & Finance + Health & Welfare)",
+    ppt: "Protective Property Trust (PPT)",
+    aat: "Family Trust (Asset Allocation Trust / AAT)",
+    right_to_occupy: "Right To Occupy",
+    discretionary_trust: "Discretionary Trust",
+    vulnerable_trust: "Vulnerable Person's Trust",
+    storage: "Will Storage",
+    bpr_trust: "BPR Trust (Business Property Relief Trust)"
+  })[String(product)] || String(product));
+  const c2Guards = asArray(record.client2Guardians);
+  const c2ResGuards = asArray(record.client2ReservedGuardians);
+  const welcomePackExcludedFields = /* @__PURE__ */ new Set([
+    "id",
+    "referenceNumber",
+    "status",
+    "currentStep",
+    "emailSent",
+    "createdAt",
+    "updatedAt",
+    "manualNeedsAssessment",
+    "considerLPA",
+    "considerPPT",
+    "considerAAT",
+    "recommendationsJson",
+    "aiRecommendationNarrative",
+    "aiClientEmailDraft",
+    "editedWillHtmlSingle",
+    "editedWillHtmlClient1",
+    "editedWillHtmlClient2",
+    "editedWelcomePackHtml"
+  ]);
+  const allEnteredFields = Object.entries(record).filter(([key, value]) => !welcomePackExcludedFields.has(key) && hasStoredValue2(value)).map(([key, value]) => [
+    humaniseKey2(key),
+    key === "productsOrdered" ? productLabels.join(", ") : key.toLowerCase().endsWith("date") ? fmtDate(value) : value
+  ]);
   const css = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -10791,6 +10866,154 @@ function generateWelcomePackHtml(record) {
     </div>
     ${pageFooter(5)}
   </div>`;
+  const completeInstructionsPage = `
+  <div class="content-page">
+    ${pageHeader()}
+    <div class="page-content">
+      <div class="page-title">Complete Record of Your Instructions</div>
+      <div class="page-title-bar"></div>
+      <p class="body-text">This appendix records every completed item from your Will Instruction Form, so you can check that your information has been captured correctly before drafting begins.</p>
+
+      ${completeRecordSection("Appointment & Products", [
+    ["Appointment Date", fmtDate(record.appointmentDate)],
+    ["Appointment Time", record.appointmentTime],
+    ["Price Quoted", record.priceQuoted ? `\xA3${record.priceQuoted}` : ""],
+    ["Estimated Draft Date", fmtDate(record.estimatedDraftDate)],
+    ["Will Type", record.willType],
+    ["LPA Type", record.lpaType],
+    ["Products Ordered", productLabels.join(", ")]
+  ])}
+      ${completeRecordSection("Client 1 \u2014 Family & Background", [
+    ["Marriage Plans", record.client1MarriagePlans],
+    ["Marriage Plan Details", record.client1MarriagePlanDetails],
+    ["Has Children", record.client1HasChildren],
+    ["Total Children", record.client1TotalChildren],
+    ["Children With Special Needs", record.client1ChildrenSpecialNeeds],
+    ["Special Needs Details", record.client1ChildrenSpecialNeedsDetails],
+    ["Children Under 18", asArray(record.client1ChildrenUnder18)],
+    ["Children Over 18", asArray(record.client1ChildrenOver18)],
+    ["Other Children Details", record.client1ChildrenDetails],
+    ["Family Circumstances", record.client1FamilyCircumstances],
+    ["Residency", record.client1Residency],
+    ["Domiciled in the UK", record.client1DomiciledUK],
+    ["Mental Capacity", record.client1MentalCapacity],
+    ["Mental Capacity Notes", record.client1MentalCapacityNotes],
+    ["Children From Previous Relationships", record.client1ChildrenPastRelationships],
+    ["Details of Children From Previous Relationships", record.client1ChildrenPastDetails]
+  ])}
+      ${isMirror ? completeRecordSection("Client 2 \u2014 Family & Background", [
+    ["Marriage Plans", record.client2MarriagePlans],
+    ["Marriage Plan Details", record.client2MarriagePlanDetails],
+    ["Has Children", record.client2HasChildren],
+    ["Total Children", record.client2TotalChildren],
+    ["Children With Special Needs", record.client2ChildrenSpecialNeeds],
+    ["Special Needs Details", record.client2ChildrenSpecialNeedsDetails],
+    ["Children Under 18", asArray(record.client2ChildrenUnder18)],
+    ["Children Over 18", asArray(record.client2ChildrenOver18)],
+    ["Other Children Details", record.client2ChildrenDetails],
+    ["Family Circumstances", record.client2FamilyCircumstances],
+    ["Residency", record.client2Residency],
+    ["Domiciled in the UK", record.client2DomiciledUK],
+    ["Mental Capacity", record.client2MentalCapacity],
+    ["Mental Capacity Notes", record.client2MentalCapacityNotes],
+    ["Children From Previous Relationships", record.client2ChildrenPastRelationships],
+    ["Details of Children From Previous Relationships", record.client2ChildrenPastDetails]
+  ]) : ""}
+      ${completeRecordSection("Due Diligence", [
+    ["Client Since", record.ddClientSince],
+    ["First Contact Date", fmtDate(record.ddFirstContactDate)],
+    ["Meeting Type", record.ddMeetingType],
+    ["Others Present", record.ddOthersPresent],
+    ["Others Present Notes", record.ddOthersPresentNotes],
+    ["Client Can See", record.ddClientCanSee],
+    ["Client Can Hear", record.ddClientCanHear],
+    ["Client Can Speak", record.ddClientCanSpeak],
+    ["Arranged Appointment", record.ddArrangedAppointment],
+    ["Arranged Appointment Notes", record.ddArrangedAppointmentNotes],
+    ["Knowledge of Estate", record.ddKnowledgeOfEstate],
+    ["Knowledge of Estate Notes", record.ddKnowledgeOfEstateNotes],
+    ["Knew Beneficiaries", record.ddKnewBeneficiaries],
+    ["Knew Beneficiaries Notes", record.ddKnewBeneficiariesNotes],
+    ["Signs of Influence", record.ddSignsOfInfluence],
+    ["Signs of Influence Notes", record.ddSignsOfInfluenceNotes],
+    ["Knew Appointees", record.ddKnewAppointees],
+    ["Knew Appointees Notes", record.ddKnewAppointeesNotes]
+  ])}
+      ${completeRecordSection("Appointments & Distribution", [
+    ["Trustees", asArray(record.trustees)],
+    ["Client 1 Guardians", c1Guards],
+    ["Client 1 Reserved Guardians", c1ResGuards],
+    ["Client 2 Guardians", c2Guards],
+    ["Client 2 Reserved Guardians", c2ResGuards],
+    ["Client 1 Beneficiaries", c1Bens],
+    ["Client 2 Beneficiaries", c2Bens],
+    ["Client 1 Residual Estate", record.client1ResidualEstate || record.residuaryEstate],
+    ["Client 1 Residual Backup", record.client1ResidualBackup || record.residuaryBackup],
+    ["Client 1 Children Benefit Age", record.client1ChildrenBenefitAge || record.childrenBenefitAge],
+    ["Client 1 Vulnerable Beneficiary", record.client1HasVulnerableBeneficiary || record.hasVulnerableBeneficiary],
+    ["Client 1 Vulnerable Beneficiary Details", record.client1VulnerableBeneficiaryDetails || record.vulnerableBeneficiaryDetails],
+    ["Client 2 Residual Estate", record.client2ResidualEstate],
+    ["Client 2 Residual Backup", record.client2ResidualBackup],
+    ["Client 2 Children Benefit Age", record.client2ChildrenBenefitAge],
+    ["Client 2 Vulnerable Beneficiary", record.client2HasVulnerableBeneficiary],
+    ["Client 2 Vulnerable Beneficiary Details", record.client2VulnerableBeneficiaryDetails]
+  ])}
+      ${completeRecordSection("Property, Assets & Care", [
+    ["Mortgage Lender", record.mortgageLender],
+    ["Mortgage Balance", record.mortgageBalance],
+    ["Mortgage Term Remaining", record.mortgageTermRemaining],
+    ["Other Properties", record.hasOtherProperties],
+    ["Other Properties Details", record.otherProperties],
+    ["Assets Outside the UK", record.assetsOutsideUK],
+    ["Assets Outside the UK Details", record.assetsOutsideUKDetails],
+    ["Client 1 Bank Accounts", record.bankAccounts],
+    ["Client 1 Investments", record.investments],
+    ["Client 1 Pension Details", record.pensionDetails],
+    ["Client 1 Estimated Estate Value", record.estimatedEstateValue ? `\xA3${record.estimatedEstateValue}` : ""],
+    ["Client 2 Bank Accounts", record.client2BankAccounts],
+    ["Client 2 Investments", record.client2Investments],
+    ["Client 2 Pension Details", record.client2PensionDetails],
+    ["Client 2 Estimated Estate Value", record.client2EstimatedEstateValue ? `\xA3${record.client2EstimatedEstateValue}` : ""],
+    ["Care Concerns", record.careConcerns],
+    ["Care Concern Details", record.careConcernDetails]
+  ])}
+      ${completeRecordSection("Insurance, Business & Pets", [
+    ["Life Insurance Policies", asArray(record.lifeInsurancePolicies)],
+    ["Life Insurance Notes", record.lifeInsuranceNotes],
+    ["Has Business Interests", record.hasBusinessInterests],
+    ["Business Interest Details", record.businessInterests],
+    ["Structured Business Interests", asArray(record.businessInterestsDetails)],
+    ["Has Pets", record.hasPets],
+    ["Pet Details", record.petsDetails],
+    ["Proposed Pet Carer", record.petsCarer]
+  ])}
+      ${completeRecordSection("Gifts, Wishes & Trusts", [
+    ["Client 1 Specific Gifts", c1Gifts],
+    ["Client 2 Specific Gifts", c2Gifts],
+    ["Client 1 Funeral Type", c1FuneralType],
+    ["Client 1 Funeral Wishes", c1FuneralWishes],
+    ["Client 1 Organ Donation", c1OrganDonation],
+    ["Client 2 Funeral Type", c2FuneralType],
+    ["Client 2 Funeral Wishes", c2FuneralWishes],
+    ["Client 2 Organ Donation", c2OrganDonation],
+    ["Client 1 Disaster Clause", record.disasterClauseClient1],
+    ["Client 2 Disaster Clause", record.disasterClauseClient2],
+    ["General Disaster Clause Notes", record.disasterClauseNotes],
+    ["Protective Property Trusts", asArray(record.protectivePropertyTrusts)],
+    ["Discretionary Trusts", asArray(record.discretionaryTrusts)],
+    ["Vulnerable Person Trusts", asArray(record.vulnerablePersonTrusts)],
+    ["Nil Rate Band Trusts", asArray(record.nilRateBandTrusts)],
+    ["Bereaved Minor Trusts", asArray(record.bereavedMinorTrusts)],
+    ["Age 18 to 25 Trusts", asArray(record.age18To25Trusts)],
+    ["Business Property Reliefs", asArray(record.businessPropertyReliefs)],
+    ["Additional Notes", record.additionalNotes],
+    ["Consultant Notes", record.specialNotes]
+  ])}
+      ${completeRecordSection("LPA-only Instruction Details", [["LPA Donors, Attorneys & Certificate Provider", record.lpaDetails]])}
+      ${completeRecordSection("Full Form Record", allEnteredFields)}
+    </div>
+    ${pageFooter(6)}
+  </div>`;
   const nextStepsPage = `
   <div class="content-page">
     ${pageHeader()}
@@ -10869,7 +11092,7 @@ function generateWelcomePackHtml(record) {
       </div>
 
     </div>
-    ${pageFooter(6)}
+    ${pageFooter(7)}
   </div>`;
   return `<!DOCTYPE html>
 <html lang="en">
@@ -10885,6 +11108,7 @@ function generateWelcomePackHtml(record) {
   ${clientDetailsPage}
   ${execGuardPage}
   ${assetsFuneralPage}
+  ${completeInstructionsPage}
   ${nextStepsPage}
 </body>
 </html>`;
@@ -11171,6 +11395,76 @@ function giftParas(gifts, label) {
   paras.push(spacerPara());
   return paras;
 }
+function parseStoredValue(value) {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!(trimmed.startsWith("[") && trimmed.endsWith("]") || trimmed.startsWith("{") && trimmed.endsWith("}"))) return value;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+function hasStoredValue(value) {
+  const parsed = parseStoredValue(value);
+  if (parsed === null || parsed === void 0 || parsed === "") return false;
+  if (Array.isArray(parsed)) return parsed.length > 0;
+  if (typeof parsed === "object") return Object.keys(parsed).length > 0;
+  return true;
+}
+function humaniseKey(key) {
+  return key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
+function recordValue(value) {
+  const parsed = parseStoredValue(value);
+  if (parsed === true || parsed === "yes") return "Yes";
+  if (parsed === false || parsed === "no") return "No";
+  if (Array.isArray(parsed)) return parsed.map((item, index) => `${index + 1}. ${recordValue(item)}`).join(" | ");
+  if (parsed && typeof parsed === "object") {
+    return Object.entries(parsed).filter(([, item]) => hasStoredValue(item)).map(([key, item]) => `${humaniseKey(key)}: ${recordValue(item)}`).join("; ");
+  }
+  return String(parsed);
+}
+function completeRecordParas(record) {
+  const excluded = /* @__PURE__ */ new Set([
+    "id",
+    "referenceNumber",
+    "status",
+    "currentStep",
+    "emailSent",
+    "createdAt",
+    "updatedAt",
+    "manualNeedsAssessment",
+    "considerLPA",
+    "considerPPT",
+    "considerAAT",
+    "recommendationsJson",
+    "aiRecommendationNarrative",
+    "aiClientEmailDraft",
+    "editedWillHtmlSingle",
+    "editedWillHtmlClient1",
+    "editedWillHtmlClient2",
+    "editedWelcomePackHtml"
+  ]);
+  const productNames = {
+    single_will: "Single Will",
+    mirror_wills: "Mirror Wills",
+    lpa_property_finance: "LPA \u2013 Property & Finance",
+    lpa_health_welfare: "LPA \u2013 Health & Welfare",
+    both_lpas: "Both LPAs (Property & Finance + Health & Welfare)",
+    ppt: "Protective Property Trust (PPT)",
+    aat: "Family Trust (Asset Allocation Trust / AAT)",
+    right_to_occupy: "Right To Occupy",
+    discretionary_trust: "Discretionary Trust",
+    vulnerable_trust: "Vulnerable Person's Trust",
+    storage: "Will Storage",
+    bpr_trust: "BPR Trust (Business Property Relief Trust)"
+  };
+  return Object.entries(record).filter(([key, value]) => !excluded.has(key) && hasStoredValue(value)).map(([key, value]) => {
+    const rendered = key === "productsOrdered" ? Array.isArray(parseStoredValue(value)) ? parseStoredValue(value).map((product) => productNames[String(product)] || String(product)).join(", ") : recordValue(value) : key.toLowerCase().endsWith("date") ? fmtDate2(value) : recordValue(value);
+    return boldBodyPara(humaniseKey(key), rendered);
+  });
+}
 async function generateWelcomePackDocx(record) {
   const today = (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const isMirror = (record.willType || "").toLowerCase().includes("mirror");
@@ -11445,6 +11739,13 @@ async function generateWelcomePackDocx(record) {
     children.push(bodyPara(record.additionalNotes || record.specialNotes));
   }
   children.push(pageBreakPara());
+  children.push(
+    heading1("Complete Record of Your Instructions"),
+    bodyPara("This appendix records every completed item from your Will Instruction Form, so you can check that your information has been captured correctly before drafting begins."),
+    dividerPara(),
+    ...completeRecordParas(record),
+    pageBreakPara()
+  );
   children.push(heading1("Next Steps & Our Services"));
   children.push(dividerPara());
   children.push(sectionHeading("Additional Services We Offer"));
