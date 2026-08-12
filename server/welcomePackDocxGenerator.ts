@@ -381,6 +381,8 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   const c1ResGuards: any[] = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : (Array.isArray(record.reservedGuardians) ? record.reservedGuardians : []);
   const c1Bens: any[] = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
   const c2Bens: any[] = storedArray(record.client2Beneficiaries);
+  const c1ResiduaryInstruction = fmt(record.client1ResidualEstate) || fmt(record.residuaryEstate);
+  const c2ResiduaryInstruction = fmt(record.client2ResidualEstate);
   const c1Gifts: any[] = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : (Array.isArray(record.specificGifts) ? record.specificGifts : []);
   const c2Gifts: any[] = Array.isArray(record.client2SpecificGifts) ? record.client2SpecificGifts : [];
 
@@ -552,21 +554,21 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   children.push(dividerPara());
   children.push(sectionHeading("Distribution of Your Estate"));
   if (isMirror) {
-    if (c1Bens.length) {
+    if (c1Bens.length || c1ResiduaryInstruction) {
       children.push(new Paragraph({ children: [new TextRun({ text: `Client 1 — ${record.client1FirstName || ""}`, bold: true, size: 20 })], spacing: { after: 80 } }));
-      children.push(bodyPara("Your estate will be distributed as follows:"));
+      if (c1Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c1Bens));
-      if (record.client1ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client1ResidualEstate));
+      if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
     }
-    if (c2Bens.length) {
+    if (c2Bens.length || c2ResiduaryInstruction) {
       children.push(new Paragraph({ children: [new TextRun({ text: `Client 2 — ${record.client2FirstName || ""}`, bold: true, size: 20 })], spacing: { before: 120, after: 80 } }));
-      children.push(bodyPara("Your estate will be distributed as follows:"));
+      if (c2Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c2Bens));
-      if (record.client2ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client2ResidualEstate));
+      if (c2ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c2ResiduaryInstruction));
     }
   } else {
     children.push(...benListParas(c1Bens));
-    if (record.client1ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client1ResidualEstate));
+    if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
   }
 
   if (record.disasterClauseNotes || record.disasterClauseClient1) {

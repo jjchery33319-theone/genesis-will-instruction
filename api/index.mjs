@@ -9653,6 +9653,8 @@ function generateWelcomePackHtml(record) {
   const c1ResGuards = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : Array.isArray(record.reservedGuardians) ? record.reservedGuardians : [];
   const c1Bens = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
   const c2Bens = storedArray(record.client2Beneficiaries);
+  const c1ResiduaryInstruction = fmt(record.client1ResidualEstate) || fmt(record.residuaryEstate);
+  const c2ResiduaryInstruction = fmt(record.client2ResidualEstate);
   const c1Gifts = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : Array.isArray(record.specificGifts) ? record.specificGifts : [];
   const c2Gifts = Array.isArray(record.client2SpecificGifts) ? record.client2SpecificGifts : [];
   const hasGifts = c1Gifts.length > 0 || c2Gifts.length > 0;
@@ -10775,25 +10777,25 @@ function generateWelcomePackHtml(record) {
 
       ${sectionHeading2(iconPie, "Distribution of Your Estate")}
       ${isMirror ? `
-        ${c1Bens.length > 0 ? `
+        ${c1Bens.length > 0 || c1ResiduaryInstruction ? `
           <div class="subsection">
             <div class="subsection-label">Client 1 \u2014 ${record.client1FirstName || ""}</div>
-            <p class="body-text">Your estate will be distributed as follows:</p>
+            ${c1Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c1Bens)}
-            ${record.client1ResidualEstate ? `<p class="body-text" style="margin-top:8px">Any remaining estate will pass to: <strong>${record.client1ResidualEstate}</strong></p>` : ""}
+            ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
           </div>
         ` : ""}
-        ${c2Bens.length > 0 ? `
+        ${c2Bens.length > 0 || c2ResiduaryInstruction ? `
           <div class="subsection" style="margin-top:14px">
             <div class="subsection-label">Client 2 \u2014 ${record.client2FirstName || ""}</div>
-            <p class="body-text">Your estate will be distributed as follows:</p>
+            ${c2Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c2Bens)}
-            ${record.client2ResidualEstate ? `<p class="body-text" style="margin-top:8px">Any remaining estate will pass to: <strong>${record.client2ResidualEstate}</strong></p>` : ""}
+            ${c2ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c2ResiduaryInstruction}</div></div>` : ""}
           </div>
         ` : ""}
       ` : `
         ${c1Bens.length > 0 ? benList(c1Bens) : ""}
-        ${record.client1ResidualEstate ? `<p class="body-text" style="margin-top:8px">Any remaining estate will pass to: <strong>${record.client1ResidualEstate}</strong></p>` : ""}
+        ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
       `}
 
       ${record.disasterClauseNotes || record.disasterClauseClient1 ? `
@@ -11448,6 +11450,8 @@ async function generateWelcomePackDocx(record) {
   const c1ResGuards = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : Array.isArray(record.reservedGuardians) ? record.reservedGuardians : [];
   const c1Bens = storedArray2(record.client1Beneficiaries).length ? storedArray2(record.client1Beneficiaries) : storedArray2(record.beneficiaries);
   const c2Bens = storedArray2(record.client2Beneficiaries);
+  const c1ResiduaryInstruction = fmt2(record.client1ResidualEstate) || fmt2(record.residuaryEstate);
+  const c2ResiduaryInstruction = fmt2(record.client2ResidualEstate);
   const c1Gifts = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : Array.isArray(record.specificGifts) ? record.specificGifts : [];
   const c2Gifts = Array.isArray(record.client2SpecificGifts) ? record.client2SpecificGifts : [];
   const c1Under18 = Array.isArray(record.client1ChildrenUnder18) ? record.client1ChildrenUnder18 : [];
@@ -11600,21 +11604,21 @@ async function generateWelcomePackDocx(record) {
   children.push(dividerPara());
   children.push(sectionHeading("Distribution of Your Estate"));
   if (isMirror) {
-    if (c1Bens.length) {
+    if (c1Bens.length || c1ResiduaryInstruction) {
       children.push(new Paragraph2({ children: [new TextRun2({ text: `Client 1 \u2014 ${record.client1FirstName || ""}`, bold: true, size: 20 })], spacing: { after: 80 } }));
-      children.push(bodyPara("Your estate will be distributed as follows:"));
+      if (c1Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c1Bens));
-      if (record.client1ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client1ResidualEstate));
+      if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
     }
-    if (c2Bens.length) {
+    if (c2Bens.length || c2ResiduaryInstruction) {
       children.push(new Paragraph2({ children: [new TextRun2({ text: `Client 2 \u2014 ${record.client2FirstName || ""}`, bold: true, size: 20 })], spacing: { before: 120, after: 80 } }));
-      children.push(bodyPara("Your estate will be distributed as follows:"));
+      if (c2Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c2Bens));
-      if (record.client2ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client2ResidualEstate));
+      if (c2ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c2ResiduaryInstruction));
     }
   } else {
     children.push(...benListParas(c1Bens));
-    if (record.client1ResidualEstate) children.push(boldBodyPara("Any remaining estate will pass to", record.client1ResidualEstate));
+    if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
   }
   if (record.disasterClauseNotes || record.disasterClauseClient1) {
     children.push(spacerPara());

@@ -77,4 +77,22 @@ describe("V1 welcome pack completeness", () => {
     expect(html).toContain("David Beneficiary");
     expect(html).toContain("40%");
   });
+
+  it("renders a free-text Residuary Estate instruction even when no named beneficiaries were entered", () => {
+    const instruction = "50% to my partner, Jordan Example, and 50% to my daughter, Casey Example; if either fails to survive me, their share passes to their children equally.";
+    const html = generateWelcomePackHtml({
+      willType: "Mirror Wills",
+      client1FirstName: "Alice",
+      client1LastName: "Example",
+      client2FirstName: "Brian",
+      client2LastName: "Example",
+      client1Beneficiaries: "[]",
+      client2Beneficiaries: "[]",
+      client1ResidualEstate: instruction,
+      client2ResidualEstate: instruction,
+    });
+
+    expect(html).toContain("Residuary Estate Instruction");
+    expect(html).toContain(instruction);
+  });
 });

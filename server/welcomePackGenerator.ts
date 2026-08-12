@@ -124,6 +124,8 @@ export function generateWelcomePackHtml(record: WillRecord): string {
   // Beneficiaries
   const c1Bens: any[] = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
   const c2Bens: any[] = storedArray(record.client2Beneficiaries);
+  const c1ResiduaryInstruction = fmt(record.client1ResidualEstate) || fmt(record.residuaryEstate);
+  const c2ResiduaryInstruction = fmt(record.client2ResidualEstate);
 
   // Gifts
   const c1Gifts: any[] = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : (Array.isArray(record.specificGifts) ? record.specificGifts : []);
@@ -1285,25 +1287,25 @@ export function generateWelcomePackHtml(record: WillRecord): string {
 
       ${sectionHeading(iconPie, "Distribution of Your Estate")}
       ${isMirror ? `
-        ${c1Bens.length > 0 ? `
+        ${c1Bens.length > 0 || c1ResiduaryInstruction ? `
           <div class="subsection">
             <div class="subsection-label">Client 1 — ${record.client1FirstName || ""}</div>
-            <p class="body-text">Your estate will be distributed as follows:</p>
+            ${c1Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c1Bens)}
-            ${record.client1ResidualEstate ? `<p class="body-text" style="margin-top:8px">Any remaining estate will pass to: <strong>${record.client1ResidualEstate}</strong></p>` : ""}
+            ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
           </div>
         ` : ""}
-        ${c2Bens.length > 0 ? `
+        ${c2Bens.length > 0 || c2ResiduaryInstruction ? `
           <div class="subsection" style="margin-top:14px">
             <div class="subsection-label">Client 2 — ${record.client2FirstName || ""}</div>
-            <p class="body-text">Your estate will be distributed as follows:</p>
+            ${c2Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c2Bens)}
-            ${record.client2ResidualEstate ? `<p class="body-text" style="margin-top:8px">Any remaining estate will pass to: <strong>${record.client2ResidualEstate}</strong></p>` : ""}
+            ${c2ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c2ResiduaryInstruction}</div></div>` : ""}
           </div>
         ` : ""}
       ` : `
         ${c1Bens.length > 0 ? benList(c1Bens) : ""}
-        ${record.client1ResidualEstate ? `<p class="body-text" style="margin-top:8px">Any remaining estate will pass to: <strong>${record.client1ResidualEstate}</strong></p>` : ""}
+        ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
       `}
 
       ${(record.disasterClauseNotes || record.disasterClauseClient1) ? `
