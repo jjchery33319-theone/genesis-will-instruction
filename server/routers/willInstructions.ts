@@ -67,6 +67,13 @@ const businessInterestSchema = z.object({
   ownershipPercentage: z.string().optional(),
   notes: z.string().optional(),
 });
+const exclusionSchema = z.object({
+  fullName: z.string().optional(),
+  relationship: z.string().optional(),
+  reason: z.string().optional(),
+  otherReason: z.string().optional(),
+  notes: z.string().optional(),
+});
 
 // ── Optional clause sub-schemas ──────────────────────────────────────────────
 
@@ -237,12 +244,14 @@ const willInstructionInputSchema = z.object({
   client1ChildrenBenefitAge: z.string().optional(),
   client1HasVulnerableBeneficiary: z.string().optional(),
   client1VulnerableBeneficiaryDetails: z.string().optional(),
+  client1Exclusions: z.array(exclusionSchema).optional(),
   client2Beneficiaries: z.array(personSchema).optional(),
   client2ResidualEstate: z.string().optional(),
   client2ResidualBackup: z.string().optional(),
   client2ChildrenBenefitAge: z.string().optional(),
   client2HasVulnerableBeneficiary: z.string().optional(),
   client2VulnerableBeneficiaryDetails: z.string().optional(),
+  client2Exclusions: z.array(exclusionSchema).optional(),
 
   // Per-client gifts
   client1SpecificGifts: z.array(specificGiftSchema).optional(),
@@ -457,6 +466,8 @@ export const willInstructionsRouter = router({
         client2ReservedGuardians: input.client2ReservedGuardians ?? [],
         client1Beneficiaries: input.client1Beneficiaries ?? [],
         client2Beneficiaries: input.client2Beneficiaries ?? [],
+        client1Exclusions: input.client1Exclusions ?? [],
+        client2Exclusions: input.client2Exclusions ?? [],
         client1SpecificGifts: input.client1SpecificGifts ?? [],
         client2SpecificGifts: input.client2SpecificGifts ?? [],
         client1ChildrenUnder18: input.client1ChildrenUnder18 ?? [],
@@ -622,6 +633,8 @@ export const willInstructionsRouter = router({
         client2ReservedGuardians: formData.client2ReservedGuardians ?? [],
         client1Beneficiaries: formData.client1Beneficiaries ?? [],
         client2Beneficiaries: formData.client2Beneficiaries ?? [],
+        client1Exclusions: formData.client1Exclusions ?? [],
+        client2Exclusions: formData.client2Exclusions ?? [],
         client1SpecificGifts: formData.client1SpecificGifts ?? [],
         client2SpecificGifts: formData.client2SpecificGifts ?? [],
         client1ChildrenUnder18: formData.client1ChildrenUnder18 ?? [],
@@ -760,6 +773,8 @@ export const willInstructionsRouter = router({
         client2ReservedGuardians: formData.client2ReservedGuardians ?? undefined,
         client1Beneficiaries: formData.client1Beneficiaries ?? undefined,
         client2Beneficiaries: formData.client2Beneficiaries ?? undefined,
+        client1Exclusions: formData.client1Exclusions ?? undefined,
+        client2Exclusions: formData.client2Exclusions ?? undefined,
         client1SpecificGifts: formData.client1SpecificGifts ?? undefined,
         client2SpecificGifts: formData.client2SpecificGifts ?? undefined,
         client1ChildrenUnder18: formData.client1ChildrenUnder18 ?? undefined,

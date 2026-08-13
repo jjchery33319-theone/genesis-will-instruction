@@ -2,11 +2,12 @@ import { WillFormData, PersonEntry } from "../../../hooks/useWillForm";
 import { FormCard, FieldRow, SectionDivider } from "../FormCard";
 import { PersonList, QuickFillSource } from "../PersonFields";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { CHILDREN_BENEFIT_AGES } from "../../../../../shared/willConstants";
-import { Heart, AlertTriangle, BookOpen, Copy, RotateCcw } from "lucide-react";
+import { Heart, AlertTriangle, BookOpen, Copy, RotateCcw, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCopyUndo } from "../../../hooks/useCopyUndo";
 
@@ -61,6 +62,74 @@ function buildQuickFillSources(data: WillFormData): QuickFillSource[] {
   return sources;
 }
 
+const EXCLUSION_REASONS = [
+  { value: "relationship_breakdown", label: "Relationship breakdown" },
+  { value: "already_provided_for", label: "Already adequately provided for" },
+  { value: "no_ongoing_relationship", label: "No ongoing relationship" },
+  { value: "other", label: "Other reason" },
+];
+
+function ExclusionInstructions({
+  exclusionsKey,
+  data,
+  onChange,
+}: {
+  exclusionsKey: "client1Exclusions" | "client2Exclusions";
+  data: WillFormData;
+  onChange: (updates: Partial<WillFormData>) => void;
+}) {
+  const exclusions = data[exclusionsKey] ?? [];
+  const setExclusions = (next: typeof exclusions) => onChange({ [exclusionsKey]: next } as Partial<WillFormData>);
+  const updateExclusion = (index: number, field: keyof (typeof exclusions)[number], value: string) => {
+    setExclusions(exclusions.map((entry, entryIndex) => entryIndex === index ? { ...entry, [field]: value } : entry));
+  };
+
+  return (
+    <div className="mt-5 border-t pt-5">
+      <div className="flex items-center gap-3">
+        <Switch
+          id={`${exclusionsKey}-enabled`}
+          checked={exclusions.length > 0}
+          onCheckedChange={(enabled) => setExclusions(enabled ? (exclusions.length ? exclusions : [{ fullName: "" }]) : [])}
+        />
+        <Label htmlFor={`${exclusionsKey}-enabled`} className="text-sm cursor-pointer">
+          Do you want to exclude someone from your estate?
+        </Label>
+      </div>
+      {exclusions.length > 0 && (
+        <div className="mt-4 space-y-4">
+          <p className="text-xs text-muted-foreground">Record anyone who is expressly intended to receive no benefit. You can add more than one person.</p>
+          {exclusions.map((entry, index) => (
+            <div key={index} className="rounded-lg border bg-muted/20 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">Excluded person {index + 1}</p>
+                <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setExclusions(exclusions.filter((_, entryIndex) => entryIndex !== index))}>
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FieldRow label="Full name"><Input value={entry.fullName} onChange={e => updateExclusion(index, "fullName", e.target.value)} placeholder="Full name" /></FieldRow>
+                <FieldRow label="Relationship to client"><Input value={entry.relationship ?? ""} onChange={e => updateExclusion(index, "relationship", e.target.value)} placeholder="e.g. Son, former partner" /></FieldRow>
+              </div>
+              <FieldRow label="Reason for exclusion">
+                <Select value={entry.reason ?? ""} onValueChange={value => updateExclusion(index, "reason", value)}>
+                  <SelectTrigger><SelectValue placeholder="Select reason…" /></SelectTrigger>
+                  <SelectContent>{EXCLUSION_REASONS.map(reason => <SelectItem key={reason.value} value={reason.value}>{reason.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </FieldRow>
+              {entry.reason === "other" && <FieldRow label="Other reason"><Input value={entry.otherReason ?? ""} onChange={e => updateExclusion(index, "otherReason", e.target.value)} placeholder="Describe the reason" /></FieldRow>}
+              <FieldRow label="Additional instructions or notes"><Textarea rows={3} value={entry.notes ?? ""} onChange={e => updateExclusion(index, "notes", e.target.value)} placeholder="Any further instruction for the Will writer…" /></FieldRow>
+            </div>
+          ))}
+          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setExclusions([...exclusions, { fullName: "" }])}>
+            <Plus className="h-3.5 w-3.5" /> Add another person
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClientBeneficiarySection({
   label,
   beneficiariesKey,
@@ -69,6 +138,7 @@ function ClientBeneficiarySection({
   childrenBenefitAgeKey,
   hasVulnerableKey,
   vulnerableDetailsKey,
+  exclusionsKey,
   data,
   onChange,
   quickFillSources,
@@ -80,6 +150,7 @@ function ClientBeneficiarySection({
   childrenBenefitAgeKey: "client1ChildrenBenefitAge" | "client2ChildrenBenefitAge";
   hasVulnerableKey: "client1HasVulnerableBeneficiary" | "client2HasVulnerableBeneficiary";
   vulnerableDetailsKey: "client1VulnerableBeneficiaryDetails" | "client2VulnerableBeneficiaryDetails";
+  exclusionsKey: "client1Exclusions" | "client2Exclusions";
   data: WillFormData;
   onChange: (updates: Partial<WillFormData>) => void;
   quickFillSources: QuickFillSource[];
@@ -195,6 +266,8 @@ function ClientBeneficiarySection({
           </FieldRow>
         </div>
       )}
+
+      <ExclusionInstructions exclusionsKey={exclusionsKey} data={data} onChange={onChange} />
     </div>
   );
 }
@@ -223,6 +296,7 @@ export default function Step5Beneficiaries({ data, onChange }: Props) {
           childrenBenefitAgeKey="client1ChildrenBenefitAge"
           hasVulnerableKey="client1HasVulnerableBeneficiary"
           vulnerableDetailsKey="client1VulnerableBeneficiaryDetails"
+          exclusionsKey="client1Exclusions"
           data={data}
           onChange={onChange}
           quickFillSources={quickFillSources}
@@ -272,6 +346,7 @@ export default function Step5Beneficiaries({ data, onChange }: Props) {
                 childrenBenefitAgeKey="client2ChildrenBenefitAge"
                 hasVulnerableKey="client2HasVulnerableBeneficiary"
                 vulnerableDetailsKey="client2VulnerableBeneficiaryDetails"
+                exclusionsKey="client2Exclusions"
                 data={data}
                 onChange={onChange}
                 quickFillSources={quickFillSources}

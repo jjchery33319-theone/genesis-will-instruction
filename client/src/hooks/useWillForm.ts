@@ -17,6 +17,14 @@ export type PersonEntry = {
   notes?: string;
 };
 
+export type ExclusionEntry = {
+  fullName: string;
+  relationship?: string;
+  reason?: string;
+  otherReason?: string;
+  notes?: string;
+};
+
 export type SpecificGift = {
   description: string;
   recipient: string;
@@ -177,12 +185,14 @@ export type WillFormData = {
   client1ChildrenBenefitAge?: string;
   client1HasVulnerableBeneficiary?: string;
   client1VulnerableBeneficiaryDetails?: string;
+  client1Exclusions?: ExclusionEntry[];
   client2Beneficiaries?: PersonEntry[];
   client2ResidualEstate?: string;
   client2ResidualBackup?: string;
   client2ChildrenBenefitAge?: string;
   client2HasVulnerableBeneficiary?: string;
   client2VulnerableBeneficiaryDetails?: string;
+  client2Exclusions?: ExclusionEntry[];
   // Legacy shared fields
   beneficiaries?: PersonEntry[];
   childrenBenefitAge?: string;
@@ -290,6 +300,8 @@ const initialData: WillFormData = {
   // Per-client beneficiaries
   client1Beneficiaries: [],
   client2Beneficiaries: [],
+  client1Exclusions: [],
+  client2Exclusions: [],
   beneficiaries: [],
   // Per-client gifts
   client1SpecificGifts: [],
@@ -425,6 +437,8 @@ function loadFromLocalStorage(): WillFormData {
       client2ReservedGuardians: (parsed.client2ReservedGuardians as PersonEntry[] | null) ?? [],
       client1Beneficiaries: migratedC1,
       client2Beneficiaries: c2Beneficiaries,
+      client1Exclusions: (parsed.client1Exclusions as ExclusionEntry[] | null) ?? [],
+      client2Exclusions: (parsed.client2Exclusions as ExclusionEntry[] | null) ?? [],
       client1SpecificGifts: migratedC1Gifts,
       client2SpecificGifts: (parsed.client2SpecificGifts as SpecificGift[] | null) ?? [],
       client1ChildrenUnder18: (parsed.client1ChildrenUnder18 as ChildEntry[] | null) ?? [],
@@ -491,6 +505,8 @@ export function useWillForm() {
         client2ReservedGuardians: (d.client2ReservedGuardians as PersonEntry[] | null) ?? [],
         client1Beneficiaries: (d.client1Beneficiaries as PersonEntry[] | null) ?? [],
         client2Beneficiaries: (d.client2Beneficiaries as PersonEntry[] | null) ?? [],
+        client1Exclusions: (d.client1Exclusions as ExclusionEntry[] | null) ?? [],
+        client2Exclusions: (d.client2Exclusions as ExclusionEntry[] | null) ?? [],
         client1SpecificGifts: (d.client1SpecificGifts as SpecificGift[] | null) ?? [],
         client2SpecificGifts: (d.client2SpecificGifts as SpecificGift[] | null) ?? [],
         client1ChildrenUnder18: (d.client1ChildrenUnder18 as ChildEntry[] | null) ?? [],

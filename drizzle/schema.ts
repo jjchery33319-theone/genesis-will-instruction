@@ -142,6 +142,8 @@ export const willInstructions = mysqlTable("will_instructions", {
   client2ReservedGuardians: json("client2ReservedGuardians"),
   client1Beneficiaries: json("client1Beneficiaries"),
   client2Beneficiaries: json("client2Beneficiaries"),
+  client1Exclusions: json("client1Exclusions").$type<Array<{ fullName?: string; relationship?: string; reason?: string; otherReason?: string; notes?: string }>>(),
+  client2Exclusions: json("client2Exclusions").$type<Array<{ fullName?: string; relationship?: string; reason?: string; otherReason?: string; notes?: string }>>(),
   client1SpecificGifts: json("client1SpecificGifts"),
   client2SpecificGifts: json("client2SpecificGifts"),
   childrenBenefitAge: varchar("childrenBenefitAge", { length: 8 }),

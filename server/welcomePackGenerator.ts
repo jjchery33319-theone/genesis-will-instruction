@@ -124,6 +124,8 @@ export function generateWelcomePackHtml(record: WillRecord): string {
   // Beneficiaries
   const c1Bens: any[] = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
   const c2Bens: any[] = storedArray(record.client2Beneficiaries);
+  const c1Exclusions: any[] = storedArray(record.client1Exclusions);
+  const c2Exclusions: any[] = storedArray(record.client2Exclusions);
   const c1ResiduaryInstruction = fmt(record.client1ResidualEstate) || fmt(record.residuaryEstate);
   const c2ResiduaryInstruction = fmt(record.client2ResidualEstate);
 
@@ -247,6 +249,20 @@ export function generateWelcomePackHtml(record: WillRecord): string {
       const rel = b.relationship ? ` <span class="rel-tag">${b.relationship}</span>` : "";
       return `<li class="ben-item"><span class="ben-name">${name}</span>${rel}${shareStr}</li>`;
     }).join("") + `</ul>`;
+  }
+
+  function exclusionList(exclusions: any[]): string {
+    if (!exclusions.length) return "";
+    const entries = exclusions.map(exclusion => {
+      const name = exclusion.fullName || "Unnamed person";
+      const relationship = exclusion.relationship ? ` (${exclusion.relationship})` : "";
+      const reason = exclusion.reason
+        ? ` — ${exclusion.reason === "other" ? exclusion.otherReason || "Other reason" : String(exclusion.reason).replaceAll("_", " ")}`
+        : "";
+      const notes = exclusion.notes ? `: ${exclusion.notes}` : "";
+      return `<li class="ben-item"><span class="ben-name">${name}${relationship}${reason}${notes}</span></li>`;
+    }).join("");
+    return `<div style="margin-top:10px;padding:10px 14px;background:#fffaf0;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Exclusion Instructions</div><ul class="ben-list">${entries}</ul></div>`;
   }
 
   // Helper: gift list
@@ -1287,25 +1303,28 @@ export function generateWelcomePackHtml(record: WillRecord): string {
 
       ${sectionHeading(iconPie, "Distribution of Your Estate")}
       ${isMirror ? `
-        ${c1Bens.length > 0 || c1ResiduaryInstruction ? `
+        ${c1Bens.length > 0 || c1ResiduaryInstruction || c1Exclusions.length > 0 ? `
           <div class="subsection">
             <div class="subsection-label">Client 1 — ${record.client1FirstName || ""}</div>
             ${c1Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c1Bens)}
             ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
+            ${exclusionList(c1Exclusions)}
           </div>
         ` : ""}
-        ${c2Bens.length > 0 || c2ResiduaryInstruction ? `
+        ${c2Bens.length > 0 || c2ResiduaryInstruction || c2Exclusions.length > 0 ? `
           <div class="subsection" style="margin-top:14px">
             <div class="subsection-label">Client 2 — ${record.client2FirstName || ""}</div>
             ${c2Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c2Bens)}
             ${c2ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c2ResiduaryInstruction}</div></div>` : ""}
+            ${exclusionList(c2Exclusions)}
           </div>
         ` : ""}
       ` : `
         ${c1Bens.length > 0 ? benList(c1Bens) : ""}
         ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
+        ${exclusionList(c1Exclusions)}
       `}
 
       ${(record.disasterClauseNotes || record.disasterClauseClient1) ? `

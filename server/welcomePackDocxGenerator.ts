@@ -286,6 +286,21 @@ function benListParas(bens: any[]): Paragraph[] {
   });
 }
 
+function exclusionParas(exclusions: any[]): Paragraph[] {
+  if (!exclusions.length) return [];
+  const paragraphs: Paragraph[] = [new Paragraph({ children: [new TextRun({ text: "Exclusion Instructions", bold: true, size: 20, color: LIGHT_GREEN })], spacing: { before: 100, after: 60 } })];
+  exclusions.forEach(exclusion => {
+    const name = exclusion.fullName || "Unnamed person";
+    const relationship = exclusion.relationship ? ` (${exclusion.relationship})` : "";
+    const reason = exclusion.reason
+      ? ` — ${exclusion.reason === "other" ? exclusion.otherReason || "Other reason" : String(exclusion.reason).replaceAll("_", " ")}`
+      : "";
+    const notes = exclusion.notes ? `: ${exclusion.notes}` : "";
+    paragraphs.push(bulletPara(`${name}${relationship}${reason}${notes}`));
+  });
+  return paragraphs;
+}
+
 function giftParas(gifts: any[], label: string): Paragraph[] {
   if (!gifts.length) return [];
   const paras: Paragraph[] = [];
@@ -381,6 +396,8 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   const c1ResGuards: any[] = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : (Array.isArray(record.reservedGuardians) ? record.reservedGuardians : []);
   const c1Bens: any[] = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
   const c2Bens: any[] = storedArray(record.client2Beneficiaries);
+  const c1Exclusions: any[] = storedArray(record.client1Exclusions);
+  const c2Exclusions: any[] = storedArray(record.client2Exclusions);
   const c1ResiduaryInstruction = fmt(record.client1ResidualEstate) || fmt(record.residuaryEstate);
   const c2ResiduaryInstruction = fmt(record.client2ResidualEstate);
   const c1Gifts: any[] = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : (Array.isArray(record.specificGifts) ? record.specificGifts : []);
@@ -554,21 +571,24 @@ export async function generateWelcomePackDocx(record: WillRecord): Promise<Buffe
   children.push(dividerPara());
   children.push(sectionHeading("Distribution of Your Estate"));
   if (isMirror) {
-    if (c1Bens.length || c1ResiduaryInstruction) {
+    if (c1Bens.length || c1ResiduaryInstruction || c1Exclusions.length) {
       children.push(new Paragraph({ children: [new TextRun({ text: `Client 1 — ${record.client1FirstName || ""}`, bold: true, size: 20 })], spacing: { after: 80 } }));
       if (c1Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c1Bens));
       if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
+      children.push(...exclusionParas(c1Exclusions));
     }
-    if (c2Bens.length || c2ResiduaryInstruction) {
+    if (c2Bens.length || c2ResiduaryInstruction || c2Exclusions.length) {
       children.push(new Paragraph({ children: [new TextRun({ text: `Client 2 — ${record.client2FirstName || ""}`, bold: true, size: 20 })], spacing: { before: 120, after: 80 } }));
       if (c2Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c2Bens));
       if (c2ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c2ResiduaryInstruction));
+      children.push(...exclusionParas(c2Exclusions));
     }
   } else {
     children.push(...benListParas(c1Bens));
     if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
+    children.push(...exclusionParas(c1Exclusions));
   }
 
   if (record.disasterClauseNotes || record.disasterClauseClient1) {

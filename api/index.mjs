@@ -173,6 +173,8 @@ var init_schema = __esm({
       client2ReservedGuardians: json("client2ReservedGuardians"),
       client1Beneficiaries: json("client1Beneficiaries"),
       client2Beneficiaries: json("client2Beneficiaries"),
+      client1Exclusions: json("client1Exclusions").$type(),
+      client2Exclusions: json("client2Exclusions").$type(),
       client1SpecificGifts: json("client1SpecificGifts"),
       client2SpecificGifts: json("client2SpecificGifts"),
       childrenBenefitAge: varchar("childrenBenefitAge", { length: 8 }),
@@ -3332,6 +3334,13 @@ var businessInterestSchema = z2.object({
   ownershipPercentage: z2.string().optional(),
   notes: z2.string().optional()
 });
+var exclusionSchema = z2.object({
+  fullName: z2.string().optional(),
+  relationship: z2.string().optional(),
+  reason: z2.string().optional(),
+  otherReason: z2.string().optional(),
+  notes: z2.string().optional()
+});
 var pptTerminationTriggersSchema = z2.object({
   onDeath: z2.boolean().optional(),
   onRemarriageOrCohabitation: z2.boolean().optional(),
@@ -3480,12 +3489,14 @@ var willInstructionInputSchema = z2.object({
   client1ChildrenBenefitAge: z2.string().optional(),
   client1HasVulnerableBeneficiary: z2.string().optional(),
   client1VulnerableBeneficiaryDetails: z2.string().optional(),
+  client1Exclusions: z2.array(exclusionSchema).optional(),
   client2Beneficiaries: z2.array(personSchema).optional(),
   client2ResidualEstate: z2.string().optional(),
   client2ResidualBackup: z2.string().optional(),
   client2ChildrenBenefitAge: z2.string().optional(),
   client2HasVulnerableBeneficiary: z2.string().optional(),
   client2VulnerableBeneficiaryDetails: z2.string().optional(),
+  client2Exclusions: z2.array(exclusionSchema).optional(),
   // Per-client gifts
   client1SpecificGifts: z2.array(specificGiftSchema).optional(),
   client2SpecificGifts: z2.array(specificGiftSchema).optional(),
@@ -3672,6 +3683,8 @@ var willInstructionsRouter = router({
       client2ReservedGuardians: input.client2ReservedGuardians ?? [],
       client1Beneficiaries: input.client1Beneficiaries ?? [],
       client2Beneficiaries: input.client2Beneficiaries ?? [],
+      client1Exclusions: input.client1Exclusions ?? [],
+      client2Exclusions: input.client2Exclusions ?? [],
       client1SpecificGifts: input.client1SpecificGifts ?? [],
       client2SpecificGifts: input.client2SpecificGifts ?? [],
       client1ChildrenUnder18: input.client1ChildrenUnder18 ?? [],
@@ -3797,6 +3810,8 @@ var willInstructionsRouter = router({
       client2ReservedGuardians: formData.client2ReservedGuardians ?? [],
       client1Beneficiaries: formData.client1Beneficiaries ?? [],
       client2Beneficiaries: formData.client2Beneficiaries ?? [],
+      client1Exclusions: formData.client1Exclusions ?? [],
+      client2Exclusions: formData.client2Exclusions ?? [],
       client1SpecificGifts: formData.client1SpecificGifts ?? [],
       client2SpecificGifts: formData.client2SpecificGifts ?? [],
       client1ChildrenUnder18: formData.client1ChildrenUnder18 ?? [],
@@ -3896,6 +3911,8 @@ var willInstructionsRouter = router({
       client2ReservedGuardians: formData.client2ReservedGuardians ?? void 0,
       client1Beneficiaries: formData.client1Beneficiaries ?? void 0,
       client2Beneficiaries: formData.client2Beneficiaries ?? void 0,
+      client1Exclusions: formData.client1Exclusions ?? void 0,
+      client2Exclusions: formData.client2Exclusions ?? void 0,
       client1SpecificGifts: formData.client1SpecificGifts ?? void 0,
       client2SpecificGifts: formData.client2SpecificGifts ?? void 0,
       client1ChildrenUnder18: formData.client1ChildrenUnder18 ?? void 0,
@@ -9653,6 +9670,8 @@ function generateWelcomePackHtml(record) {
   const c1ResGuards = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : Array.isArray(record.reservedGuardians) ? record.reservedGuardians : [];
   const c1Bens = storedArray(record.client1Beneficiaries).length ? storedArray(record.client1Beneficiaries) : storedArray(record.beneficiaries);
   const c2Bens = storedArray(record.client2Beneficiaries);
+  const c1Exclusions = storedArray(record.client1Exclusions);
+  const c2Exclusions = storedArray(record.client2Exclusions);
   const c1ResiduaryInstruction = fmt(record.client1ResidualEstate) || fmt(record.residuaryEstate);
   const c2ResiduaryInstruction = fmt(record.client2ResidualEstate);
   const c1Gifts = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : Array.isArray(record.specificGifts) ? record.specificGifts : [];
@@ -9755,6 +9774,17 @@ function generateWelcomePackHtml(record) {
       const rel = b.relationship ? ` <span class="rel-tag">${b.relationship}</span>` : "";
       return `<li class="ben-item"><span class="ben-name">${name}</span>${rel}${shareStr}</li>`;
     }).join("") + `</ul>`;
+  }
+  function exclusionList(exclusions) {
+    if (!exclusions.length) return "";
+    const entries = exclusions.map((exclusion) => {
+      const name = exclusion.fullName || "Unnamed person";
+      const relationship2 = exclusion.relationship ? ` (${exclusion.relationship})` : "";
+      const reason = exclusion.reason ? ` \u2014 ${exclusion.reason === "other" ? exclusion.otherReason || "Other reason" : String(exclusion.reason).replaceAll("_", " ")}` : "";
+      const notes = exclusion.notes ? `: ${exclusion.notes}` : "";
+      return `<li class="ben-item"><span class="ben-name">${name}${relationship2}${reason}${notes}</span></li>`;
+    }).join("");
+    return `<div style="margin-top:10px;padding:10px 14px;background:#fffaf0;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Exclusion Instructions</div><ul class="ben-list">${entries}</ul></div>`;
   }
   function recipientLabel(g) {
     const group = g.recipientGroup || "";
@@ -10777,25 +10807,28 @@ function generateWelcomePackHtml(record) {
 
       ${sectionHeading2(iconPie, "Distribution of Your Estate")}
       ${isMirror ? `
-        ${c1Bens.length > 0 || c1ResiduaryInstruction ? `
+        ${c1Bens.length > 0 || c1ResiduaryInstruction || c1Exclusions.length > 0 ? `
           <div class="subsection">
             <div class="subsection-label">Client 1 \u2014 ${record.client1FirstName || ""}</div>
             ${c1Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c1Bens)}
             ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
+            ${exclusionList(c1Exclusions)}
           </div>
         ` : ""}
-        ${c2Bens.length > 0 || c2ResiduaryInstruction ? `
+        ${c2Bens.length > 0 || c2ResiduaryInstruction || c2Exclusions.length > 0 ? `
           <div class="subsection" style="margin-top:14px">
             <div class="subsection-label">Client 2 \u2014 ${record.client2FirstName || ""}</div>
             ${c2Bens.length > 0 ? `<p class="body-text">Your named beneficiaries are:</p>` : ""}
             ${benList(c2Bens)}
             ${c2ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c2ResiduaryInstruction}</div></div>` : ""}
+            ${exclusionList(c2Exclusions)}
           </div>
         ` : ""}
       ` : `
         ${c1Bens.length > 0 ? benList(c1Bens) : ""}
         ${c1ResiduaryInstruction ? `<div style="margin-top:10px;padding:10px 14px;background:#f8faf9;border-left:3px solid #C9A84C;border-radius:6px"><div style="font-weight:600;color:#1B4332;font-size:9pt;margin-bottom:4px">Residuary Estate Instruction</div><div class="body-text">${c1ResiduaryInstruction}</div></div>` : ""}
+        ${exclusionList(c1Exclusions)}
       `}
 
       ${record.disasterClauseNotes || record.disasterClauseClient1 ? `
@@ -11370,6 +11403,18 @@ function benListParas(bens) {
     return bulletPara(parts);
   });
 }
+function exclusionParas(exclusions) {
+  if (!exclusions.length) return [];
+  const paragraphs = [new Paragraph2({ children: [new TextRun2({ text: "Exclusion Instructions", bold: true, size: 20, color: LIGHT_GREEN })], spacing: { before: 100, after: 60 } })];
+  exclusions.forEach((exclusion) => {
+    const name = exclusion.fullName || "Unnamed person";
+    const relationship2 = exclusion.relationship ? ` (${exclusion.relationship})` : "";
+    const reason = exclusion.reason ? ` \u2014 ${exclusion.reason === "other" ? exclusion.otherReason || "Other reason" : String(exclusion.reason).replaceAll("_", " ")}` : "";
+    const notes = exclusion.notes ? `: ${exclusion.notes}` : "";
+    paragraphs.push(bulletPara(`${name}${relationship2}${reason}${notes}`));
+  });
+  return paragraphs;
+}
 function giftParas(gifts, label) {
   if (!gifts.length) return [];
   const paras = [];
@@ -11450,6 +11495,8 @@ async function generateWelcomePackDocx(record) {
   const c1ResGuards = Array.isArray(record.client1ReservedGuardians) ? record.client1ReservedGuardians : Array.isArray(record.reservedGuardians) ? record.reservedGuardians : [];
   const c1Bens = storedArray2(record.client1Beneficiaries).length ? storedArray2(record.client1Beneficiaries) : storedArray2(record.beneficiaries);
   const c2Bens = storedArray2(record.client2Beneficiaries);
+  const c1Exclusions = storedArray2(record.client1Exclusions);
+  const c2Exclusions = storedArray2(record.client2Exclusions);
   const c1ResiduaryInstruction = fmt2(record.client1ResidualEstate) || fmt2(record.residuaryEstate);
   const c2ResiduaryInstruction = fmt2(record.client2ResidualEstate);
   const c1Gifts = Array.isArray(record.client1SpecificGifts) ? record.client1SpecificGifts : Array.isArray(record.specificGifts) ? record.specificGifts : [];
@@ -11604,21 +11651,24 @@ async function generateWelcomePackDocx(record) {
   children.push(dividerPara());
   children.push(sectionHeading("Distribution of Your Estate"));
   if (isMirror) {
-    if (c1Bens.length || c1ResiduaryInstruction) {
+    if (c1Bens.length || c1ResiduaryInstruction || c1Exclusions.length) {
       children.push(new Paragraph2({ children: [new TextRun2({ text: `Client 1 \u2014 ${record.client1FirstName || ""}`, bold: true, size: 20 })], spacing: { after: 80 } }));
       if (c1Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c1Bens));
       if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
+      children.push(...exclusionParas(c1Exclusions));
     }
-    if (c2Bens.length || c2ResiduaryInstruction) {
+    if (c2Bens.length || c2ResiduaryInstruction || c2Exclusions.length) {
       children.push(new Paragraph2({ children: [new TextRun2({ text: `Client 2 \u2014 ${record.client2FirstName || ""}`, bold: true, size: 20 })], spacing: { before: 120, after: 80 } }));
       if (c2Bens.length) children.push(bodyPara("Your named beneficiaries are:"));
       children.push(...benListParas(c2Bens));
       if (c2ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c2ResiduaryInstruction));
+      children.push(...exclusionParas(c2Exclusions));
     }
   } else {
     children.push(...benListParas(c1Bens));
     if (c1ResiduaryInstruction) children.push(boldBodyPara("Residuary Estate Instruction", c1ResiduaryInstruction));
+    children.push(...exclusionParas(c1Exclusions));
   }
   if (record.disasterClauseNotes || record.disasterClauseClient1) {
     children.push(spacerPara());

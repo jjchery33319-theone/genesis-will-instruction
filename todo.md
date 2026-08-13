@@ -573,3 +573,6 @@
 - [x] Restore populated beneficiary and residuary-estate details in both the editable PDF preview and Word welcome pack
 - [x] Render every named beneficiary and their recorded share under Distribution of Your Estate in both outputs
 - [x] Render the full entered Residuary Estate sentence, including percentage and free-text wording, in both outputs
+
+## V1 Exclusion Instructions
+- [x] Add a V1 question for whether a client wishes to exclude someone, including person and instruction details

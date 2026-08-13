@@ -649,6 +649,19 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
             <Field label="Residuary Estate" value={data.client1ResidualEstate} />
             <Field label="Residuary Backup" value={data.client1ResidualBackup} />
             <PersonList persons={data.client1Beneficiaries ?? []} label="Named Beneficiaries" />
+            {(data.client1Exclusions?.length ?? 0) > 0 && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Excluded People</p>
+                {data.client1Exclusions?.map((exclusion, index) => (
+                  <p key={index} className="text-sm text-muted-foreground">
+                    {exclusion.fullName || "Unnamed person"}
+                    {exclusion.relationship ? ` (${exclusion.relationship})` : ""}
+                    {exclusion.reason ? ` — ${exclusion.reason === "other" ? exclusion.otherReason || "Other reason" : exclusion.reason.replaceAll("_", " ")}` : ""}
+                    {exclusion.notes ? `: ${exclusion.notes}` : ""}
+                  </p>
+                ))}
+              </div>
+            )}
             <Field label="Children Benefit Age" value={data.client1ChildrenBenefitAge ? `Age ${data.client1ChildrenBenefitAge}` : undefined} />
             <Field label="Vulnerable Beneficiary" value={data.client1HasVulnerableBeneficiary === "yes" ? `Yes — ${data.client1VulnerableBeneficiaryDetails ?? ""}` : data.client1HasVulnerableBeneficiary === "no" ? "No" : undefined} />
           </div>
@@ -658,6 +671,19 @@ export default function Step8Review({ data, onChange, onEdit, onSubmit, isSubmit
               <Field label="Residuary Estate" value={data.client2ResidualEstate} />
               <Field label="Residuary Backup" value={data.client2ResidualBackup} />
               <PersonList persons={data.client2Beneficiaries} label="Named Beneficiaries" />
+              {(data.client2Exclusions?.length ?? 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Excluded People</p>
+                  {data.client2Exclusions?.map((exclusion, index) => (
+                    <p key={index} className="text-sm text-muted-foreground">
+                      {exclusion.fullName || "Unnamed person"}
+                      {exclusion.relationship ? ` (${exclusion.relationship})` : ""}
+                      {exclusion.reason ? ` — ${exclusion.reason === "other" ? exclusion.otherReason || "Other reason" : exclusion.reason.replaceAll("_", " ")}` : ""}
+                      {exclusion.notes ? `: ${exclusion.notes}` : ""}
+                    </p>
+                  ))}
+                </div>
+              )}
               <Field label="Children Benefit Age" value={data.client2ChildrenBenefitAge ? `Age ${data.client2ChildrenBenefitAge}` : undefined} />
               <Field label="Vulnerable Beneficiary" value={data.client2HasVulnerableBeneficiary === "yes" ? `Yes — ${data.client2VulnerableBeneficiaryDetails ?? ""}` : data.client2HasVulnerableBeneficiary === "no" ? "No" : undefined} />
             </div>

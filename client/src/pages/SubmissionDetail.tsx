@@ -100,6 +100,25 @@ function formatPersons(persons: unknown, showExtra = false): React.ReactNode {
   );
 }
 
+function formatExclusions(exclusions: unknown): React.ReactNode {
+  if (!Array.isArray(exclusions) || exclusions.length === 0) return null;
+  return (
+    <div className="space-y-2 mt-1">
+      {(exclusions as Record<string, string>[]).map((exclusion, index) => {
+        const reason = exclusion.reason === "other" ? exclusion.otherReason || "Other reason" : exclusion.reason?.replaceAll("_", " ");
+        return (
+          <div key={index} className="rounded-lg border p-3 text-sm space-y-0.5" style={{ background: "oklch(0.98 0.005 155)" }}>
+            <p className="font-medium">{exclusion.fullName || "Unnamed person"}</p>
+            {exclusion.relationship && <p className="text-xs text-muted-foreground">Relationship: {exclusion.relationship}</p>}
+            {reason && <p className="text-xs text-muted-foreground">Reason: {reason}</p>}
+            {exclusion.notes && <p className="text-xs text-muted-foreground italic">Instructions: {exclusion.notes}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function formatGifts(gifts: unknown): React.ReactNode {
   if (!Array.isArray(gifts) || gifts.length === 0) return null;
   return (
@@ -300,6 +319,8 @@ export default function SubmissionDetail() {
   const c2ReservedGuardians = record.client2ReservedGuardians;
   const c1Beneficiaries = (record.client1Beneficiaries as unknown[])?.length ? record.client1Beneficiaries : record.beneficiaries;
   const c2Beneficiaries = record.client2Beneficiaries;
+  const c1Exclusions = record.client1Exclusions;
+  const c2Exclusions = record.client2Exclusions;
   const c1Gifts = (record.client1SpecificGifts as unknown[])?.length ? record.client1SpecificGifts : record.specificGifts;
   const c2Gifts = record.client2SpecificGifts;
 
@@ -582,6 +603,7 @@ export default function SubmissionDetail() {
           <SubSection title={isMirror ? "Client 1 — Beneficiaries" : "Beneficiaries"}>
             {formatPersons(c1Beneficiaries, true) ?? <p className="text-sm text-muted-foreground">None recorded</p>}
           </SubSection>
+          {formatExclusions(c1Exclusions) && <SubSection title={isMirror ? "Client 1 — Exclusions" : "Exclusions"}>{formatExclusions(c1Exclusions)}</SubSection>}
           <SubSection title={isMirror ? "Client 1 — Residue" : "Residue"}>
             <Field label="Residuary Estate" value={record.client1ResidualEstate ?? record.residuaryEstate} />
             <Field label="Residuary Backup" value={record.client1ResidualBackup ?? record.residuaryBackup} />
@@ -594,6 +616,7 @@ export default function SubmissionDetail() {
               <SubSection title="Client 2 — Beneficiaries">
                 {formatPersons(c2Beneficiaries, true) ?? <p className="text-sm text-muted-foreground">None recorded</p>}
               </SubSection>
+              {formatExclusions(c2Exclusions) && <SubSection title="Client 2 — Exclusions">{formatExclusions(c2Exclusions)}</SubSection>}
               <SubSection title="Client 2 — Residue">
                 <Field label="Residuary Estate" value={record.client2ResidualEstate} />
                 <Field label="Residuary Backup" value={record.client2ResidualBackup} />

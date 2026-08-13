@@ -95,4 +95,33 @@ describe("V1 welcome pack completeness", () => {
     expect(html).toContain("Residuary Estate Instruction");
     expect(html).toContain(instruction);
   });
+
+  it("renders every entered exclusion instruction under Distribution of Your Estate", () => {
+    const html = generateWelcomePackHtml({
+      willType: "Mirror Wills",
+      client1FirstName: "Alice",
+      client1LastName: "Example",
+      client2FirstName: "Brian",
+      client2LastName: "Example",
+      client1Exclusions: [{
+        fullName: "Morgan Example",
+        relationship: "Son",
+        reason: "relationship_breakdown",
+        notes: "No provision is to be made for this person.",
+      }],
+      client2Exclusions: [{
+        fullName: "Robin Example",
+        relationship: "Former partner",
+        reason: "other",
+        otherReason: "Independent financial provision already agreed",
+      }],
+    });
+
+    expect(html).toContain("Exclusion Instructions");
+    expect(html).toContain("Morgan Example");
+    expect(html).toContain("relationship breakdown");
+    expect(html).toContain("No provision is to be made for this person.");
+    expect(html).toContain("Robin Example");
+    expect(html).toContain("Independent financial provision already agreed");
+  });
 });
