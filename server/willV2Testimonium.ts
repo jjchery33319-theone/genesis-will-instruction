@@ -6,7 +6,15 @@
 import type { FullMatter } from "./mattersDb";
 import type { TestatorRole } from "./willV2Generator";
 
+function generateScottishTestimoniumHtml(matter: FullMatter, testatorRole: TestatorRole): string {
+  const client = matter.clients.find(c => c.clientRole === testatorRole);
+  const name = client?.fullName || "_______________";
+  const fileRef = matter.fileReference || "";
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Attestation — ${name}</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;line-height:1.55;color:#1a1a1a}.page{border:1px solid #bbb;padding:36px}.line{display:inline-block;width:320px;border-bottom:1px solid #222;height:1.2em}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:14px;margin:18px 0}h1{font-size:18px}h2{font-size:15px;margin-top:24px}.footer{margin-top:44px;border-top:1px solid #bbb;padding-top:12px;font-size:12px;color:#555}</style></head><body><main class="page"><h1>Scottish Will Attestation Record${fileRef ? ` — Ref: ${fileRef}` : ""}</h1><p><strong>Testator:</strong> ${name}</p><div class="notice"><strong>Scottish-law document:</strong> use this record only after a qualified Scots-law solicitor has approved the Will and its signing arrangements.</div><p>I, <strong>${name}</strong>, confirm that I signed my Will on <span class="line"></span> and that my final signature was attested by the witness named below.</p><p><strong>Signature of Testator:</strong> <span class="line"></span></p><h2>Witness</h2><p><strong>Full name:</strong> <span class="line"></span></p><p><strong>Address:</strong> <span class="line"></span></p><p><strong>Signature of Witness:</strong> <span class="line"></span></p><p><strong>Date:</strong> <span class="line"></span></p><footer class="footer">Scottish Will attestation record — Genesis Estate Planning</footer></main></body></html>`;
+}
+
 export function generateTestimoniumHtml(matter: FullMatter, testatorRole: TestatorRole = "testator1"): string {
+  if ((matter as any).jurisdiction === "scotland") return generateScottishTestimoniumHtml(matter, testatorRole);
   const client = matter.clients.find(c => c.clientRole === testatorRole);
   const name = client?.fullName || "_______________";
   const fileRef = matter.fileReference || "";

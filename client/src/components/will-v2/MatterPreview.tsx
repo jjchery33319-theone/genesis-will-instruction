@@ -401,7 +401,7 @@ function TestatorDocSet({
 
 // ── Draft toggle bar (shared across single and mirror views) ─────────────────
 
-function DraftToggleBar({ isDraft, onToggle }: { isDraft: boolean; onToggle: (v: boolean) => void }) {
+function DraftToggleBar({ isDraft, onToggle, isScottish }: { isDraft: boolean; onToggle: (v: boolean) => void; isScottish?: boolean }) {
   return (
     <div className={`flex items-center gap-3 px-4 py-2 border-b flex-shrink-0 transition-colors ${
       isDraft
@@ -411,12 +411,12 @@ function DraftToggleBar({ isDraft, onToggle }: { isDraft: boolean; onToggle: (v:
       <FileWarning className={`h-4 w-4 shrink-0 ${isDraft ? "text-amber-600" : "text-green-600"}`} />
       <div className="flex-1 min-w-0">
         <span className={`text-xs font-semibold ${isDraft ? "text-amber-700 dark:text-amber-400" : "text-green-700 dark:text-green-400"}`}>
-          {isDraft ? "Draft Mode — documents include a DRAFT watermark" : "Final Mode — documents are clean and ready for signing"}
+          {isDraft ? "Draft Mode — documents include a DRAFT watermark" : isScottish ? "Final Mode — Scottish-law solicitor review required before signing" : "Final Mode — documents are clean and ready for signing"}
         </span>
         <p className="text-[10px] text-muted-foreground mt-0.5">
           {isDraft
             ? "Uncheck to remove the watermark when the client has approved the Will."
-            : "The watermark has been removed. This document is ready for execution."}
+            : isScottish ? "The watermark has been removed. Obtain a Scots-law solicitor's review before execution." : "The watermark has been removed. This document is ready for execution."}
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -446,7 +446,7 @@ export function MatterPreview({ matter }: Props) {
   if (!isMirror) {
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        <DraftToggleBar isDraft={isDraft} onToggle={setIsDraft} />
+        <DraftToggleBar isDraft={isDraft} onToggle={setIsDraft} isScottish={matter.jurisdiction === "scotland"} />
         <TestatorDocSet matter={matter} testatorRole="testator1" clientName={t1Name} isDraft={isDraft} />
       </div>
     );
@@ -458,7 +458,7 @@ export function MatterPreview({ matter }: Props) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Draft toggle — applies to all documents */}
-      <DraftToggleBar isDraft={isDraft} onToggle={setIsDraft} />
+      <DraftToggleBar isDraft={isDraft} onToggle={setIsDraft} isScottish={matter.jurisdiction === "scotland"} />
 
       {/* Mirror Will testator selector header */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card/80 flex-shrink-0">

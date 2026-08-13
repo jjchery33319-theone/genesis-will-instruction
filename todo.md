@@ -576,3 +576,7 @@
 
 ## V1 Exclusion Instructions
 - [x] Add a V1 question for whether a client wishes to exclude someone, including person and instruction details
+
+## V2 Scottish-law Will Option
+- [x] Add a jurisdiction selector that keeps English/Welsh and Scottish-law Will drafting paths separate
+- [x] Implement a Scottish-law V2 document generator and verify the existing English/Welsh document remains unchanged

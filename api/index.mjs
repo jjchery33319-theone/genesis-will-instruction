@@ -383,6 +383,7 @@ var init_schema = __esm({
     matters = mysqlTable("matters", {
       id: int("id").primaryKey().autoincrement(),
       matterType: mysqlEnum("matter_type", ["single", "mirror"]).notNull(),
+      jurisdiction: mysqlEnum("jurisdiction", ["england_wales", "scotland"]).default("england_wales").notNull(),
       fileReference: varchar("file_reference", { length: 100 }),
       status: mysqlEnum("status", ["draft", "complete"]).default("draft").notNull(),
       editedWillHtmlTestator1: mediumtext("edited_will_html_testator1"),
@@ -4547,10 +4548,12 @@ var mattersRouter = router({
   }),
   create: protectedProcedure.input(z4.object({
     matterType: z4.enum(["single", "mirror"]),
+    jurisdiction: z4.enum(["england_wales", "scotland"]).default("england_wales"),
     fileReference: z4.string().optional()
   })).mutation(async ({ input }) => {
     const id = await createMatter({
       matterType: input.matterType,
+      jurisdiction: input.jurisdiction,
       fileReference: input.fileReference ?? null,
       status: "draft"
     });
@@ -4559,7 +4562,8 @@ var mattersRouter = router({
   updateMeta: protectedProcedure.input(z4.object({
     id: z4.number().int(),
     fileReference: z4.string().optional(),
-    status: z4.enum(["draft", "complete"]).optional()
+    status: z4.enum(["draft", "complete"]).optional(),
+    jurisdiction: z4.enum(["england_wales", "scotland"]).optional()
   })).mutation(async ({ input }) => {
     const { id, ...data } = input;
     await updateMatter(id, data);
@@ -7213,6 +7217,7 @@ function nameAndAddress(p) {
   return parts.join(", ");
 }
 function generateWillHtml2(matter, testatorRole = "testator1") {
+  const isScottish = matter.jurisdiction === "scotland";
   const client = matter.clients.find((c) => c.clientRole === testatorRole);
   const partnerRole = testatorRole === "testator1" ? "testator2" : "testator1";
   const partner = matter.matterType === "mirror" ? matter.clients.find((c) => c.clientRole === partnerRole) : null;
@@ -7239,6 +7244,9 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   const disasterClauseNotes = wishes?.disasterClauseNotes || "";
   const generalNotes = wishes?.generalNotes || "";
   const fileRef = matter.fileReference || "";
+  const documentTitle = isScottish ? "Will Governed by the Law of Scotland" : "The Last Will & Testament";
+  const recitalTitle = isScottish ? "THIS IS MY WILL" : "THIS IS THE LAST WILL AND TESTAMENT";
+  const revocationText = isScottish ? "I revoke all former Wills and testamentary writings previously made by me, except any writing which I expressly declare is to remain in force, and declare this to be my Will governed by the law of Scotland." : "I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.";
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
   const specificGifts = (matter.gifts || []).filter((g) => g.clientRole === giftRole);
   const trustRole = matter.matterType === "mirror" ? testatorRole : "shared";
@@ -7258,7 +7266,8 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
     partner,
     residueToSpouseFirst,
     ageCondition,
-    survivorshipDays
+    survivorshipDays,
+    isScottish
   );
   let clauseNum = hasMinorChildren ? 4 : 3;
   const clauses = [];
@@ -7267,6 +7276,13 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   <p>My "Estate" shall mean all property, assets and rights to which I am beneficially entitled at the date of my death, including all property over which I have a general power of appointment or disposition by Will.</p>
   <p>My Executors and Trustees shall have the widest powers of management and administration in relation to my Estate as are set out in this Will and as are conferred by law.</p>
 </div>`);
+  if (isScottish) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Scottish Legal Rights and Special Destinations</h2>
+  <p>This Will is made subject to any legal rights which the law of Scotland may confer on my spouse or civil partner and my children in my moveable estate.</p>
+  <p>Nothing in this Will is intended to alter any valid special destination, survivorship provision or other title affecting heritable property unless this Will expressly and effectively provides otherwise.</p>
+</div>`);
+  }
   if (properties.length > 0) {
     clauses.push(`<div class="clause">
   <h2>${clauseNum++}. Property</h2>
@@ -7313,7 +7329,10 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   <p>Any beneficiary who has not yet attained the age of ${ageCondition} years at the date of my death shall not be entitled to receive their share of my Estate absolutely until they attain that age. Until such time, my Trustees shall hold the share on trust for that beneficiary, with power to apply the income and capital for their maintenance, education and benefit.</p>
   <p>If any beneficiary should die before attaining the age of ${ageCondition} years, their share shall pass as if they had predeceased me.</p>
 </div>`);
-  clauses.push(`<div class="clause">
+  clauses.push(isScottish ? `<div class="clause">
+  <h2>${clauseNum++}. Administration of my Scottish Estate</h2>
+  <p>My Executors shall administer my Estate in accordance with the law of Scotland and may exercise all powers available to them under that law and this Will, subject to any legal rights, special destination or mandatory rule which applies.</p>
+</div>` : `<div class="clause">
   <h2>${clauseNum++}. Executor and Trustee Powers</h2>
   <p>My Executors and Trustees shall have the following powers in addition to those conferred by law:</p>
   <p>(a) Power to sell, call in and convert into money all or any part of my Estate at such time and in such manner as they think fit, with power to postpone such sale, calling in and conversion for so long as they think fit without being liable for any loss.</p>
@@ -7334,7 +7353,7 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   } else {
     clauses.push(`<div class="clause">
   <h2>${clauseNum++}. Disaster Clause</h2>
-  <p>In the event that all of my beneficiaries named in this Will predecease me or fail to survive me by the required survivorship period, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales at the date of my death.</p>
+  <p>In the event that all of my beneficiaries named in this Will predecease me or fail to survive me by the required survivorship period, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in ${isScottish ? "Scotland" : "England and Wales"} at the date of my death.</p>
 </div>`);
   }
   clauses.push(`<div class="clause">
@@ -7345,7 +7364,10 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
   <h2>${clauseNum++}. Funeral Wishes</h2>
   ${funeralWishes ? `<p>${funeralWishes}</p>` : `<p>I leave my funeral arrangements to the discretion of my Executors, having regard to any wishes I may have expressed to them during my lifetime.</p>`}
 </div>`);
-  clauses.push(`<div class="clause">
+  clauses.push(isScottish ? `<div class="clause">
+  <h2>${clauseNum++}. Powers of my Executors and Trustees</h2>
+  <p>My Executors and Trustees shall have the powers conferred by the law of Scotland and by this Will in administering my Estate, subject always to any mandatory rule of Scots law.</p>
+</div>` : `<div class="clause">
   <h2>${clauseNum++}. STEP Powers</h2>
   <p>My Executors and Trustees shall have the benefit of the standard provisions of the Society of Trust and Estate Practitioners (1st Edition) as amended and updated from time to time, insofar as they are not inconsistent with the provisions of this Will.</p>
 </div>`);
@@ -7364,7 +7386,7 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Last Will &amp; Testament \u2014 ${name}</title>
+<title>${documentTitle} \u2014 ${name}</title>
 <style>
   /* \u2500\u2500 Google Fonts \u2500\u2500 */
   @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
@@ -7679,7 +7701,7 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
 <!-- \u2550\u2550 COVER PAGE \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
 <div class="page cover">
   <div class="cover-box">
-    <div class="cover-title">The Last Will &amp; Testament</div>
+    <div class="cover-title">${documentTitle}</div>
     <div class="cover-subtitle">of</div>
     <div class="cover-name">${name}</div>
     ${fileRef ? `<div class="cover-ref">(REFERENCE / ${fileRef})</div>` : ""}
@@ -7704,7 +7726,7 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
 <div class="page">
 
 <p class="recital">
-  THIS IS THE LAST WILL AND TESTAMENT of me, <strong>${name}</strong>,
+  ${recitalTitle} of me, <strong>${name}</strong>,
   ${dob !== "_______________" ? `born on <strong>${dob}</strong>,` : ""}
   of <strong>${address}</strong>,
   made this the <span style="text-decoration:underline;">______ day of ________________________ 20______</span>.
@@ -7713,7 +7735,7 @@ function generateWillHtml2(matter, testatorRole = "testator1") {
 <!-- 1. Revocation -->
 <div class="clause">
   <h2>1. Revocation</h2>
-  <p>I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.</p>
+  <p>${revocationText}</p>
 </div>
 
 <!-- 2. Appointment of Executors -->
@@ -7737,11 +7759,11 @@ ${generalNotesSection}
 <!-- \u2550\u2550 ATTESTATION \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
 <div class="attestation">
   <h2>The Testimonium and Attestation</h2>
-  <p>IN WITNESS whereof I have hereunto set my hand to this my Last Will and Testament on the day and year first above written.</p>
+  <p>${isScottish ? "IN WITNESS whereof I have signed this my Will on the day and year first above written." : "IN WITNESS whereof I have hereunto set my hand to this my Last Will and Testament on the day and year first above written."}</p>
 
   <div class="sig-block">
     <p><strong>SIGNED</strong> by the above-named Testator <strong>${name}</strong></p>
-    <p>as their Last Will in our joint presence and then by each of us in the presence of the Testator and each other:</p>
+    <p>${isScottish ? "as their Will in the presence of the undersigned witness, who has signed at the Testator's request and in the Testator's presence:" : "as their Last Will in our joint presence and then by each of us in the presence of the Testator and each other:"}</p>
     <br>
     <div class="sig-line"></div>
     <div class="sig-label">(Signature of Testator \u2014 ${name})</div>
@@ -7770,7 +7792,7 @@ ${generalNotesSection}
         <div class="witness-field-label">Occupation</div>
       </div>
     </div>
-    <div class="witness-block" style="flex:1;">
+    ${!isScottish ? `<div class="witness-block" style="flex:1;">
       <div class="witness-title">Witness 2</div>
       <div class="witness-field">
         <div class="witness-field-line"></div>
@@ -7788,12 +7810,12 @@ ${generalNotesSection}
         <div class="witness-field-line"></div>
         <div class="witness-field-label">Occupation</div>
       </div>
-    </div>
+    </div>` : ""}
   </div>
 </div>
 
 <div class="page-footer">
-  Genesis Wills and Estate Planning Ltd &bull; ${name} &bull; Last Will &amp; Testament
+  Genesis Wills and Estate Planning Ltd &bull; ${name} &bull; ${documentTitle}
   ${fileRef ? `&bull; Ref: ${fileRef}` : ""}
 </div>
 
@@ -7823,7 +7845,7 @@ function buildGuardianClause(primary, substitute) {
   }
   return `<p>${primaryText}${substituteText}</p>`;
 }
-function buildResidueClause(primary, fallback, partner, residueToSpouseFirst, ageCondition, survivorshipDays) {
+function buildResidueClause(primary, fallback, partner, residueToSpouseFirst, ageCondition, survivorshipDays, isScottish) {
   const parts = [];
   if (residueToSpouseFirst && partner?.fullName) {
     parts.push(`<p>I give the whole of my Estate to my partner <strong>${partner.fullName}</strong> absolutely, provided they survive me by ${survivorshipDays} days.</p>`);
@@ -7868,7 +7890,7 @@ function buildResidueClause(primary, fallback, partner, residueToSpouseFirst, ag
     }).join(" and ");
     parts.push(`<p>In the event that all of the above gifts fail, I give the residue of my Estate to ${fallbackText} in equal shares absolutely.</p>`);
   } else {
-    parts.push(`<p>In the event that all of the above gifts fail, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales.</p>`);
+    parts.push(`<p>In the event that all of the above gifts fail, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in ${isScottish ? "Scotland" : "England and Wales"}.</p>`);
   }
   return parts.join("\n  ");
 }
@@ -8131,7 +8153,17 @@ function buildExclusionsClause(exclusions) {
 }
 
 // server/willV2Commentary.ts
+function generateScottishCommentaryHtml(matter, testatorRole) {
+  const client = matter.clients.find((c) => c.clientRole === testatorRole);
+  const name = client?.fullName || "_______________";
+  const fileRef = matter.fileReference || "";
+  const role = matter.matterType === "mirror" ? testatorRole : "shared";
+  const executors = matter.executors.filter((e) => e.clientRole === role && e.executorType === "primary");
+  const beneficiaries = matter.beneficiaries.filter((b) => b.clientRole === role && b.beneficiaryType === "primary");
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Commentary \u2014 ${name}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;line-height:1.6;color:#1a1a1a}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:16px;margin:20px 0}h1,h2{color:#1a3a5c}li{margin:8px 0}</style></head><body><h1>Scottish Will Commentary</h1><p><strong>${name}</strong>${fileRef ? ` \u2014 Reference ${fileRef}` : ""}</p><div class="notice"><strong>Scottish-law review required.</strong> This commentary is an instruction summary for a Will governed by the law of Scotland. It is not an English/Welsh Will commentary and should be reviewed by a qualified Scots-law solicitor before execution.</div><h2>Instructions reflected in this draft</h2><ul><li><strong>Executors:</strong> ${executors.length ? executors.map((e) => e.fullName || "Unnamed executor").join(", ") : "No executor has been recorded."}</li><li><strong>Primary beneficiaries:</strong> ${beneficiaries.length ? beneficiaries.map((b) => b.fullName || b.recipientGroup || "Unnamed beneficiary").join(", ") : "No beneficiary has been recorded."}</li><li><strong>Scottish succession:</strong> the Will includes a clause recognising that legal rights and special destinations may affect the estate.</li><li><strong>Execution:</strong> use the accompanying Scottish signing guide and obtain legal review before signature.</li></ul></body></html>`;
+}
 function generateCommentaryHtml(matter, testatorRole = "testator1") {
+  if (matter.jurisdiction === "scotland") return generateScottishCommentaryHtml(matter, testatorRole);
   const client = matter.clients.find((c) => c.clientRole === testatorRole);
   const partnerRole = testatorRole === "testator1" ? "testator2" : "testator1";
   const partner = matter.matterType === "mirror" ? matter.clients.find((c) => c.clientRole === partnerRole) : null;
@@ -8638,7 +8670,24 @@ function buildTrustClauseCommentary(tc, num) {
 }
 
 // server/willV2SigningGuide.ts
+function generateScottishSigningGuideHtml(matter, testatorRole) {
+  const client = matter.clients.find((c) => c.clientRole === testatorRole);
+  const name = client?.fullName || "_______________";
+  const fileRef = matter.fileReference || "";
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Signing Guide \u2014 ${name}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{box-sizing:border-box} body{font-family:'EB Garamond',Georgia,serif;color:#1a1a1a;font-size:12pt;line-height:1.55;background:#fff}.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm}.header{text-align:center;border-bottom:2px solid #1a3a5c;padding-bottom:5mm;margin-bottom:8mm}.header h1{font-size:18pt;color:#1a3a5c;margin:0}.header p{margin:2mm 0 0}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:4mm 5mm;margin:5mm 0 7mm}.section{margin:6mm 0}.section h2{font-size:13pt;color:#1a3a5c;border-bottom:1px solid #c8d8e8;padding-bottom:1.5mm}.section li{margin:2mm 0}.sig{margin-top:8mm;border:1px solid #bbb;padding:5mm}.line{border-bottom:1px solid #222;height:9mm;margin-top:2mm}.label{font-size:9pt;color:#555;font-style:italic}.footer{margin-top:10mm;padding-top:4mm;border-top:1px solid #bbb;font-size:9pt;color:#555;text-align:center}@media print{@page{size:A4;margin:20mm}.page{width:100%;min-height:0;padding:0;margin:0}}</style>
+</head><body><main class="page"><header class="header"><h1>Scottish Will Signing Guide</h1><p>${name}${fileRef ? ` \u2014 Ref: ${fileRef}` : ""}</p></header>
+<div class="notice"><strong>Important:</strong> This guide is for a Will governed by the law of Scotland. Have the completed document and its execution checked by a qualified Scots-law solicitor before signing.</div>
+<section class="section"><h2>Signing and witnessing</h2><p>For a Scottish Will to be self-evidencing (probative), it should be subscribed by the testator and attested by one witness. The witness attests the testator's final signature.</p><ul><li>Do not sign until the final version has been approved.</li><li>Sign the final page at the signature line. Sign every other page of a multi-page Will as directed by the solicitor reviewing the document.</li><li>The witness should be present to attest the final signature and should complete their details clearly.</li><li>Do not make handwritten changes after signing. Obtain legal advice for any amendment or replacement.</li></ul></section>
+<section class="section"><h2>Scottish succession considerations</h2><p>Scottish legal rights and special destinations can affect the practical outcome of a Will. Confirm that these issues have been considered before execution.</p></section>
+<section class="sig"><strong>Attestation example</strong><p style="font-style:italic">SIGNED by ${name} as their Will in the presence of the undersigned witness, who has signed at the Testator's request and in the Testator's presence.</p><div class="line"></div><div class="label">Signature of Testator \u2014 ${name}</div><div class="line"></div><div class="label">Signature of Witness</div><div class="line"></div><div class="label">Witness full name and address</div></section>
+<footer class="footer">Genesis Estate Planning \u2014 Scottish-law Will signing guide</footer></main></body></html>`;
+}
 function generateSigningGuideHtml(matter, testatorRole = "testator1") {
+  if (matter.jurisdiction === "scotland") return generateScottishSigningGuideHtml(matter, testatorRole);
   const client = matter.clients.find((c) => c.clientRole === testatorRole);
   const name = client?.fullName || "_______________";
   const fileRef = matter.fileReference || "";
@@ -9213,7 +9262,14 @@ function escapeHtml(str) {
 }
 
 // server/willV2Testimonium.ts
+function generateScottishTestimoniumHtml(matter, testatorRole) {
+  const client = matter.clients.find((c) => c.clientRole === testatorRole);
+  const name = client?.fullName || "_______________";
+  const fileRef = matter.fileReference || "";
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Attestation \u2014 ${name}</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;line-height:1.55;color:#1a1a1a}.page{border:1px solid #bbb;padding:36px}.line{display:inline-block;width:320px;border-bottom:1px solid #222;height:1.2em}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:14px;margin:18px 0}h1{font-size:18px}h2{font-size:15px;margin-top:24px}.footer{margin-top:44px;border-top:1px solid #bbb;padding-top:12px;font-size:12px;color:#555}</style></head><body><main class="page"><h1>Scottish Will Attestation Record${fileRef ? ` \u2014 Ref: ${fileRef}` : ""}</h1><p><strong>Testator:</strong> ${name}</p><div class="notice"><strong>Scottish-law document:</strong> use this record only after a qualified Scots-law solicitor has approved the Will and its signing arrangements.</div><p>I, <strong>${name}</strong>, confirm that I signed my Will on <span class="line"></span> and that my final signature was attested by the witness named below.</p><p><strong>Signature of Testator:</strong> <span class="line"></span></p><h2>Witness</h2><p><strong>Full name:</strong> <span class="line"></span></p><p><strong>Address:</strong> <span class="line"></span></p><p><strong>Signature of Witness:</strong> <span class="line"></span></p><p><strong>Date:</strong> <span class="line"></span></p><footer class="footer">Scottish Will attestation record \u2014 Genesis Estate Planning</footer></main></body></html>`;
+}
 function generateTestimoniumHtml(matter, testatorRole = "testator1") {
+  if (matter.jurisdiction === "scotland") return generateScottishTestimoniumHtml(matter, testatorRole);
   const client = matter.clients.find((c) => c.clientRole === testatorRole);
   const name = client?.fullName || "_______________";
   const fileRef = matter.fileReference || "";
@@ -13175,7 +13231,7 @@ $1`);
         res.status(404).json({ error: "Not found" });
         return;
       }
-      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const savedHtml = matter.jurisdiction === "scotland" ? null : testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
       let html = savedHtml || generateWillHtml2(matter, testatorRole);
       const isEdited = !!savedHtml;
       const isDraft = req.query.draft === "1";
@@ -13204,7 +13260,7 @@ $1`);
         res.status(404).json({ error: "Not found" });
         return;
       }
-      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const savedHtml = matter.jurisdiction === "scotland" ? null : testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
       const html = savedHtml || generateWillHtml2(matter, testatorRole);
       const client = matter.clients.find((c) => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
@@ -13322,10 +13378,10 @@ $1`);
         res.status(404).json({ error: "Not found" });
         return;
       }
-      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const savedHtml = matter.jurisdiction === "scotland" ? null : testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
       const client = matter.clients.find((c) => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
-      const docxBuffer = savedHtml ? await htmlToDocx(savedHtml, `${safeName} \u2014 Last Will & Testament`) : await generateWillDocxFromMatter(matter, testatorRole);
+      const docxBuffer = savedHtml ? await htmlToDocx(savedHtml, `${safeName} \u2014 Last Will & Testament`) : matter.jurisdiction === "scotland" ? await htmlToDocx(generateWillHtml2(matter, testatorRole), `${safeName} \u2014 Will Governed by the Law of Scotland`) : await generateWillDocxFromMatter(matter, testatorRole);
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.docx"`);
       res.send(docxBuffer);

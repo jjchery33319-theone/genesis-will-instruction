@@ -81,6 +81,7 @@ function nameAndAddress(p: { title?: string | null; fullName?: string | null; ad
 // ── Main generator ────────────────────────────────────────────────────────────
 
 export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole = "testator1"): string {
+  const isScottish = (matter as any).jurisdiction === "scotland";
   const client = matter.clients.find(c => c.clientRole === testatorRole);
   const partnerRole: TestatorRole = testatorRole === "testator1" ? "testator2" : "testator1";
   const partner = matter.matterType === "mirror" ? matter.clients.find(c => c.clientRole === partnerRole) : null;
@@ -118,6 +119,11 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   const generalNotes = (wishes as any)?.generalNotes || "";
 
   const fileRef = matter.fileReference || "";
+  const documentTitle = isScottish ? "Will Governed by the Law of Scotland" : "The Last Will & Testament";
+  const recitalTitle = isScottish ? "THIS IS MY WILL" : "THIS IS THE LAST WILL AND TESTAMENT";
+  const revocationText = isScottish
+    ? "I revoke all former Wills and testamentary writings previously made by me, except any writing which I expressly declare is to remain in force, and declare this to be my Will governed by the law of Scotland."
+    : "I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.";
 
   // Gifts for this testator
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
@@ -152,7 +158,8 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
     partner,
     residueToSpouseFirst,
     ageCondition,
-    survivorshipDays
+    survivorshipDays,
+    isScottish
   );
 
   // Clause numbering — dynamic based on optional sections
@@ -166,6 +173,14 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   <p>My "Estate" shall mean all property, assets and rights to which I am beneficially entitled at the date of my death, including all property over which I have a general power of appointment or disposition by Will.</p>
   <p>My Executors and Trustees shall have the widest powers of management and administration in relation to my Estate as are set out in this Will and as are conferred by law.</p>
 </div>`);
+
+  if (isScottish) {
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Scottish Legal Rights and Special Destinations</h2>
+  <p>This Will is made subject to any legal rights which the law of Scotland may confer on my spouse or civil partner and my children in my moveable estate.</p>
+  <p>Nothing in this Will is intended to alter any valid special destination, survivorship provision or other title affecting heritable property unless this Will expressly and effectively provides otherwise.</p>
+</div>`);
+  }
 
   // Property clause (if any)
   if (properties.length > 0) {
@@ -230,7 +245,10 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 </div>`);
 
   // Executor and Trustee Powers
-  clauses.push(`<div class="clause">
+  clauses.push(isScottish ? `<div class="clause">
+  <h2>${clauseNum++}. Administration of my Scottish Estate</h2>
+  <p>My Executors shall administer my Estate in accordance with the law of Scotland and may exercise all powers available to them under that law and this Will, subject to any legal rights, special destination or mandatory rule which applies.</p>
+</div>` : `<div class="clause">
   <h2>${clauseNum++}. Executor and Trustee Powers</h2>
   <p>My Executors and Trustees shall have the following powers in addition to those conferred by law:</p>
   <p>(a) Power to sell, call in and convert into money all or any part of my Estate at such time and in such manner as they think fit, with power to postpone such sale, calling in and conversion for so long as they think fit without being liable for any loss.</p>
@@ -255,7 +273,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   } else {
     clauses.push(`<div class="clause">
   <h2>${clauseNum++}. Disaster Clause</h2>
-  <p>In the event that all of my beneficiaries named in this Will predecease me or fail to survive me by the required survivorship period, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales at the date of my death.</p>
+  <p>In the event that all of my beneficiaries named in this Will predecease me or fail to survive me by the required survivorship period, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in ${isScottish ? "Scotland" : "England and Wales"} at the date of my death.</p>
 </div>`);
   }
 
@@ -277,8 +295,11 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   }
 </div>`);
 
-  // STEP Powers
-  clauses.push(`<div class="clause">
+  // Powers vary by jurisdiction; retain the existing STEP wording for England & Wales.
+  clauses.push(isScottish ? `<div class="clause">
+  <h2>${clauseNum++}. Powers of my Executors and Trustees</h2>
+  <p>My Executors and Trustees shall have the powers conferred by the law of Scotland and by this Will in administering my Estate, subject always to any mandatory rule of Scots law.</p>
+</div>` : `<div class="clause">
   <h2>${clauseNum++}. STEP Powers</h2>
   <p>My Executors and Trustees shall have the benefit of the standard provisions of the Society of Trust and Estate Practitioners (1st Edition) as amended and updated from time to time, insofar as they are not inconsistent with the provisions of this Will.</p>
 </div>`);
@@ -302,7 +323,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Last Will &amp; Testament — ${name}</title>
+<title>${documentTitle} — ${name}</title>
 <style>
   /* ── Google Fonts ── */
   @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
@@ -617,7 +638,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 <!-- ══ COVER PAGE ══════════════════════════════════════════════════════════ -->
 <div class="page cover">
   <div class="cover-box">
-    <div class="cover-title">The Last Will &amp; Testament</div>
+    <div class="cover-title">${documentTitle}</div>
     <div class="cover-subtitle">of</div>
     <div class="cover-name">${name}</div>
     ${fileRef ? `<div class="cover-ref">(REFERENCE / ${fileRef})</div>` : ""}
@@ -642,7 +663,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 <div class="page">
 
 <p class="recital">
-  THIS IS THE LAST WILL AND TESTAMENT of me, <strong>${name}</strong>,
+  ${recitalTitle} of me, <strong>${name}</strong>,
   ${dob !== "_______________" ? `born on <strong>${dob}</strong>,` : ""}
   of <strong>${address}</strong>,
   made this the <span style="text-decoration:underline;">______ day of ________________________ 20______</span>.
@@ -651,7 +672,7 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
 <!-- 1. Revocation -->
 <div class="clause">
   <h2>1. Revocation</h2>
-  <p>I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.</p>
+  <p>${revocationText}</p>
 </div>
 
 <!-- 2. Appointment of Executors -->
@@ -675,11 +696,11 @@ ${generalNotesSection}
 <!-- ══ ATTESTATION ══════════════════════════════════════════════════════════ -->
 <div class="attestation">
   <h2>The Testimonium and Attestation</h2>
-  <p>IN WITNESS whereof I have hereunto set my hand to this my Last Will and Testament on the day and year first above written.</p>
+  <p>${isScottish ? "IN WITNESS whereof I have signed this my Will on the day and year first above written." : "IN WITNESS whereof I have hereunto set my hand to this my Last Will and Testament on the day and year first above written."}</p>
 
   <div class="sig-block">
     <p><strong>SIGNED</strong> by the above-named Testator <strong>${name}</strong></p>
-    <p>as their Last Will in our joint presence and then by each of us in the presence of the Testator and each other:</p>
+    <p>${isScottish ? "as their Will in the presence of the undersigned witness, who has signed at the Testator's request and in the Testator's presence:" : "as their Last Will in our joint presence and then by each of us in the presence of the Testator and each other:"}</p>
     <br>
     <div class="sig-line"></div>
     <div class="sig-label">(Signature of Testator — ${name})</div>
@@ -708,7 +729,7 @@ ${generalNotesSection}
         <div class="witness-field-label">Occupation</div>
       </div>
     </div>
-    <div class="witness-block" style="flex:1;">
+    ${!isScottish ? `<div class="witness-block" style="flex:1;">
       <div class="witness-title">Witness 2</div>
       <div class="witness-field">
         <div class="witness-field-line"></div>
@@ -726,12 +747,12 @@ ${generalNotesSection}
         <div class="witness-field-line"></div>
         <div class="witness-field-label">Occupation</div>
       </div>
-    </div>
+    </div>` : ""}
   </div>
 </div>
 
 <div class="page-footer">
-  Genesis Wills and Estate Planning Ltd &bull; ${name} &bull; Last Will &amp; Testament
+  Genesis Wills and Estate Planning Ltd &bull; ${name} &bull; ${documentTitle}
   ${fileRef ? `&bull; Ref: ${fileRef}` : ""}
 </div>
 
@@ -791,7 +812,8 @@ function buildResidueClause(
   partner: MatterClient | null | undefined,
   residueToSpouseFirst: boolean,
   ageCondition: number,
-  survivorshipDays: number
+  survivorshipDays: number,
+  isScottish: boolean
 ): string {
   const parts: string[] = [];
 
@@ -843,7 +865,7 @@ function buildResidueClause(
     }).join(" and ");
     parts.push(`<p>In the event that all of the above gifts fail, I give the residue of my Estate to ${fallbackText} in equal shares absolutely.</p>`);
   } else {
-    parts.push(`<p>In the event that all of the above gifts fail, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in England and Wales.</p>`);
+    parts.push(`<p>In the event that all of the above gifts fail, the residue of my Estate shall pass in accordance with the laws of intestacy applicable in ${isScottish ? "Scotland" : "England and Wales"}.</p>`);
   }
 
   return parts.join("\n  ");

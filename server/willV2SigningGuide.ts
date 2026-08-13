@@ -6,7 +6,25 @@
 import type { FullMatter } from "./mattersDb";
 import type { TestatorRole } from "./willV2Generator";
 
+function generateScottishSigningGuideHtml(matter: FullMatter, testatorRole: TestatorRole): string {
+  const client = matter.clients.find(c => c.clientRole === testatorRole);
+  const name = client?.fullName || "_______________";
+  const fileRef = matter.fileReference || "";
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Signing Guide — ${name}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+*{box-sizing:border-box} body{font-family:'EB Garamond',Georgia,serif;color:#1a1a1a;font-size:12pt;line-height:1.55;background:#fff}.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm}.header{text-align:center;border-bottom:2px solid #1a3a5c;padding-bottom:5mm;margin-bottom:8mm}.header h1{font-size:18pt;color:#1a3a5c;margin:0}.header p{margin:2mm 0 0}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:4mm 5mm;margin:5mm 0 7mm}.section{margin:6mm 0}.section h2{font-size:13pt;color:#1a3a5c;border-bottom:1px solid #c8d8e8;padding-bottom:1.5mm}.section li{margin:2mm 0}.sig{margin-top:8mm;border:1px solid #bbb;padding:5mm}.line{border-bottom:1px solid #222;height:9mm;margin-top:2mm}.label{font-size:9pt;color:#555;font-style:italic}.footer{margin-top:10mm;padding-top:4mm;border-top:1px solid #bbb;font-size:9pt;color:#555;text-align:center}@media print{@page{size:A4;margin:20mm}.page{width:100%;min-height:0;padding:0;margin:0}}</style>
+</head><body><main class="page"><header class="header"><h1>Scottish Will Signing Guide</h1><p>${name}${fileRef ? ` — Ref: ${fileRef}` : ""}</p></header>
+<div class="notice"><strong>Important:</strong> This guide is for a Will governed by the law of Scotland. Have the completed document and its execution checked by a qualified Scots-law solicitor before signing.</div>
+<section class="section"><h2>Signing and witnessing</h2><p>For a Scottish Will to be self-evidencing (probative), it should be subscribed by the testator and attested by one witness. The witness attests the testator's final signature.</p><ul><li>Do not sign until the final version has been approved.</li><li>Sign the final page at the signature line. Sign every other page of a multi-page Will as directed by the solicitor reviewing the document.</li><li>The witness should be present to attest the final signature and should complete their details clearly.</li><li>Do not make handwritten changes after signing. Obtain legal advice for any amendment or replacement.</li></ul></section>
+<section class="section"><h2>Scottish succession considerations</h2><p>Scottish legal rights and special destinations can affect the practical outcome of a Will. Confirm that these issues have been considered before execution.</p></section>
+<section class="sig"><strong>Attestation example</strong><p style="font-style:italic">SIGNED by ${name} as their Will in the presence of the undersigned witness, who has signed at the Testator's request and in the Testator's presence.</p><div class="line"></div><div class="label">Signature of Testator — ${name}</div><div class="line"></div><div class="label">Signature of Witness</div><div class="line"></div><div class="label">Witness full name and address</div></section>
+<footer class="footer">Genesis Estate Planning — Scottish-law Will signing guide</footer></main></body></html>`;
+}
+
 export function generateSigningGuideHtml(matter: FullMatter, testatorRole: TestatorRole = "testator1"): string {
+  if ((matter as any).jurisdiction === "scotland") return generateScottishSigningGuideHtml(matter, testatorRole);
   const client = matter.clients.find(c => c.clientRole === testatorRole);
   const name = client?.fullName || "_______________";
   const fileRef = matter.fileReference || "";

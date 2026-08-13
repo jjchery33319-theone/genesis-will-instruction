@@ -32,6 +32,7 @@ export default function WillDraftingV2() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [newMatterType, setNewMatterType] = useState<"single" | "mirror">("single");
+  const [newJurisdiction, setNewJurisdiction] = useState<"england_wales" | "scotland">("england_wales");
   const [newFileRef, setNewFileRef] = useState("");
   const [lpaDialog, setLpaDialog] = useState<LpaOrderDialogState>({ open: false, createPF: true, createHW: true, useExecutorsAsAttorneys: true });
   const [searchQuery, setSearchQuery] = useState("");
@@ -93,6 +94,7 @@ export default function WillDraftingV2() {
       setViewMode("form");
       setShowNewDialog(false);
       setNewFileRef("");
+      setNewJurisdiction("england_wales");
       setIsDirty(false);
       formSaveRef.current = null;
       toast.success("Matter created");
@@ -111,7 +113,7 @@ export default function WillDraftingV2() {
   });
 
   const handleCreate = () => {
-    createMatter.mutate({ matterType: newMatterType, fileReference: newFileRef || undefined });
+    createMatter.mutate({ matterType: newMatterType, jurisdiction: newJurisdiction, fileReference: newFileRef || undefined });
   };
 
   const createLpaFromMatter = trpc.lpa.createFromMatter.useMutation({
@@ -362,6 +364,19 @@ export default function WillDraftingV2() {
                   <SelectItem value="mirror">Mirror Wills — two testators</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Governing Law</Label>
+              <Select value={newJurisdiction} onValueChange={(v) => setNewJurisdiction(v as "england_wales" | "scotland")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="england_wales">England & Wales</SelectItem>
+                  <SelectItem value="scotland">Scotland</SelectItem>
+                </SelectContent>
+              </Select>
+              {newJurisdiction === "scotland" && <p className="text-xs text-amber-700">Scottish-law documents use a separate draft and must be reviewed by a Scots-law solicitor before signature.</p>}
             </div>
             <div className="space-y-1.5">
               <Label>File Reference <span className="text-muted-foreground text-xs">(optional)</span></Label>

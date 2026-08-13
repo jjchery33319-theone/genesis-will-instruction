@@ -271,6 +271,36 @@ describe("willV2Generator — mirror will", () => {
   });
 });
 
+describe("willV2Generator — Scottish-law Will", () => {
+  const scottishMatter: FullMatter = { ...singleMatter, jurisdiction: "scotland" };
+  const html = generateWillHtml(scottishMatter, "testator1");
+
+  it("uses the Scottish-law document title and revocation wording", () => {
+    expect(html).toContain("Will Governed by the Law of Scotland");
+    expect(html).toContain("testamentary writings");
+  });
+
+  it("includes Scottish legal-rights and special-destination wording", () => {
+    expect(html).toContain("Scottish Legal Rights and Special Destinations");
+    expect(html).toContain("moveable estate");
+    expect(html).toContain("special destination");
+  });
+
+  it("uses Scottish disaster, powers, and one-witness wording", () => {
+    expect(html).toContain("intestacy applicable in Scotland");
+    expect(html).toContain("Powers of my Executors and Trustees");
+    expect(html).toContain("undersigned witness");
+    expect(html).not.toContain("Witness 2");
+  });
+
+  it("does not change the default English/Welsh output", () => {
+    const englishHtml = generateWillHtml(singleMatter, "testator1");
+    expect(englishHtml).toContain("The Last Will & Testament");
+    expect(englishHtml).toContain("STEP Powers");
+    expect(englishHtml).toContain("Witness 2");
+  });
+});
+
 // ── Commentary Generator Tests ────────────────────────────────────────────────
 
 describe("willV2Commentary", () => {
@@ -324,5 +354,23 @@ describe("willV2SigningGuide", () => {
 
   it("contains the file reference", () => {
     expect(html).toContain("GEP-TEST-001");
+  });
+});
+
+describe("Scottish V2 commentary and signing guide", () => {
+  const scottishMatter: FullMatter = { ...singleMatter, jurisdiction: "scotland" };
+
+  it("uses Scottish-law commentary rather than English/Welsh commentary", () => {
+    const html = generateCommentaryHtml(scottishMatter, "testator1");
+    expect(html).toContain("Scottish Will Commentary");
+    expect(html).toContain("legal rights");
+    expect(html).not.toContain("Wills Act 1837");
+  });
+
+  it("uses one-witness Scottish signing guidance", () => {
+    const html = generateSigningGuideHtml(scottishMatter, "testator1");
+    expect(html).toContain("Scottish Will Signing Guide");
+    expect(html).toContain("one witness");
+    expect(html).not.toContain("TWO</strong> Witnesses");
   });
 });

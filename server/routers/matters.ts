@@ -131,11 +131,13 @@ export const mattersRouter = router({
   create: protectedProcedure
     .input(z.object({
       matterType: z.enum(["single", "mirror"]),
+      jurisdiction: z.enum(["england_wales", "scotland"]).default("england_wales"),
       fileReference: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const id = await createMatter({
         matterType: input.matterType,
+        jurisdiction: input.jurisdiction,
         fileReference: input.fileReference ?? null,
         status: "draft",
       });
@@ -147,6 +149,7 @@ export const mattersRouter = router({
       id: z.number().int(),
       fileReference: z.string().optional(),
       status: z.enum(["draft", "complete"]).optional(),
+      jurisdiction: z.enum(["england_wales", "scotland"]).optional(),
     }))
     .mutation(async ({ input }) => {
       const { id, ...data } = input;

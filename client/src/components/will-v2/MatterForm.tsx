@@ -199,6 +199,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const m = initialMatterRef.current; // alias used by all initialisers below
 
   const isMirror = m.matterType === "mirror";
+  const [jurisdiction, setJurisdiction] = useState<"england_wales" | "scotland">(m.jurisdiction === "scotland" ? "scotland" : "england_wales");
   const [activeTab, setActiveTab] = useState("clients");
   const [isDirty, setIsDirty] = useState(false);
 
@@ -497,6 +498,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const upsertExclusion = trpc.matters.upsertExclusion.useMutation();
   const deleteExclusion = trpc.matters.deleteExclusion.useMutation();
   const saveLow = trpc.matters.upsertLetterOfWishes.useMutation();
+  const updateMeta = trpc.matters.updateMeta.useMutation();
   const upsertPersonPool = trpc.matters.upsertPersonPool.useMutation();
   const poolUtils = trpc.useUtils();
 
@@ -506,6 +508,9 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
     isSavingRef.current = true;
     try {
       const ops: Promise<any>[] = [];
+
+      // Matter-level jurisdiction is kept separate from the client instructions.
+      ops.push(updateMeta.mutateAsync({ id: matter.id, jurisdiction }));
 
       // Clients
       ops.push(saveClient.mutateAsync({ matterId: matter.id, clientRole: "testator1", ...t1 }));
@@ -692,7 +697,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
   const isSaving = saveClient.isPending || saveExecutors.isPending || saveGuardians.isPending ||
     saveBeneficiaries.isPending || saveWishes.isPending || saveGifts.isPending ||
     savePets.isPending || saveProperty.isPending || saveBusiness.isPending || saveTrustClauses.isPending ||
-    upsertExclusion.isPending || deleteExclusion.isPending || saveLow.isPending;
+    upsertExclusion.isPending || deleteExclusion.isPending || saveLow.isPending || updateMeta.isPending;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -744,6 +749,26 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 
           {/* ── CLIENTS ─────────────────────────────────────────────────── */}
           <TabsContent value="clients" className="space-y-4">
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-1.5 sm:w-72">
+                  <Label className="text-sm">Governing Law</Label>
+                  <Select value={jurisdiction} onValueChange={(value) => { setJurisdiction(value as "england_wales" | "scotland"); markDirty(); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="england_wales">England & Wales</SelectItem>
+                      <SelectItem value="scotland">Scotland</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground">This selection controls the Will template only; client instructions remain unchanged.</p>
+              </div>
+              {jurisdiction === "scotland" && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Scottish succession law has different execution requirements and legal-rights rules. Review the completed Scottish Will with a qualified Scots-law solicitor before signature.
+                </div>
+              )}
+            </div>
             <ClientSection label={isMirror ? "Testator 1" : "Testator"} data={t1} onChange={(v) => { setT1(v); markDirty(); }} />
             {isMirror && (
               <>

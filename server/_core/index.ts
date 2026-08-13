@@ -538,7 +538,7 @@ async function createApp() {
       const matter = await getMatterById(id);
       if (!matter) { res.status(404).json({ error: "Not found" }); return; }
       // Return saved edited HTML if present, otherwise generate fresh
-      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const savedHtml = matter.jurisdiction === "scotland" ? null : (testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2);
       let html = savedHtml || generateWillV2Html(matter, testatorRole);
       const isEdited = !!savedHtml;
       const isDraft = req.query.draft === "1";
@@ -562,7 +562,7 @@ async function createApp() {
       if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
       const matter = await getMatterById(id);
       if (!matter) { res.status(404).json({ error: "Not found" }); return; }
-      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const savedHtml = matter.jurisdiction === "scotland" ? null : (testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2);
       const html = savedHtml || generateWillV2Html(matter, testatorRole);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
@@ -660,13 +660,15 @@ async function createApp() {
       if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
       const matter = await getMatterById(id);
       if (!matter) { res.status(404).json({ error: "Not found" }); return; }
-      const savedHtml = testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2;
+      const savedHtml = matter.jurisdiction === "scotland" ? null : (testatorRole === "testator1" ? matter.editedWillHtmlTestator1 : matter.editedWillHtmlTestator2);
       const client = matter.clients.find(c => c.clientRole === testatorRole);
       const safeName = (client?.fullName || "Will").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
       // Use data-driven generator for clean professional DOCX; fall back to HTML parser only for saved edited HTML
       const docxBuffer = savedHtml
         ? await htmlToDocx(savedHtml, `${safeName} — Last Will & Testament`)
-        : await generateWillDocxFromMatter(matter, testatorRole);
+        : matter.jurisdiction === "scotland"
+          ? await htmlToDocx(generateWillV2Html(matter, testatorRole), `${safeName} — Will Governed by the Law of Scotland`)
+          : await generateWillDocxFromMatter(matter, testatorRole);
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       res.setHeader("Content-Disposition", `attachment; filename="${safeName}-Will.docx"`);
       res.send(docxBuffer);

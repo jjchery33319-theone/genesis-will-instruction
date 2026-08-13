@@ -13,7 +13,18 @@ function nameAndAddress(p: { fullName?: string | null; address?: string | null }
   return parts.join(", ");
 }
 
+function generateScottishCommentaryHtml(matter: FullMatter, testatorRole: TestatorRole): string {
+  const client = matter.clients.find(c => c.clientRole === testatorRole);
+  const name = client?.fullName || "_______________";
+  const fileRef = matter.fileReference || "";
+  const role = matter.matterType === "mirror" ? testatorRole : "shared";
+  const executors = matter.executors.filter(e => e.clientRole === role && e.executorType === "primary");
+  const beneficiaries = matter.beneficiaries.filter(b => b.clientRole === role && b.beneficiaryType === "primary");
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Commentary — ${name}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;line-height:1.6;color:#1a1a1a}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:16px;margin:20px 0}h1,h2{color:#1a3a5c}li{margin:8px 0}</style></head><body><h1>Scottish Will Commentary</h1><p><strong>${name}</strong>${fileRef ? ` — Reference ${fileRef}` : ""}</p><div class="notice"><strong>Scottish-law review required.</strong> This commentary is an instruction summary for a Will governed by the law of Scotland. It is not an English/Welsh Will commentary and should be reviewed by a qualified Scots-law solicitor before execution.</div><h2>Instructions reflected in this draft</h2><ul><li><strong>Executors:</strong> ${executors.length ? executors.map(e => e.fullName || "Unnamed executor").join(", ") : "No executor has been recorded."}</li><li><strong>Primary beneficiaries:</strong> ${beneficiaries.length ? beneficiaries.map(b => b.fullName || b.recipientGroup || "Unnamed beneficiary").join(", ") : "No beneficiary has been recorded."}</li><li><strong>Scottish succession:</strong> the Will includes a clause recognising that legal rights and special destinations may affect the estate.</li><li><strong>Execution:</strong> use the accompanying Scottish signing guide and obtain legal review before signature.</li></ul></body></html>`;
+}
+
 export function generateCommentaryHtml(matter: FullMatter, testatorRole: TestatorRole = "testator1"): string {
+  if ((matter as any).jurisdiction === "scotland") return generateScottishCommentaryHtml(matter, testatorRole);
   const client = matter.clients.find(c => c.clientRole === testatorRole);
   const partnerRole: TestatorRole = testatorRole === "testator1" ? "testator2" : "testator1";
   const partner = matter.matterType === "mirror" ? matter.clients.find(c => c.clientRole === partnerRole) : null;

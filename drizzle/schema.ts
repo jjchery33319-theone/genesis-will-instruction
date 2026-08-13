@@ -365,6 +365,7 @@ export type InsertLpaRecord = typeof lpaRecords.$inferInsert;
 export const matters = mysqlTable("matters", {
   id: int("id").primaryKey().autoincrement(),
   matterType: mysqlEnum("matter_type", ["single", "mirror"]).notNull(),
+  jurisdiction: mysqlEnum("jurisdiction", ["england_wales", "scotland"]).default("england_wales").notNull(),
   fileReference: varchar("file_reference", { length: 100 }),
   status: mysqlEnum("status", ["draft", "complete"]).default("draft").notNull(),
   editedWillHtmlTestator1: mediumtext("edited_will_html_testator1"),
