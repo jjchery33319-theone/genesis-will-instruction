@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +30,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { parseStructuredAiSummaryEdit } from "../lib/aiUploadData";
 
 const LS_KEY = "genesis_will_form_autosave";
 
@@ -147,6 +149,9 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<ExtractionResult | null>(null);
+  const [editableData, setEditableData] = useState<ExtractedData | null>(null);
+  const [structuredDrafts, setStructuredDrafts] = useState<Record<string, string>>({});
+  const [structuredErrors, setStructuredErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [loadingStage, setLoadingStage] = useState<string | null>(null);
@@ -163,6 +168,9 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
     }
     setSelectedFile(file);
     setResult(null);
+    setEditableData(null);
+    setStructuredDrafts({});
+    setStructuredErrors({});
     setError(null);
   }
 
@@ -190,7 +198,18 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
       if (!resp.ok) {
         throw new Error(json.error ?? "Extraction failed");
       }
-      setResult(json as ExtractionResult);
+      const extraction = json as ExtractionResult;
+      setResult(extraction);
+      setEditableData(JSON.parse(JSON.stringify(extraction.extractedData)) as ExtractedData);
+      setStructuredDrafts(Object.fromEntries(
+        extraction.populatedFields
+          .filter((field) => {
+            const value = extraction.extractedData[field];
+            return Array.isArray(value) || (value !== null && typeof value === "object");
+          })
+          .map((field) => [field, JSON.stringify(extraction.extractedData[field], null, 2)])
+      ));
+      setStructuredErrors({});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to extract data";
       setError(msg);
@@ -204,15 +223,20 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
 
   function handleOpenInForm() {
     if (!result) return;
+    if (Object.keys(structuredErrors).length > 0) {
+      toast.error("Please correct the highlighted structured values before applying the data.");
+      return;
+    }
     try {
+      const dataToApply = editableData ?? result.extractedData;
       if (onApply) {
-        onApply(result.extractedData, result.populatedFields);
+        onApply(dataToApply, result.populatedFields);
         onOpenChange(false);
         toast.success("Extracted data added to the form. Please review every section before submitting.");
         return;
       }
       // Write extracted data to localStorage so WillForm picks it up
-      localStorage.setItem(LS_KEY, JSON.stringify(result.extractedData));
+      localStorage.setItem(LS_KEY, JSON.stringify(dataToApply));
       onOpenChange(false);
       navigate("/");
       toast.success("Form pre-filled with transcript data. Please review each section.");
@@ -224,6 +248,9 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
   function handleClose() {
     setSelectedFile(null);
     setResult(null);
+    setEditableData(null);
+    setStructuredDrafts({});
+    setStructuredErrors({});
     setError(null);
     setIsDragging(false);
     setLoadingStage(null);
@@ -231,9 +258,26 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
   }
 
   const confidenceCfg = result ? CONFIDENCE_CONFIG[result.confidence] : null;
+  const summaryData = editableData ?? result?.extractedData ?? {};
+  const updateScalarField = (field: string, value: string) => {
+    setEditableData((current) => ({ ...(current ?? {}), [field]: value }));
+  };
+  const updateStructuredField = (field: string, rawValue: string) => {
+    setStructuredDrafts((current) => ({ ...current, [field]: rawValue }));
+    const parsed = parseStructuredAiSummaryEdit(rawValue);
+    if (parsed.ok) {
+      setEditableData((current) => ({ ...(current ?? {}), [field]: parsed.value }));
+      setStructuredErrors((current) => {
+        const { [field]: _ignored, ...rest } = current;
+        return rest;
+      });
+    } else {
+      setStructuredErrors((current) => ({ ...current, [field]: parsed.error }));
+    }
+  };
   const reviewedFieldNames = new Set(REVIEW_SECTIONS.flatMap((section) => section.fields));
   const additionalExtractedFields = result
-    ? result.populatedFields.filter((field) => !reviewedFieldNames.has(field) && result.extractedData[field] !== undefined)
+    ? result.populatedFields.filter((field) => !reviewedFieldNames.has(field) && summaryData[field] !== undefined)
     : [];
 
   return (
@@ -386,14 +430,14 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
               )}
 
               <p className="mx-6 mb-3 text-xs text-muted-foreground">
-                Review every extracted value below before applying it. You can choose a different file or amend the information in the V1 form after application.
+                You can edit every value here before applying it. For people lists and other structured values, edit the JSON exactly as needed and correct any validation message before continuing.
               </p>
 
               <ScrollArea className="flex-1 px-6 pb-6">
                 <div className="space-y-4">
                   {REVIEW_SECTIONS.map(section => {
                     const filledFields = section.fields.filter(f => {
-                      const v = result.extractedData[f];
+                      const v = summaryData[f];
                       return result.populatedFields.includes(f) && v !== null && v !== undefined && v !== "" && (!Array.isArray(v) || v.length > 0);
                     });
                     if (filledFields.length === 0) return null;
@@ -408,9 +452,26 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
                               <span className="text-muted-foreground w-44 flex-shrink-0 text-xs pt-0.5">
                                 {formatFieldLabel(field)}
                               </span>
-                              <span className="flex-1 text-xs font-medium break-words">
-                                {formatValue(result.extractedData[field])}
-                              </span>
+                              <div className="flex-1 min-w-0">
+                                {Array.isArray(summaryData[field]) || (summaryData[field] !== null && typeof summaryData[field] === "object") ? (
+                                  <>
+                                    <Textarea
+                                      aria-label={`Edit ${formatFieldLabel(field)}`}
+                                      value={structuredDrafts[field] ?? JSON.stringify(summaryData[field], null, 2)}
+                                      onChange={(event) => updateStructuredField(field, event.target.value)}
+                                      className="min-h-24 font-mono text-xs"
+                                    />
+                                    {structuredErrors[field] && <p className="mt-1 text-xs text-destructive">{structuredErrors[field]}</p>}
+                                  </>
+                                ) : (
+                                  <Input
+                                    aria-label={`Edit ${formatFieldLabel(field)}`}
+                                    value={String(summaryData[field] ?? "")}
+                                    onChange={(event) => updateScalarField(field, event.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -424,7 +485,16 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
                         {additionalExtractedFields.map((field) => (
                           <div key={field} className="flex items-start gap-3 px-3 py-2 text-sm">
                             <span className="text-muted-foreground w-44 flex-shrink-0 text-xs pt-0.5">{formatFieldLabel(field)}</span>
-                            <span className="flex-1 text-xs font-medium break-words">{formatValue(result.extractedData[field])}</span>
+                            <div className="flex-1 min-w-0">
+                              {Array.isArray(summaryData[field]) || (summaryData[field] !== null && typeof summaryData[field] === "object") ? (
+                                <>
+                                  <Textarea aria-label={`Edit ${formatFieldLabel(field)}`} value={structuredDrafts[field] ?? JSON.stringify(summaryData[field], null, 2)} onChange={(event) => updateStructuredField(field, event.target.value)} className="min-h-24 font-mono text-xs" />
+                                  {structuredErrors[field] && <p className="mt-1 text-xs text-destructive">{structuredErrors[field]}</p>}
+                                </>
+                              ) : (
+                                <Input aria-label={`Edit ${formatFieldLabel(field)}`} value={String(summaryData[field] ?? "")} onChange={(event) => updateScalarField(field, event.target.value)} className="h-8 text-xs" />
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>

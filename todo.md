@@ -596,3 +596,7 @@
 ## V1 Extraction Confirmation and Reset
 - [x] Show a dedicated all-fields extraction summary before applying uploaded data to the form
 - [x] Add Clear AI Data to restore pre-upload values and remove AI review markers
+
+## V1 Editable Extraction Summary
+- [x] Allow scalar and structured extracted values to be edited directly before applying them to the form
+- [x] Apply the user-edited summary values and fields to the Version 1 form
