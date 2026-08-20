@@ -12544,14 +12544,9 @@ async function extractTextFromBuffer(buffer, mimetype, originalname) {
     return buffer.toString("utf-8");
   }
   if (mimetype === "application/pdf" || ext === "pdf") {
-    const { PDFParse } = require2("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const result = await parser.getText();
-      return result.text;
-    } finally {
-      await parser.destroy();
-    }
+    const pdfParse = require2("pdf-parse/lib/pdf-parse.js");
+    const result = await pdfParse(buffer);
+    return result.text;
   }
   if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || mimetype === "application/msword" || ext === "docx" || ext === "doc") {
     const mammoth = await import("mammoth");

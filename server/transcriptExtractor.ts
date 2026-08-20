@@ -21,22 +21,11 @@ export async function extractTextFromBuffer(
 
   // PDF
   if (mimetype === "application/pdf" || ext === "pdf") {
-    // Use the CommonJS Node entry point. The ESM/browser condition of pdf-parse
-    // selects a PDF.js bundle that expects DOMMatrix, which does not exist on
-    // Vercel's Node runtime.
-    const { PDFParse } = require("pdf-parse") as {
-      PDFParse: new (options: { data: Buffer }) => {
-        getText: () => Promise<{ text: string }>;
-        destroy: () => Promise<void>;
-      };
-    };
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const result = await parser.getText();
-      return result.text;
-    } finally {
-      await parser.destroy();
-    }
+    // pdf-parse 1.x uses PDF.js 1.x and runs entirely in Node. It avoids the
+    // DOMMatrix dependency introduced by the newer browser-oriented parser.
+    const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (input: Buffer) => Promise<{ text: string }>;
+    const result = await pdfParse(buffer);
+    return result.text;
   }
 
   // DOCX / Word

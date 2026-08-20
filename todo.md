@@ -606,3 +606,6 @@
 
 ## V1 Upload Model Availability
 - [x] Select an available built-in model for V1 document extraction instead of gpt-5-mini
+
+## V1 Production PDF Extraction Remediation
+- [x] Replace the remaining production PDF extraction dependency path that raises DOMMatrix is not defined
