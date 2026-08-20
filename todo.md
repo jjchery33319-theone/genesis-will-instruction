@@ -554,14 +554,14 @@
 - [x] Frontend: live search input with clear button, email shown in list, match count displayed
 
 ## AI Transcript Upload for V1 Welcome Pack (Phase 33)
-- [ ] Add "Upload Transcript" button in admin back office (V1 submissions list page)
-- [ ] Backend: file upload endpoint that accepts PDF, Word (.docx), plain text
-- [ ] Backend: text extraction from uploaded file (PDF via pdf-parse, docx via mammoth, txt direct)
-- [ ] Backend: tRPC procedure that sends extracted text to LLM and returns structured will instruction data
-- [ ] Frontend: upload modal/dialog with file picker and progress indicator
-- [ ] Frontend: AI review panel showing extracted fields for user to review and edit before saving
-- [ ] Frontend: pre-fill V1 submission form with extracted data on confirmation
-- [ ] Deploy to Vercel
+- [x] Add "Upload Transcript" button in admin back office (V1 submissions list page)
+- [x] Backend: file upload endpoint that accepts PDF, Word (.docx), plain text
+- [x] Backend: text extraction from uploaded file (PDF via pdf-parse, docx via mammoth, txt direct)
+- [x] Backend: procedure that sends extracted text to the server-side LLM and returns structured will instruction data
+- [x] Frontend: upload modal/dialog with file picker and progress indicator
+- [x] Frontend: AI review panel showing extracted fields before application to the form
+- [x] Frontend: pre-fill V1 submission form with extracted data on confirmation
+- [x] Deploy to Vercel
 
 ## V1 Welcome Pack Completeness
 - [x] Audit every V1 instruction field against both Welcome Pack PDF and Word outputs, then add only omitted relevant fields
@@ -580,3 +580,10 @@
 ## V2 Scottish-law Will Option
 - [x] Add a jurisdiction selector that keeps English/Welsh and Scottish-law Will drafting paths separate
 - [x] Implement a Scottish-law V2 document generator and verify the existing English/Welsh document remains unchanged
+
+## Version 2 Source Package
+- [x] Package the complete V2 Will Drafting source code, schema, export routes, and tests for download
+
+## V1 Upload-to-Prefill
+- [x] Accept PDF, DOCX, and TXT files, extract their text, and map it to reviewable V1 instruction data
+- [x] Add an Upload Instructions control that lets a user apply reviewed extracted data to the V1 form

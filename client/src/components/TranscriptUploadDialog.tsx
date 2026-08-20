@@ -44,6 +44,7 @@ interface ExtractionResult {
 interface TranscriptUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onApply?: (data: ExtractedData) => void;
 }
 
 const CONFIDENCE_CONFIG = {
@@ -109,16 +110,20 @@ const REVIEW_SECTIONS: { title: string; fields: string[] }[] = [
     fields: ["client1HasChildren", "client1TotalChildren", "client1ChildrenUnder18", "client1ChildrenOver18"],
   },
   {
-    title: "Executors & Trustees",
-    fields: ["executors", "reserveExecutors", "trustees"],
+    title: "Client 1 — Executors & Trustees",
+    fields: ["client1Executors", "client1ReservedExecutors", "trustees"],
+  },
+  {
+    title: "Client 2 — Executors & Trustees",
+    fields: ["client2Executors", "client2ReservedExecutors"],
   },
   {
     title: "Guardians",
-    fields: ["guardians"],
+    fields: ["client1Guardians", "client1ReservedGuardians", "client2Guardians", "client2ReservedGuardians"],
   },
   {
-    title: "Beneficiaries",
-    fields: ["beneficiaries"],
+    title: "Beneficiaries & Distribution",
+    fields: ["client1Beneficiaries", "client1ResidualEstate", "client1ResidualBackup", "client2Beneficiaries", "client2ResidualEstate", "client2ResidualBackup"],
   },
   {
     title: "Gifts & Property",
@@ -134,7 +139,7 @@ const REVIEW_SECTIONS: { title: string; fields: string[] }[] = [
   },
 ];
 
-export default function TranscriptUploadDialog({ open, onOpenChange }: TranscriptUploadDialogProps) {
+export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: TranscriptUploadDialogProps) {
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -179,6 +184,12 @@ export default function TranscriptUploadDialog({ open, onOpenChange }: Transcrip
   function handleOpenInForm() {
     if (!result) return;
     try {
+      if (onApply) {
+        onApply(result.extractedData);
+        onOpenChange(false);
+        toast.success("Extracted data added to the form. Please review every section before submitting.");
+        return;
+      }
       // Write extracted data to localStorage so WillForm picks it up
       localStorage.setItem(LS_KEY, JSON.stringify(result.extractedData));
       onOpenChange(false);
@@ -204,10 +215,10 @@ export default function TranscriptUploadDialog({ open, onOpenChange }: Transcrip
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <FileText className="w-5 h-5" style={{ color: "oklch(0.28 0.07 155)" }} />
-            Upload Consultation Transcript
+            Upload Instructions
           </DialogTitle>
           <DialogDescription>
-            Upload a transcript or notes from a video call or consultation. The AI will extract the client's will instruction data and pre-fill the form for you to review.
+            Upload a PDF, Word document, plain-text file, transcript, or consultation notes. The extracted information is shown for review before it is added to the Version 1 form.
           </DialogDescription>
         </DialogHeader>
 
@@ -281,7 +292,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange }: Transcrip
               ) : (
                 <>
                   <Upload className="w-4 h-4" />
-                  Extract Data from Transcript
+                  Extract Instruction Data
                 </>
               )}
             </Button>
@@ -308,7 +319,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange }: Transcrip
                   style={{ background: "oklch(0.28 0.07 155)", color: "white" }}
                   onClick={handleOpenInForm}
                 >
-                  Open in Form
+                  Apply to V1 Form
                   <ChevronRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -319,6 +330,10 @@ export default function TranscriptUploadDialog({ open, onOpenChange }: Transcrip
                   <span>{result.extractionNotes}</span>
                 </div>
               )}
+
+              <p className="mx-6 mb-3 text-xs text-muted-foreground">
+                Please check every extracted value in the V1 form before saving or submitting. Only upload information you are authorised to process.
+              </p>
 
               <ScrollArea className="flex-1 px-6 pb-6">
                 <div className="space-y-4">

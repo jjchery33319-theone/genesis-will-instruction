@@ -12559,8 +12559,8 @@ async function extractTextFromBuffer(buffer, mimetype, originalname) {
 
 // server/transcriptAIExtractor.ts
 var SYSTEM_PROMPT = `You are an expert will-writing assistant for Genesis Wills and Estate Planning Ltd (UK).
-Your task is to extract structured will instruction data from a consultation transcript or notes.
-Extract as much information as possible. Omit fields that are not mentioned.
+Your task is to extract structured will instruction data from a consultation transcript, completed questionnaire, letter, PDF, Word document, or notes.
+Extract only information expressly stated in the source. Do not guess, infer, invent, or complete missing facts. Omit fields that are not mentioned.
 Return ONLY a single valid JSON object \u2014 no markdown fences, no explanation, no extra text.
 
 Key rules:
@@ -12590,10 +12590,12 @@ client1HasChildren, client1TotalChildren,
 client1ChildrenUnder18 (array of {name, dob, relationship}),
 client1ChildrenOver18 (array of {name, dob, relationship}),
 client2HasChildren, client2TotalChildren,
-executors (array of {prefix, firstName, lastName, relationship, address, phone, email, dob, notes}),
-reserveExecutors (array of {prefix, firstName, lastName, relationship, address, phone, email, notes}),
-trustees (array of {prefix, firstName, lastName, relationship, address, notes}),
-guardians (array of {prefix, firstName, lastName, relationship, address, phone, notes}),
+client1Executors (array of {prefix, firstName, lastName, relationship, address, phone, email, dob, notes}),
+client1ReservedExecutors (array of {prefix, firstName, lastName, relationship, address, phone, email, dob, notes}),
+client2Executors and client2ReservedExecutors (the equivalent arrays for Client 2 in mirror Wills),
+trustees (array of {prefix, firstName, lastName, relationship, address, phone, email, dob, notes}),
+client1Guardians and client1ReservedGuardians (arrays of {prefix, firstName, lastName, relationship, address, phone, email, dob, notes}),
+client2Guardians and client2ReservedGuardians (the equivalent arrays for Client 2 in mirror Wills),
 client1Beneficiaries (array of {prefix, firstName, lastName, relationship, address, dob, share, isVulnerable, notes}) - named beneficiaries for Client 1,
 client2Beneficiaries (array of {prefix, firstName, lastName, relationship, address, dob, share, isVulnerable, notes}) - named beneficiaries for Client 2 (mirror wills only),
 client1ResidualEstate (string) - who inherits the residue for Client 1,

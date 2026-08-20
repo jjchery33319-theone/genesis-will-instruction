@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FORM_STEPS, LPA_ONLY_STEPS, WILL_PRODUCT_IDS } from "../../../shared/willConstants";
 import StepIndicator from "../components/form/StepIndicator";
@@ -19,9 +19,10 @@ import Step13Beneficiaries from "../components/form/steps/Step5Beneficiaries";
 import Step14DisasterClause from "../components/form/steps/Step15DisasterClause";
 import Step15Review from "../components/form/steps/Step8Review";
 import { StepLpaDetails } from "../components/form/steps/StepLpaDetails";
-import { useWillForm } from "../hooks/useWillForm";
+import { useWillForm, type WillFormData } from "../hooks/useWillForm";
+import TranscriptUploadDialog from "../components/TranscriptUploadDialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Save, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, Loader2, Upload } from "lucide-react";
 
 // ─── LPA-only detection ───────────────────────────────────────────────────────
 /**
@@ -51,6 +52,12 @@ export default function WillForm() {
     isSavingDraft,
     isLoadingResume,
   } = useWillForm();
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  const applyUploadedData = useCallback((data: Record<string, unknown>) => {
+    updateFormData(data as Partial<WillFormData>);
+    goToStep(1);
+  }, [updateFormData, goToStep]);
 
   const isLpaOnly = detectLpaOnly(formData.productsOrdered);
   const isMirrorWill =
@@ -139,6 +146,18 @@ export default function WillForm() {
       <FormHeader />
 
       <div className="container py-6 max-w-5xl">
+        <div className="flex justify-end mb-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setUploadOpen(true)}
+            className="gap-2"
+            style={{ borderColor: "oklch(0.28 0.07 155)", color: "oklch(0.28 0.07 155)" }}
+          >
+            <Upload className="w-4 h-4" />
+            Upload Instructions
+          </Button>
+        </div>
         <StepIndicator
           steps={activeSteps}
           currentStep={effectiveStep}
@@ -218,6 +237,12 @@ export default function WillForm() {
           </div>
         )}
       </div>
+
+      <TranscriptUploadDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        onApply={applyUploadedData}
+      />
     </div>
   );
 }
