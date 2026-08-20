@@ -3,6 +3,10 @@
  * Extracts plain text from PDF, DOCX, and TXT files
  */
 
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
 export async function extractTextFromBuffer(
   buffer: Buffer,
   mimetype: string,
@@ -17,11 +21,22 @@ export async function extractTextFromBuffer(
 
   // PDF
   if (mimetype === "application/pdf" || ext === "pdf") {
-    // Dynamic import to avoid bundling issues
-    const pdfParseModule = await import("pdf-parse");
-    const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
-    const result = await pdfParse(buffer);
-    return result.text;
+    // Use the CommonJS Node entry point. The ESM/browser condition of pdf-parse
+    // selects a PDF.js bundle that expects DOMMatrix, which does not exist on
+    // Vercel's Node runtime.
+    const { PDFParse } = require("pdf-parse") as {
+      PDFParse: new (options: { data: Buffer }) => {
+        getText: () => Promise<{ text: string }>;
+        destroy: () => Promise<void>;
+      };
+    };
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const result = await parser.getText();
+      return result.text;
+    } finally {
+      await parser.destroy();
+    }
   }
 
   // DOCX / Word

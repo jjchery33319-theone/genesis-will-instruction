@@ -12532,20 +12532,26 @@ async function htmlToDocx(html, title) {
 }
 
 // server/_core/index.ts
-import { createRequire } from "module";
+import { createRequire as createRequire2 } from "module";
 import multer from "multer";
 
 // server/transcriptExtractor.ts
+import { createRequire } from "node:module";
+var require2 = createRequire(import.meta.url);
 async function extractTextFromBuffer(buffer, mimetype, originalname) {
   const ext = originalname.split(".").pop()?.toLowerCase() ?? "";
   if (mimetype === "text/plain" || ext === "txt") {
     return buffer.toString("utf-8");
   }
   if (mimetype === "application/pdf" || ext === "pdf") {
-    const pdfParseModule = await import("pdf-parse");
-    const pdfParse = pdfParseModule.default ?? pdfParseModule;
-    const result = await pdfParse(buffer);
-    return result.text;
+    const { PDFParse } = require2("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const result = await parser.getText();
+      return result.text;
+    } finally {
+      await parser.destroy();
+    }
   }
   if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || mimetype === "application/msword" || ext === "docx" || ext === "doc") {
     const mammoth = await import("mammoth");
@@ -12840,7 +12846,7 @@ ${truncated}
 }
 
 // server/_core/index.ts
-var _require = createRequire(import.meta.url);
+var _require = createRequire2(import.meta.url);
 async function createApp() {
   const app = express();
   app.use(express.json({ limit: "50mb" }));

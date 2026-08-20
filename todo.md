@@ -600,3 +600,6 @@
 ## V1 Editable Extraction Summary
 - [x] Allow scalar and structured extracted values to be edited directly before applying them to the form
 - [x] Apply the user-edited summary values and fields to the Version 1 form
+
+## V1 PDF Upload Compatibility
+- [x] Fix server-side PDF extraction when the PDF library requires DOMMatrix
