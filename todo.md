@@ -592,3 +592,7 @@
 - [x] Strengthen unstructured-document extraction and return the exact populated-field list
 - [x] Add accessible drag-and-drop feedback and staged extraction loading feedback
 - [x] Highlight fields populated by an uploaded document throughout the V1 form
+
+## V1 Extraction Confirmation and Reset
+- [x] Show a dedicated all-fields extraction summary before applying uploaded data to the form
+- [x] Add Clear AI Data to restore pre-upload values and remove AI review markers

@@ -231,6 +231,10 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
   }
 
   const confidenceCfg = result ? CONFIDENCE_CONFIG[result.confidence] : null;
+  const reviewedFieldNames = new Set(REVIEW_SECTIONS.flatMap((section) => section.fields));
+  const additionalExtractedFields = result
+    ? result.populatedFields.filter((field) => !reviewedFieldNames.has(field) && result.extractedData[field] !== undefined)
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -350,7 +354,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
               <div className="px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" style={{ color: confidenceCfg?.color }} />
-                  <span className="text-sm font-medium">Extraction complete</span>
+                  <span className="text-sm font-medium">Extracted Information Summary</span>
                   <Badge
                     className="text-xs"
                     style={{ background: confidenceCfg?.bg, color: confidenceCfg?.color, border: "none" }}
@@ -382,7 +386,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
               )}
 
               <p className="mx-6 mb-3 text-xs text-muted-foreground">
-                Please check every extracted value in the V1 form before saving or submitting. Only upload information you are authorised to process.
+                Review every extracted value below before applying it. You can choose a different file or amend the information in the V1 form after application.
               </p>
 
               <ScrollArea className="flex-1 px-6 pb-6">
@@ -390,9 +394,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
                   {REVIEW_SECTIONS.map(section => {
                     const filledFields = section.fields.filter(f => {
                       const v = result.extractedData[f];
-                      if (v === null || v === undefined || v === "") return false;
-                      if (Array.isArray(v) && v.length === 0) return false;
-                      return true;
+                      return result.populatedFields.includes(f) && v !== null && v !== undefined && v !== "" && (!Array.isArray(v) || v.length > 0);
                     });
                     if (filledFields.length === 0) return null;
                     return (
@@ -415,6 +417,19 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
                       </div>
                     );
                   })}
+                  {additionalExtractedFields.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Additional Extracted Details</h4>
+                      <div className="rounded-lg border divide-y">
+                        {additionalExtractedFields.map((field) => (
+                          <div key={field} className="flex items-start gap-3 px-3 py-2 text-sm">
+                            <span className="text-muted-foreground w-44 flex-shrink-0 text-xs pt-0.5">{formatFieldLabel(field)}</span>
+                            <span className="flex-1 text-xs font-medium break-words">{formatValue(result.extractedData[field])}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </>

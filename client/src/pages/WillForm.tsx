@@ -21,6 +21,7 @@ import Step15Review from "../components/form/steps/Step8Review";
 import { StepLpaDetails } from "../components/form/steps/StepLpaDetails";
 import { useWillForm, type WillFormData } from "../hooks/useWillForm";
 import TranscriptUploadDialog from "../components/TranscriptUploadDialog";
+import { captureAiFieldSnapshot } from "../lib/aiUploadData";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Save, Loader2, Upload, Sparkles, X } from "lucide-react";
 
@@ -75,12 +76,21 @@ export default function WillForm() {
   } = useWillForm();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [aiPopulatedFields, setAiPopulatedFields] = useState<string[]>([]);
+  const [preAiData, setPreAiData] = useState<Partial<WillFormData> | null>(null);
 
   const applyUploadedData = useCallback((data: Record<string, unknown>, populatedFields: string[]) => {
+    const snapshot = captureAiFieldSnapshot(formData as Record<string, unknown>, populatedFields) as Partial<WillFormData>;
+    setPreAiData(snapshot);
     updateFormData(data as Partial<WillFormData>);
     setAiPopulatedFields(populatedFields);
     goToStep(1);
-  }, [updateFormData, goToStep]);
+  }, [formData, updateFormData, goToStep]);
+
+  const clearAiData = useCallback(() => {
+    if (preAiData) updateFormData(preAiData);
+    setAiPopulatedFields([]);
+    setPreAiData(null);
+  }, [preAiData, updateFormData]);
 
   const isLpaOnly = detectLpaOnly(formData.productsOrdered);
   const isMirrorWill =
@@ -188,6 +198,22 @@ export default function WillForm() {
           onStepClick={goToStep}
         />
 
+        {aiPopulatedFields.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "oklch(0.78 0.14 85)", background: "oklch(0.98 0.04 85)" }}>
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 h-4 w-4 flex-none" style={{ color: "oklch(0.48 0.12 85)" }} />
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "oklch(0.32 0.08 85)" }}>AI data is currently applied</p>
+                <p className="text-xs text-muted-foreground">{aiPopulatedFields.length} field{aiPopulatedFields.length === 1 ? " was" : "s were"} added from the uploaded document and marked for review.</p>
+              </div>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={clearAiData} className="gap-1.5" style={{ borderColor: "oklch(0.65 0.16 25)", color: "oklch(0.42 0.14 25)" }}>
+              <X className="h-3.5 w-3.5" />
+              Clear AI Data
+            </Button>
+          </div>
+        )}
+
         {/* LPA-only banner */}
         {isLpaOnly && (
           <div
@@ -216,7 +242,7 @@ export default function WillForm() {
                   {fieldsForCurrentStep.map((field) => <span key={field} className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: "oklch(0.92 0.08 85)", color: "oklch(0.32 0.08 85)" }}>{aiFieldLabel(field)}</span>)}
                 </div>
               </div>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label="Hide AI-populated field markers" onClick={() => setAiPopulatedFields([])}>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label="Clear AI data and markers" onClick={clearAiData}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
