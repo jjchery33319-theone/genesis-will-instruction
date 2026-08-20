@@ -16,10 +16,12 @@ function GiftList({
   gifts,
   onChange,
   label,
+  clientKey,
 }: {
   gifts: SpecificGift[];
   onChange: (gifts: SpecificGift[]) => void;
   label: string;
+  clientKey: "client1" | "client2";
 }) {
   const addGift = () => {
     onChange([...gifts, { description: "", recipient: "", value: "", isCharity: false, notes: "" }]);
@@ -107,6 +109,7 @@ function GiftList({
             </FieldRow>
             <FieldRow label="Notes / Conditions">
               <Input
+                data-v1-field={`${clientKey}SpecificGifts[${index}].notes`}
                 value={gift.notes ?? ""}
                 onChange={e => updateGift(index, { notes: e.target.value })}
                 placeholder="Any conditions, e.g. only if they survive me by 30 days…"
@@ -157,6 +160,7 @@ export default function Step12Gifts({ data, onChange }: Props) {
           gifts={data.client1SpecificGifts ?? []}
           onChange={gifts => onChange({ client1SpecificGifts: gifts })}
           label={c1Name}
+          clientKey="client1"
         />
 
         {isMirrorWill && (() => {
@@ -191,6 +195,7 @@ export default function Step12Gifts({ data, onChange }: Props) {
                 gifts={data.client2SpecificGifts ?? []}
                 onChange={gifts => onChange({ client2SpecificGifts: gifts })}
                 label={c2Name}
+                clientKey="client2"
               />
             </>
           );

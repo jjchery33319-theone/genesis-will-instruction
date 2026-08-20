@@ -133,7 +133,7 @@ export default function Step10LifeInsurance({ data, onChange }: Props) {
                   </FieldRow>
                 </div>
 
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center gap-3 pt-1" data-v1-field={`lifeInsurancePolicies[${index}].inTrust`}>
                   <Switch
                     id={`trust-${index}`}
                     checked={policy.inTrust ?? false}

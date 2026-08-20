@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FORM_STEPS, LPA_ONLY_STEPS, WILL_PRODUCT_IDS } from "../../../shared/willConstants";
 import StepIndicator from "../components/form/StepIndicator";
@@ -23,7 +23,8 @@ import { useWillForm, type WillFormData } from "../hooks/useWillForm";
 import TranscriptUploadDialog from "../components/TranscriptUploadDialog";
 import { captureAiFieldSnapshot } from "../lib/aiUploadData";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Save, Loader2, Upload, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, Loader2, Upload, Sparkles, X, AlertCircle } from "lucide-react";
+import { submissionErrorFieldPath, submissionErrorStep } from "../lib/v1SubmissionError";
 
 const AI_STEP_FIELDS: Record<number, string[]> = {
   1: ["appointmentDate", "appointmentTime", "consultantName", "productsOrdered", "willType"],
@@ -73,6 +74,7 @@ export default function WillForm() {
     saveAsDraft,
     isSavingDraft,
     isLoadingResume,
+    submissionError,
   } = useWillForm();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [aiPopulatedFields, setAiPopulatedFields] = useState<string[]>([]);
@@ -96,6 +98,22 @@ export default function WillForm() {
   const isMirrorWill =
     formData.productsOrdered?.includes("mirror_wills") ||
     formData.willType === "Mirror Wills";
+
+  useEffect(() => {
+    if (!submissionError) return;
+    const step = submissionErrorStep(submissionError.path);
+    const fieldPath = submissionErrorFieldPath(submissionError.path);
+    goToStep(step);
+    const timer = window.setTimeout(() => {
+      const selector = `[data-v1-field="${fieldPath.replace(/"/g, '\\"')}"]`;
+      const target = document.querySelector<HTMLElement>(selector) ?? document.querySelector<HTMLElement>(`[data-v1-step="${step}"]`);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      target?.classList.add("ring-2", "ring-red-500", "ring-offset-4", "rounded-md");
+      window.setTimeout(() => target?.classList.remove("ring-2", "ring-red-500", "ring-offset-4", "rounded-md"), 6000);
+      target?.querySelector<HTMLElement>("input, textarea, button, [role=switch]")?.focus({ preventScroll: true });
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [submissionError, goToStep]);
 
   // The active step list depends on whether this is LPA-only
   const activeSteps = isLpaOnly ? LPA_ONLY_STEPS : FORM_STEPS;
@@ -198,6 +216,13 @@ export default function WillForm() {
           onStepClick={goToStep}
         />
 
+        {submissionError && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+            <p><strong>Submission needs attention:</strong> {submissionError.message} We have taken you to the relevant field.</p>
+          </div>
+        )}
+
         {aiPopulatedFields.length > 0 && (
           <div className="mt-4 flex flex-col gap-3 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "oklch(0.78 0.14 85)", background: "oklch(0.98 0.04 85)" }}>
             <div className="flex items-start gap-2">
@@ -252,6 +277,7 @@ export default function WillForm() {
         <div className="mt-6">
           <AnimatePresence mode="wait">
             <motion.div
+              data-v1-step={effectiveStep}
               key={`${isLpaOnly ? "lpa" : "full"}-${effectiveStep}`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}

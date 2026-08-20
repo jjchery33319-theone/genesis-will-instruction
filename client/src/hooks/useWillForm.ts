@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { trpc } from "../lib/trpc";
 import { useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
+import { extractV1SubmissionError, type V1SubmissionError } from "../lib/v1SubmissionError";
 
 export type PersonEntry = {
   prefix?: string;
@@ -484,6 +485,7 @@ export function useWillForm() {
 
   // ── Server-side draft ID ──────────────────────────────────────────────────
   const [serverDraftId, setServerDraftId] = useState<number | null>(null);
+  const [submissionError, setSubmissionError] = useState<V1SubmissionError | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
 
   // Resume from URL param (?draftId=123)
@@ -575,6 +577,7 @@ export function useWillForm() {
       const cause = (err as any)?.cause;
       const causeMsg = cause instanceof Error ? cause.message : (cause ? String(cause) : '');
       const fullMsg = causeMsg ? `${err.message} | Cause: ${causeMsg}` : err.message;
+      setSubmissionError(extractV1SubmissionError(err));
       toast.error(`Submission failed: ${fullMsg}`);
     },
   });
@@ -589,6 +592,7 @@ export function useWillForm() {
   }, [formData, urlDraftId, serverDraftId]);
 
   const updateFormData = useCallback((updates: Partial<WillFormData>) => {
+    setSubmissionError(null);
     setFormData(prev => ({ ...prev, ...updates }));
   }, []);
 
@@ -605,6 +609,7 @@ export function useWillForm() {
     updateFormData,
     submitForm,
     isSubmitting: submitMutation.isPending,
+    submissionError,
     // Step management
     currentStep,
     goToStep,

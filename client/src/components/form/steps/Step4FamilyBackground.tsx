@@ -341,6 +341,7 @@ function ClientChildrenSection({
           {/* Total number */}
           <FieldRow label="Total number of children">
             <Input
+              data-v1-field={`${fieldPrefix}TotalChildren`}
               type="number"
               min={1}
               max={20}

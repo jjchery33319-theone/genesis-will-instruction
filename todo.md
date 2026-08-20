@@ -621,3 +621,6 @@
 
 ## V1 Submission Boolean Coercion
 - [x] Normalise string representations of optional nested boolean fields before V1 validation
+
+## V1 Submission Error Guidance
+- [x] Navigate to, scroll to, and temporarily highlight the field reported by a failed V1 submission
