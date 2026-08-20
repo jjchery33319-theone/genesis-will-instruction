@@ -603,3 +603,6 @@
 
 ## V1 PDF Upload Compatibility
 - [x] Fix server-side PDF extraction when the PDF library requires DOMMatrix
+
+## V1 Upload Model Availability
+- [x] Select an available built-in model for V1 document extraction instead of gpt-5-mini

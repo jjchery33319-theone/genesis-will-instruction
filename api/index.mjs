@@ -12798,7 +12798,9 @@ additionalNotes, specialNotes, extractionNotes`;
 async function extractWillDataFromTranscript(transcriptText) {
   const truncated = transcriptText.slice(0, 18e3);
   const response = await invokeLLM({
-    model: "gpt-5-mini",
+    // gpt-5-mini is present in some catalog responses but is not currently
+    // invocable for this project. Use the available Sonnet model instead.
+    model: "claude-sonnet-4-6",
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       {
