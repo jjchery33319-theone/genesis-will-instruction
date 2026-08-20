@@ -22,7 +22,28 @@ import { StepLpaDetails } from "../components/form/steps/StepLpaDetails";
 import { useWillForm, type WillFormData } from "../hooks/useWillForm";
 import TranscriptUploadDialog from "../components/TranscriptUploadDialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Save, Loader2, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, Loader2, Upload, Sparkles, X } from "lucide-react";
+
+const AI_STEP_FIELDS: Record<number, string[]> = {
+  1: ["appointmentDate", "appointmentTime", "consultantName", "productsOrdered", "willType"],
+  2: ["client1Prefix", "client1FirstName", "client1MiddleName", "client1LastName", "client1Dob", "client1AddressLine1", "client1City", "client1Postcode", "client1MaritalStatus", "client1JobTitle", "client1DaytimePhone", "client1Mobile", "client1Email", "client1Nationality", "client2Prefix", "client2FirstName", "client2MiddleName", "client2LastName", "client2Dob", "client2AddressLine1", "client2City", "client2Postcode", "client2MaritalStatus", "client2JobTitle", "client2DaytimePhone", "client2Mobile", "client2Email", "client2Nationality"],
+  3: ["client1HasChildren", "client1TotalChildren", "client1ChildrenUnder18", "client1ChildrenOver18", "client1ChildrenDetails", "client1FamilyCircumstances", "client2HasChildren", "client2TotalChildren", "client2ChildrenUnder18", "client2ChildrenOver18", "client2ChildrenDetails", "client2FamilyCircumstances"],
+  4: ["client1Residency", "client1DomiciledUK", "client1MentalCapacity", "client1MentalCapacityNotes", "client1ChildrenPastRelationships", "client1ChildrenPastDetails", "client2Residency", "client2DomiciledUK", "client2MentalCapacity", "client2MentalCapacityNotes", "client2ChildrenPastRelationships", "client2ChildrenPastDetails"],
+  5: ["ddArrangedAppointment", "ddArrangedAppointmentNotes", "ddKnowledgeOfEstate", "ddKnowledgeOfEstateNotes", "ddKnewBeneficiaries", "ddKnewBeneficiariesNotes", "ddSignsOfInfluence", "ddSignsOfInfluenceNotes", "ddKnewAppointees", "ddKnewAppointeesNotes"],
+  6: ["client1Executors", "client1ReservedExecutors", "client2Executors", "client2ReservedExecutors", "trustees", "client1Guardians", "client1ReservedGuardians", "client2Guardians", "client2ReservedGuardians"],
+  7: ["propertyOwned", "propertyAddress", "propertyOwnership", "mortgageOutstanding", "mortgageBalance", "mortgageTermRemaining", "mortgageLender", "propertyValue", "hasOtherProperties", "otherProperties", "assetsOutsideUK", "assetsOutsideUKDetails", "bankAccounts", "investments", "pensionDetails", "estimatedEstateValue", "client2BankAccounts", "client2Investments", "client2PensionDetails", "client2EstimatedEstateValue"],
+  8: ["hasLifeInsurance", "lifeInsurancePolicies", "lifeInsuranceNotes"],
+  9: ["hasBusinessInterests", "businessInterests", "businessInterestsDetails"],
+  10: ["hasPets", "petsDetails", "petsCarer"],
+  11: ["client1FuneralType", "client1FuneralWishes", "client1OrganDonation", "client2FuneralType", "client2FuneralWishes", "client2OrganDonation"],
+  12: ["client1SpecificGifts", "client2SpecificGifts"],
+  13: ["client1Beneficiaries", "client1ResidualEstate", "client1ResidualBackup", "client1Exclusions", "client2Beneficiaries", "client2ResidualEstate", "client2ResidualBackup", "client2Exclusions"],
+  14: ["disasterClauseClient1", "disasterClauseClient2", "disasterClauseNotes", "additionalNotes", "specialNotes"],
+};
+
+function aiFieldLabel(field: string): string {
+  return field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()).replace(/Client 1 /, "Client 1: ").replace(/Client 2 /, "Client 2: ");
+}
 
 // ─── LPA-only detection ───────────────────────────────────────────────────────
 /**
@@ -53,9 +74,11 @@ export default function WillForm() {
     isLoadingResume,
   } = useWillForm();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [aiPopulatedFields, setAiPopulatedFields] = useState<string[]>([]);
 
-  const applyUploadedData = useCallback((data: Record<string, unknown>) => {
+  const applyUploadedData = useCallback((data: Record<string, unknown>, populatedFields: string[]) => {
     updateFormData(data as Partial<WillFormData>);
+    setAiPopulatedFields(populatedFields);
     goToStep(1);
   }, [updateFormData, goToStep]);
 
@@ -121,6 +144,7 @@ export default function WillForm() {
 
   // When switching between LPA-only and full mode, clamp currentStep to valid range
   const effectiveStep = Math.min(currentStep, TOTAL_STEPS);
+  const fieldsForCurrentStep = aiPopulatedFields.filter((field) => (AI_STEP_FIELDS[effectiveStep] ?? []).includes(field));
 
   const goNext = useCallback(() => {
     goToStep(Math.min(effectiveStep + 1, TOTAL_STEPS));
@@ -178,6 +202,24 @@ export default function WillForm() {
             <span>
               <strong>LPA-only instruction</strong> — Will-specific sections are hidden. Only Appointment, Clients, Family, Background, Due Diligence, LPA Details (donors, attorneys &amp; certificate provider) and Review are required.
             </span>
+          </div>
+        )}
+
+        {fieldsForCurrentStep.length > 0 && (
+          <div className="mt-4 rounded-lg border px-4 py-3" style={{ borderColor: "oklch(0.78 0.14 85)", background: "oklch(0.98 0.04 85)" }}>
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 h-4 w-4 flex-none" style={{ color: "oklch(0.48 0.12 85)" }} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold" style={{ color: "oklch(0.32 0.08 85)" }}>AI-populated fields on this step</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Review these values against the uploaded document and amend anything that is not correct.</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {fieldsForCurrentStep.map((field) => <span key={field} className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: "oklch(0.92 0.08 85)", color: "oklch(0.32 0.08 85)" }}>{aiFieldLabel(field)}</span>)}
+                </div>
+              </div>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label="Hide AI-populated field markers" onClick={() => setAiPopulatedFields([])}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
 

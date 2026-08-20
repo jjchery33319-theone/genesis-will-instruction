@@ -12558,9 +12558,184 @@ async function extractTextFromBuffer(buffer, mimetype, originalname) {
 }
 
 // server/transcriptAIExtractor.ts
+var ALLOWED_V1_FIELDS = /* @__PURE__ */ new Set([
+  "willType",
+  "consultantName",
+  "appointmentDate",
+  "appointmentTime",
+  "appointmentLocation",
+  "productsOrdered",
+  "client1Prefix",
+  "client1FirstName",
+  "client1MiddleName",
+  "client1LastName",
+  "client1Dob",
+  "client1AddressLine1",
+  "client1City",
+  "client1Postcode",
+  "client1MaritalStatus",
+  "client1JobTitle",
+  "client1DaytimePhone",
+  "client1Mobile",
+  "client1Email",
+  "client1Nationality",
+  "client2Prefix",
+  "client2FirstName",
+  "client2MiddleName",
+  "client2LastName",
+  "client2Dob",
+  "client2AddressLine1",
+  "client2City",
+  "client2Postcode",
+  "client2MaritalStatus",
+  "client2JobTitle",
+  "client2DaytimePhone",
+  "client2Mobile",
+  "client2Email",
+  "client2Nationality",
+  "client1HasChildren",
+  "client1TotalChildren",
+  "client1ChildrenUnder18",
+  "client1ChildrenOver18",
+  "client1ChildrenDetails",
+  "client1FamilyCircumstances",
+  "client2HasChildren",
+  "client2TotalChildren",
+  "client2ChildrenUnder18",
+  "client2ChildrenOver18",
+  "client2ChildrenDetails",
+  "client2FamilyCircumstances",
+  "client1Residency",
+  "client1DomiciledUK",
+  "client1MentalCapacity",
+  "client1MentalCapacityNotes",
+  "client1ChildrenPastRelationships",
+  "client1ChildrenPastDetails",
+  "client2Residency",
+  "client2DomiciledUK",
+  "client2MentalCapacity",
+  "client2MentalCapacityNotes",
+  "client2ChildrenPastRelationships",
+  "client2ChildrenPastDetails",
+  "ddArrangedAppointment",
+  "ddArrangedAppointmentNotes",
+  "ddKnowledgeOfEstate",
+  "ddKnowledgeOfEstateNotes",
+  "ddKnewBeneficiaries",
+  "ddKnewBeneficiariesNotes",
+  "ddSignsOfInfluence",
+  "ddSignsOfInfluenceNotes",
+  "ddKnewAppointees",
+  "ddKnewAppointeesNotes",
+  "client1Executors",
+  "client1ReservedExecutors",
+  "client2Executors",
+  "client2ReservedExecutors",
+  "trustees",
+  "client1Guardians",
+  "client1ReservedGuardians",
+  "client2Guardians",
+  "client2ReservedGuardians",
+  "client1Beneficiaries",
+  "client1ResidualEstate",
+  "client1ResidualBackup",
+  "client1SpecificGifts",
+  "client1Exclusions",
+  "client2Beneficiaries",
+  "client2ResidualEstate",
+  "client2ResidualBackup",
+  "client2SpecificGifts",
+  "client2Exclusions",
+  "propertyOwned",
+  "propertyAddress",
+  "propertyOwnership",
+  "mortgageOutstanding",
+  "mortgageBalance",
+  "mortgageTermRemaining",
+  "mortgageLender",
+  "propertyValue",
+  "hasOtherProperties",
+  "otherProperties",
+  "assetsOutsideUK",
+  "assetsOutsideUKDetails",
+  "bankAccounts",
+  "investments",
+  "pensionDetails",
+  "estimatedEstateValue",
+  "client2BankAccounts",
+  "client2Investments",
+  "client2PensionDetails",
+  "client2EstimatedEstateValue",
+  "hasLifeInsurance",
+  "lifeInsurancePolicies",
+  "lifeInsuranceNotes",
+  "hasBusinessInterests",
+  "businessInterests",
+  "businessInterestsDetails",
+  "hasPets",
+  "petsDetails",
+  "petsCarer",
+  "client1FuneralType",
+  "client1FuneralWishes",
+  "client1OrganDonation",
+  "client2FuneralType",
+  "client2FuneralWishes",
+  "client2OrganDonation",
+  "disasterClauseClient1",
+  "disasterClauseClient2",
+  "disasterClauseNotes",
+  "additionalNotes",
+  "specialNotes",
+  "lpaDetails"
+]);
+function hasValue(value) {
+  if (value === null || value === void 0 || value === "") return false;
+  return !Array.isArray(value) || value.length > 0;
+}
+function splitName(value) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  return { firstName: parts[0] ?? "", lastName: parts.slice(1).join(" ") };
+}
+function normalisePeople(value) {
+  if (!Array.isArray(value)) return value;
+  return value.map((person) => {
+    if (!person || typeof person !== "object") return person;
+    const entry = { ...person };
+    if (!entry.firstName) {
+      const name = typeof entry.fullName === "string" ? entry.fullName : typeof entry.name === "string" ? entry.name : "";
+      if (name) Object.assign(entry, splitName(name));
+    }
+    if (!entry.address && typeof entry.addressLine1 === "string") entry.address = entry.addressLine1;
+    return entry;
+  });
+}
+function normaliseV1Extraction(raw) {
+  const aliases = {
+    executors: "client1Executors",
+    reserveExecutors: "client1ReservedExecutors",
+    reservedExecutors: "client1ReservedExecutors",
+    guardians: "client1Guardians",
+    reservedGuardians: "client1ReservedGuardians",
+    beneficiaries: "client1Beneficiaries",
+    specificGifts: "client1SpecificGifts",
+    residuaryEstate: "client1ResidualEstate",
+    residuaryBackup: "client1ResidualBackup",
+    funeralType: "client1FuneralType",
+    funeralWishes: "client1FuneralWishes",
+    organDonation: "client1OrganDonation"
+  };
+  const normalised = {};
+  for (const [rawKey, rawValue] of Object.entries(raw)) {
+    const key = aliases[rawKey] ?? rawKey;
+    if (!ALLOWED_V1_FIELDS.has(key) || !hasValue(rawValue)) continue;
+    normalised[key] = /(Executors|Guardians|Beneficiaries|SpecificGifts|ChildrenUnder18|ChildrenOver18|Exclusions)$/.test(key) ? normalisePeople(rawValue) : rawValue;
+  }
+  return normalised;
+}
 var SYSTEM_PROMPT = `You are an expert will-writing assistant for Genesis Wills and Estate Planning Ltd (UK).
 Your task is to extract structured will instruction data from a consultation transcript, completed questionnaire, letter, PDF, Word document, or notes.
 Extract only information expressly stated in the source. Do not guess, infer, invent, or complete missing facts. Omit fields that are not mentioned.
+Work through the source carefully, including narrative wording, tables, headings, informal notes, and lists. Map each fact to the exact current Version 1 field name below. Where a full name appears inside a person list, split it into firstName and lastName. Preserve exact allocation wording, gift wording, and funeral wishes in their relevant text fields.
 Return ONLY a single valid JSON object \u2014 no markdown fences, no explanation, no extra text.
 
 Key rules:
@@ -12609,16 +12784,20 @@ client2FuneralType (one of: cremation, burial, no_preference), client2FuneralWis
 hasPets, petsDetails, petsCarer,
 otherProperties (string - plain text description of additional properties, NOT an array),
 bankAccounts (string), investments (string), pensionDetails (string), estimatedEstateValue (string),
-propertyOwned, propertyAddress, propertyOwnership, propertyValue, mortgageOutstanding,
+client2BankAccounts (string), client2Investments (string), client2PensionDetails (string), client2EstimatedEstateValue (string),
+propertyOwned, propertyAddress, propertyOwnership, propertyValue, mortgageOutstanding, mortgageBalance, mortgageTermRemaining, mortgageLender, hasOtherProperties, assetsOutsideUK, assetsOutsideUKDetails,
+hasLifeInsurance, lifeInsuranceNotes, lifeInsurancePolicies (array of {provider, policyNumber, sumAssured, termRemaining, inTrust, beneficiary, notes}),
+hasBusinessInterests, businessInterests, businessInterestsDetails (array of {businessName, natureOfBusiness, ownershipPercentage, notes}),
 additionalNotes, specialNotes, extractionNotes`;
 async function extractWillDataFromTranscript(transcriptText) {
-  const truncated = transcriptText.slice(0, 12e3);
+  const truncated = transcriptText.slice(0, 18e3);
   const response = await invokeLLM({
+    model: "gpt-5-mini",
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `Extract will instruction data from the following transcript and return a JSON object only:
+        content: `Extract Version 1 will instruction data from the following uploaded document and return a JSON object only:
 
 ---
 ${truncated}
@@ -12648,6 +12827,7 @@ ${truncated}
   }
   const extractionNotes = parsed.extractionNotes ?? "";
   delete parsed.extractionNotes;
+  parsed = normaliseV1Extraction(parsed);
   const keyFields = ["client1FirstName", "client1LastName", "willType", "executors"];
   const filledKeys = keyFields.filter((k) => {
     const v = parsed[k];
@@ -12656,7 +12836,7 @@ ${truncated}
     return true;
   });
   const confidence = filledKeys.length >= 3 ? "high" : filledKeys.length >= 2 ? "medium" : "low";
-  return { extractedData: parsed, extractionNotes, confidence };
+  return { extractedData: parsed, extractionNotes, confidence, populatedFields: Object.keys(parsed) };
 }
 
 // server/_core/index.ts

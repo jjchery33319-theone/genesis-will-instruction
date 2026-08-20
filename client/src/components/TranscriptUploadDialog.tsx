@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   ChevronRight,
   X,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,12 +40,13 @@ interface ExtractionResult {
   extractedData: ExtractedData;
   extractionNotes: string;
   confidence: "high" | "medium" | "low";
+  populatedFields: string[];
 }
 
 interface TranscriptUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onApply?: (data: ExtractedData) => void;
+  onApply?: (data: ExtractedData, populatedFields: string[]) => void;
 }
 
 const CONFIDENCE_CONFIG = {
@@ -146,20 +148,37 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<ExtractionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<string | null>(null);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function chooseFile(file: File) {
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (!extension || !["pdf", "doc", "docx", "txt"].includes(extension)) {
+      setError("Please upload a PDF, Word (.docx), or plain text (.txt) file.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("The file is larger than 10 MB. Please upload a smaller file.");
+      return;
+    }
     setSelectedFile(file);
     setResult(null);
     setError(null);
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    chooseFile(file);
+  }
+
   async function handleUpload() {
     if (!selectedFile) return;
     setIsUploading(true);
+    setLoadingStage("Reading your document…");
     setError(null);
     setResult(null);
+    const progressTimer = window.setTimeout(() => setLoadingStage("Mapping instructions to Version 1 fields with AI…"), 900);
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
@@ -177,7 +196,9 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
       setError(msg);
       toast.error(msg);
     } finally {
+      window.clearTimeout(progressTimer);
       setIsUploading(false);
+      setLoadingStage(null);
     }
   }
 
@@ -185,7 +206,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
     if (!result) return;
     try {
       if (onApply) {
-        onApply(result.extractedData);
+        onApply(result.extractedData, result.populatedFields);
         onOpenChange(false);
         toast.success("Extracted data added to the form. Please review every section before submitting.");
         return;
@@ -204,6 +225,8 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
     setSelectedFile(null);
     setResult(null);
     setError(null);
+    setIsDragging(false);
+    setLoadingStage(null);
     onOpenChange(false);
   }
 
@@ -233,9 +256,31 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
                 Supported formats: PDF, Word (.docx), plain text (.txt) — max 10 MB
               </p>
               <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/30"
-                style={{ borderColor: selectedFile ? "oklch(0.28 0.07 155)" : undefined }}
+                role="button"
+                tabIndex={0}
+                aria-label="Choose a PDF, Word, or text instruction file"
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all hover:border-primary/50 hover:bg-muted/30"
+                style={{
+                  borderColor: isDragging || selectedFile ? "oklch(0.28 0.07 155)" : undefined,
+                  background: isDragging ? "oklch(0.95 0.03 155)" : undefined,
+                  transform: isDragging ? "scale(1.01)" : undefined,
+                }}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                onDragEnter={(event) => { event.preventDefault(); setIsDragging(true); }}
+                onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }}
+                onDragLeave={(event) => { event.preventDefault(); setIsDragging(false); }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setIsDragging(false);
+                  const file = event.dataTransfer.files?.[0];
+                  if (file) chooseFile(file);
+                }}
               >
                 {selectedFile ? (
                   <div className="flex items-center justify-center gap-3">
@@ -257,7 +302,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
                   <div className="space-y-2">
                     <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
-                      Click to browse or drag and drop
+                      {isDragging ? "Drop your file here" : "Click to browse or drag and drop"}
                     </p>
                   </div>
                 )}
@@ -287,7 +332,7 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
               {isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Extracting data with AI…
+                  {loadingStage ?? "Extracting instruction data…"}
                 </>
               ) : (
                 <>
@@ -322,6 +367,11 @@ export default function TranscriptUploadDialog({ open, onOpenChange, onApply }: 
                   Apply to V1 Form
                   <ChevronRight className="w-3.5 h-3.5" />
                 </Button>
+              </div>
+
+              <div className="mx-6 mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: "oklch(0.96 0.03 85)", color: "oklch(0.35 0.09 85)" }}>
+                <Sparkles className="w-3.5 h-3.5 flex-none" />
+                <span><strong>{result.populatedFields.length} field{result.populatedFields.length === 1 ? "" : "s"}</strong> will be marked in the form for review.</span>
               </div>
 
               {result.extractionNotes && (

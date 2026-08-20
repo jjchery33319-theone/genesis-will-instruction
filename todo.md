@@ -587,3 +587,8 @@
 ## V1 Upload-to-Prefill
 - [x] Accept PDF, DOCX, and TXT files, extract their text, and map it to reviewable V1 instruction data
 - [x] Add an Upload Instructions control that lets a user apply reviewed extracted data to the V1 form
+
+## V1 Upload Review Enhancements
+- [x] Strengthen unstructured-document extraction and return the exact populated-field list
+- [x] Add accessible drag-and-drop feedback and staged extraction loading feedback
+- [x] Highlight fields populated by an uploaded document throughout the V1 form
