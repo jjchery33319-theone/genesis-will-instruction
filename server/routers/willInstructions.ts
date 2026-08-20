@@ -28,6 +28,32 @@ const coerceToString = z
     return String(val);
   });
 
+const NUMERIC_BOOLEAN_KEYS = new Set(["considerLPA", "considerPPT", "considerAAT"]);
+
+/**
+ * Converts legacy, imported, and AI-populated optional scalar values into the
+ * text shape used by the V1 form. Boolean flags remain booleans, and the three
+ * numeric recommendation flags keep their numeric representation for Zod.
+ */
+export function normaliseV1SubmissionInput(input: unknown): unknown {
+  const normalise = (value: unknown, key?: string): unknown => {
+    if (value === null) return undefined;
+    if (typeof value === "number") return key && NUMERIC_BOOLEAN_KEYS.has(key) ? value : String(value);
+    if (Array.isArray(value)) return value.map((entry) => normalise(entry));
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([entryKey, entryValue]) => [
+          entryKey,
+          normalise(entryValue, entryKey),
+        ])
+      );
+    }
+    return value;
+  };
+
+  return normalise(input);
+}
+
 const nullableGiftString = z.string().nullish().transform((value) => value ?? undefined);
 
 // Zod schema for a person (executor/trustee/guardian/beneficiary)
@@ -150,7 +176,7 @@ function nullify<T extends Record<string, any>>(obj: T): T {
   return result as T;
 }
 
-const willInstructionInputSchema = z.object({
+const willInstructionInputObjectSchema = z.object({
   // Appointment
   appointmentDate: z.string().optional(),
   appointmentTime: z.string().optional(),
@@ -421,6 +447,15 @@ const willInstructionInputSchema = z.object({
   }).optional(),
 });
 
+export const willInstructionInputSchema = z.preprocess(
+  normaliseV1SubmissionInput,
+  willInstructionInputObjectSchema
+);
+
+function normalisedV1InputSchema<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess(normaliseV1SubmissionInput, schema);
+}
+
 export const willInstructionsRouter = router({
   submit: publicProcedure
     .input(willInstructionInputSchema)
@@ -605,10 +640,10 @@ export const willInstructionsRouter = router({
   // ─── Draft procedures ────────────────────────────────────────────────────
 
   saveDraft: publicProcedure
-    .input(willInstructionInputSchema.extend({
+    .input(normalisedV1InputSchema(willInstructionInputObjectSchema.extend({
       draftId: z.number().optional(),
       currentStep: z.number().optional(),
-    }))
+    })))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -742,11 +777,11 @@ export const willInstructionsRouter = router({
 
   // Admin: full update of any submission
   updateSubmission: publicProcedure
-    .input(willInstructionInputSchema.extend({
+    .input(normalisedV1InputSchema(willInstructionInputObjectSchema.extend({
       id: z.number(),
       status: z.enum(["draft", "submitted", "processing", "complete", "cancelled"]).optional(),
       manualNeedsAssessment: z.string().optional(),
-    }))
+    })))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");

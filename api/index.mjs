@@ -3300,6 +3300,24 @@ var coerceToString = z2.union([z2.string(), z2.array(z2.unknown()), z2.unknown()
   }
   return String(val);
 });
+var NUMERIC_BOOLEAN_KEYS = /* @__PURE__ */ new Set(["considerLPA", "considerPPT", "considerAAT"]);
+function normaliseV1SubmissionInput(input) {
+  const normalise = (value, key) => {
+    if (value === null) return void 0;
+    if (typeof value === "number") return key && NUMERIC_BOOLEAN_KEYS.has(key) ? value : String(value);
+    if (Array.isArray(value)) return value.map((entry) => normalise(entry));
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([entryKey, entryValue]) => [
+          entryKey,
+          normalise(entryValue, entryKey)
+        ])
+      );
+    }
+    return value;
+  };
+  return normalise(input);
+}
 var nullableGiftString = z2.string().nullish().transform((value) => value ?? void 0);
 var personSchema = z2.object({
   prefix: z2.string().optional(),
@@ -3401,7 +3419,7 @@ function nullify(obj) {
   }
   return result;
 }
-var willInstructionInputSchema = z2.object({
+var willInstructionInputObjectSchema = z2.object({
   // Appointment
   appointmentDate: z2.string().optional(),
   appointmentTime: z2.string().optional(),
@@ -3648,6 +3666,13 @@ var willInstructionInputSchema = z2.object({
     }).optional()
   }).optional()
 });
+var willInstructionInputSchema = z2.preprocess(
+  normaliseV1SubmissionInput,
+  willInstructionInputObjectSchema
+);
+function normalisedV1InputSchema(schema) {
+  return z2.preprocess(normaliseV1SubmissionInput, schema);
+}
 var willInstructionsRouter = router({
   submit: publicProcedure.input(willInstructionInputSchema).mutation(async ({ input }) => {
     const db = await getDb();
@@ -3785,10 +3810,10 @@ var willInstructionsRouter = router({
     return record ?? null;
   }),
   // ─── Draft procedures ────────────────────────────────────────────────────
-  saveDraft: publicProcedure.input(willInstructionInputSchema.extend({
+  saveDraft: publicProcedure.input(normalisedV1InputSchema(willInstructionInputObjectSchema.extend({
     draftId: z2.number().optional(),
     currentStep: z2.number().optional()
-  })).mutation(async ({ input }) => {
+  }))).mutation(async ({ input }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
     const { draftId, currentStep, client2SameAddressAsClient1: _sameAddrDraft, ...formData } = input;
@@ -3885,11 +3910,11 @@ var willInstructionsRouter = router({
     return { success: true };
   }),
   // Admin: full update of any submission
-  updateSubmission: publicProcedure.input(willInstructionInputSchema.extend({
+  updateSubmission: publicProcedure.input(normalisedV1InputSchema(willInstructionInputObjectSchema.extend({
     id: z2.number(),
     status: z2.enum(["draft", "submitted", "processing", "complete", "cancelled"]).optional(),
     manualNeedsAssessment: z2.string().optional()
-  })).mutation(async ({ input }) => {
+  }))).mutation(async ({ input }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
     const { id, client2SameAddressAsClient1: _sameAddr, ...formData } = input;

@@ -615,3 +615,6 @@
 
 ## V1 Submission Null Handling
 - [x] Convert nullable specific-gift fields to safe strings before V1 submission validation
+
+## V1 Submission Value Coercion
+- [x] Coerce optional numeric and nullable scalar V1 values safely before server validation

@@ -14,6 +14,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { willInstructionInputSchema } from "./routers/willInstructions";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 vi.mock("./db", () => ({ getDb: vi.fn().mockResolvedValue(null) }));
@@ -218,6 +219,20 @@ describe("V1 — Zod schema accepts all expected fields", () => {
         productsOrdered: ["single_will"],
       })
     ).not.toThrow();
+  });
+
+  it("normalises numeric child totals and nullable values in the live V1 schema", () => {
+    const result = willInstructionInputSchema.parse({
+      client1TotalChildren: 2,
+      client2TotalChildren: null,
+      client2SpecificGifts: [{ description: "Ring", recipient: "Frank", notes: null }],
+      considerLPA: 1,
+    });
+
+    expect(result.client1TotalChildren).toBe("2");
+    expect(result.client2TotalChildren).toBeUndefined();
+    expect(result.client2SpecificGifts?.[0]?.notes).toBeUndefined();
+    expect(result.considerLPA).toBe(true);
   });
 
   it("parses a mirror-will payload with per-client arrays", () => {
