@@ -33,6 +33,19 @@ export type SpecificGift = {
   notes?: string;
 };
 
+export function sanitizeSpecificGifts(value: unknown): SpecificGift[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((gift): gift is Record<string, unknown> => !!gift && typeof gift === "object")
+    .map((gift) => ({
+      description: gift.description == null ? "" : String(gift.description),
+      recipient: gift.recipient == null ? "" : String(gift.recipient),
+      value: gift.value == null ? undefined : String(gift.value),
+      isCharity: typeof gift.isCharity === "boolean" ? gift.isCharity : undefined,
+      notes: gift.notes == null ? "" : String(gift.notes),
+    }));
+}
+
 export type LifeInsurancePolicy = {
   provider: string;
   policyNumber?: string;
@@ -402,8 +415,8 @@ function loadFromLocalStorage(): WillFormData {
       : c1Beneficiaries;
 
     // Migrate legacy shared `specificGifts` into per-client fields similarly
-    const legacyGifts = (parsed.specificGifts as SpecificGift[] | null) ?? [];
-    const c1Gifts = (parsed.client1SpecificGifts as SpecificGift[] | null) ?? [];
+    const legacyGifts = sanitizeSpecificGifts(parsed.specificGifts);
+    const c1Gifts = sanitizeSpecificGifts(parsed.client1SpecificGifts);
     const migratedC1Gifts = c1Gifts.length === 0 && legacyGifts.length > 0
       ? legacyGifts
       : c1Gifts;
@@ -440,7 +453,7 @@ function loadFromLocalStorage(): WillFormData {
       client1Exclusions: (parsed.client1Exclusions as ExclusionEntry[] | null) ?? [],
       client2Exclusions: (parsed.client2Exclusions as ExclusionEntry[] | null) ?? [],
       client1SpecificGifts: migratedC1Gifts,
-      client2SpecificGifts: (parsed.client2SpecificGifts as SpecificGift[] | null) ?? [],
+      client2SpecificGifts: sanitizeSpecificGifts(parsed.client2SpecificGifts),
       client1ChildrenUnder18: (parsed.client1ChildrenUnder18 as ChildEntry[] | null) ?? [],
       client1ChildrenOver18: (parsed.client1ChildrenOver18 as ChildEntry[] | null) ?? [],
       client2ChildrenUnder18: (parsed.client2ChildrenUnder18 as ChildEntry[] | null) ?? [],
@@ -494,7 +507,7 @@ export function useWillForm() {
         guardians: (d.guardians as PersonEntry[] | null) ?? [],
         reservedGuardians: (d.reservedGuardians as PersonEntry[] | null) ?? [],
         beneficiaries: (d.beneficiaries as PersonEntry[] | null) ?? [],
-        specificGifts: (d.specificGifts as SpecificGift[] | null) ?? [],
+        specificGifts: sanitizeSpecificGifts(d.specificGifts),
         client1Executors: (d.client1Executors as PersonEntry[] | null) ?? [],
         client1ReservedExecutors: (d.client1ReservedExecutors as PersonEntry[] | null) ?? [],
         client2Executors: (d.client2Executors as PersonEntry[] | null) ?? [],
@@ -507,8 +520,8 @@ export function useWillForm() {
         client2Beneficiaries: (d.client2Beneficiaries as PersonEntry[] | null) ?? [],
         client1Exclusions: (d.client1Exclusions as ExclusionEntry[] | null) ?? [],
         client2Exclusions: (d.client2Exclusions as ExclusionEntry[] | null) ?? [],
-        client1SpecificGifts: (d.client1SpecificGifts as SpecificGift[] | null) ?? [],
-        client2SpecificGifts: (d.client2SpecificGifts as SpecificGift[] | null) ?? [],
+        client1SpecificGifts: sanitizeSpecificGifts(d.client1SpecificGifts),
+        client2SpecificGifts: sanitizeSpecificGifts(d.client2SpecificGifts),
         client1ChildrenUnder18: (d.client1ChildrenUnder18 as ChildEntry[] | null) ?? [],
         client1ChildrenOver18: (d.client1ChildrenOver18 as ChildEntry[] | null) ?? [],
         client2ChildrenUnder18: (d.client2ChildrenUnder18 as ChildEntry[] | null) ?? [],

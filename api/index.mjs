@@ -3300,6 +3300,7 @@ var coerceToString = z2.union([z2.string(), z2.array(z2.unknown()), z2.unknown()
   }
   return String(val);
 });
+var nullableGiftString = z2.string().nullish().transform((value) => value ?? void 0);
 var personSchema = z2.object({
   prefix: z2.string().optional(),
   firstName: z2.string().optional(),
@@ -3314,11 +3315,11 @@ var personSchema = z2.object({
   notes: z2.string().optional()
 });
 var specificGiftSchema = z2.object({
-  description: z2.string().optional(),
-  recipient: z2.string().optional(),
-  value: z2.string().optional(),
-  isCharity: z2.boolean().optional(),
-  notes: z2.string().optional()
+  description: nullableGiftString,
+  recipient: nullableGiftString,
+  value: nullableGiftString,
+  isCharity: z2.boolean().nullish().transform((value) => value ?? void 0),
+  notes: nullableGiftString
 });
 var lifeInsurancePolicySchema = z2.object({
   provider: z2.string().optional(),

@@ -28,6 +28,8 @@ const coerceToString = z
     return String(val);
   });
 
+const nullableGiftString = z.string().nullish().transform((value) => value ?? undefined);
+
 // Zod schema for a person (executor/trustee/guardian/beneficiary)
 const personSchema = z.object({
   prefix: z.string().optional(),
@@ -44,11 +46,11 @@ const personSchema = z.object({
 });
 
 const specificGiftSchema = z.object({
-  description: z.string().optional(),
-  recipient: z.string().optional(),
-  value: z.string().optional(),
-  isCharity: z.boolean().optional(),
-  notes: z.string().optional(),
+  description: nullableGiftString,
+  recipient: nullableGiftString,
+  value: nullableGiftString,
+  isCharity: z.boolean().nullish().transform((value) => value ?? undefined),
+  notes: nullableGiftString,
 });
 
 const lifeInsurancePolicySchema = z.object({

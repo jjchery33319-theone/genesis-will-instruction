@@ -63,12 +63,13 @@ const personSchema = z.object({
   notes: z.string().optional(),
 });
 
+const nullableGiftString = z.string().nullish().transform((value) => value ?? undefined);
 const specificGiftSchema = z.object({
-  description: z.string().optional(),
-  recipient: z.string().optional(),
-  value: z.string().optional(),
-  isCharity: z.boolean().optional(),
-  notes: z.string().optional(),
+  description: nullableGiftString,
+  recipient: nullableGiftString,
+  value: nullableGiftString,
+  isCharity: z.boolean().nullish().transform((value) => value ?? undefined),
+  notes: nullableGiftString,
 });
 
 const willInputSchema = z.object({
@@ -234,6 +235,22 @@ describe("V1 — Zod schema accepts all expected fields", () => {
         client2SpecificGifts: [{ description: "Ring", recipient: "Frank" }],
       })
     ).not.toThrow();
+  });
+
+  it("normalises nullable Client 2 gift fields instead of blocking submission", () => {
+    const result = willInputSchema.parse({
+      client2SpecificGifts: [
+        { description: "Ring", recipient: "Frank", value: null, isCharity: null, notes: null },
+      ],
+    });
+
+    expect(result.client2SpecificGifts?.[0]).toEqual({
+      description: "Ring",
+      recipient: "Frank",
+      value: undefined,
+      isCharity: undefined,
+      notes: undefined,
+    });
   });
 
   it("parses a payload with trust clause arrays", () => {

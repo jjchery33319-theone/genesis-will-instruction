@@ -612,3 +612,6 @@
 
 ## V1 Live Upload Model Remediation
 - [x] Use the proxy-selected default model, confirmed invocable by the upload extraction path
+
+## V1 Submission Null Handling
+- [x] Convert nullable specific-gift fields to safe strings before V1 submission validation
