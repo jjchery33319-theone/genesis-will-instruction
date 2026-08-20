@@ -609,3 +609,6 @@
 
 ## V1 Production PDF Extraction Remediation
 - [x] Replace the remaining production PDF extraction dependency path that raises DOMMatrix is not defined
+
+## V1 Live Upload Model Remediation
+- [x] Use the proxy-selected default model, confirmed invocable by the upload extraction path

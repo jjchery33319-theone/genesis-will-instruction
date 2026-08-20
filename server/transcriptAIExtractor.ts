@@ -137,9 +137,8 @@ export async function extractWillDataFromTranscript(transcriptText: string): Pro
   const truncated = transcriptText.slice(0, 18000); // Keep enough context for unstructured letters and questionnaires.
 
   const response = await invokeLLM({
-    // gpt-5-mini is present in some catalog responses but is not currently
-    // invocable for this project. Use the available Sonnet model instead.
-    model: "claude-sonnet-4-6",
+    // Leave model selection to the authenticated Forge proxy. The Vercel
+    // deployment can expose a narrower model set than the sandbox catalog.
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       {
