@@ -618,3 +618,6 @@
 
 ## V1 Submission Value Coercion
 - [x] Coerce optional numeric and nullable scalar V1 values safely before server validation
+
+## V1 Submission Boolean Coercion
+- [x] Normalise string representations of optional nested boolean fields before V1 validation

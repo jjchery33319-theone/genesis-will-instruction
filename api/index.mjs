@@ -3319,6 +3319,16 @@ function normaliseV1SubmissionInput(input) {
   return normalise(input);
 }
 var nullableGiftString = z2.string().nullish().transform((value) => value ?? void 0);
+var optionalBoolean = z2.preprocess((value) => {
+  if (value === null || value === void 0 || value === "") return void 0;
+  if (typeof value === "string") {
+    const normalised = value.trim().toLowerCase();
+    if (["true", "yes", "1"].includes(normalised)) return true;
+    if (["false", "no", "0"].includes(normalised)) return false;
+  }
+  if (typeof value === "number" && (value === 0 || value === 1)) return Boolean(value);
+  return value;
+}, z2.boolean().optional());
 var personSchema = z2.object({
   prefix: z2.string().optional(),
   firstName: z2.string().optional(),
@@ -3329,14 +3339,14 @@ var personSchema = z2.object({
   email: z2.string().optional(),
   dob: z2.string().optional(),
   share: z2.string().optional(),
-  isVulnerable: z2.boolean().optional(),
+  isVulnerable: optionalBoolean,
   notes: z2.string().optional()
 });
 var specificGiftSchema = z2.object({
   description: nullableGiftString,
   recipient: nullableGiftString,
   value: nullableGiftString,
-  isCharity: z2.boolean().nullish().transform((value) => value ?? void 0),
+  isCharity: optionalBoolean,
   notes: nullableGiftString
 });
 var lifeInsurancePolicySchema = z2.object({
@@ -3344,7 +3354,7 @@ var lifeInsurancePolicySchema = z2.object({
   policyNumber: z2.string().optional(),
   sumAssured: z2.string().optional(),
   termRemaining: z2.string().optional(),
-  inTrust: z2.boolean().optional(),
+  inTrust: optionalBoolean,
   beneficiary: z2.string().optional(),
   notes: z2.string().optional()
 });
@@ -3362,10 +3372,10 @@ var exclusionSchema = z2.object({
   notes: z2.string().optional()
 });
 var pptTerminationTriggersSchema = z2.object({
-  onDeath: z2.boolean().optional(),
-  onRemarriageOrCohabitation: z2.boolean().optional(),
-  onCeasingToReside: z2.boolean().optional(),
-  onBreachOfConditions: z2.boolean().optional()
+  onDeath: optionalBoolean,
+  onRemarriageOrCohabitation: optionalBoolean,
+  onCeasingToReside: optionalBoolean,
+  onBreachOfConditions: optionalBoolean
 });
 var pptClauseSchema = z2.object({
   propertyAddress: z2.string().optional(),
@@ -3465,7 +3475,7 @@ var willInstructionInputObjectSchema = z2.object({
   client2Email: z2.string().optional(),
   client2Nationality: z2.string().optional(),
   // Client 2 same address
-  client2SameAddressAsClient1: z2.boolean().optional(),
+  client2SameAddressAsClient1: optionalBoolean,
   // Per-client executors
   client1Executors: z2.array(personSchema).optional(),
   client1ReservedExecutors: z2.array(personSchema).optional(),
@@ -3628,9 +3638,9 @@ var willInstructionInputObjectSchema = z2.object({
   businessPropertyReliefs: z2.array(businessPropertyReliefClauseSchema).optional(),
   // Manual Needs Assessment / Recommendations
   manualNeedsAssessment: z2.string().optional(),
-  considerLPA: z2.union([z2.boolean(), z2.number()]).transform((v) => Boolean(v)).optional(),
-  considerPPT: z2.union([z2.boolean(), z2.number()]).transform((v) => Boolean(v)).optional(),
-  considerAAT: z2.union([z2.boolean(), z2.number()]).transform((v) => Boolean(v)).optional(),
+  considerLPA: optionalBoolean,
+  considerPPT: optionalBoolean,
+  considerAAT: optionalBoolean,
   // LPA Details (for LPA-only V1 instructions)
   lpaDetails: z2.object({
     donors: z2.array(z2.object({

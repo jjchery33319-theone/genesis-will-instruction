@@ -55,6 +55,16 @@ export function normaliseV1SubmissionInput(input: unknown): unknown {
 }
 
 const nullableGiftString = z.string().nullish().transform((value) => value ?? undefined);
+const optionalBoolean = z.preprocess((value) => {
+  if (value === null || value === undefined || value === "") return undefined;
+  if (typeof value === "string") {
+    const normalised = value.trim().toLowerCase();
+    if (["true", "yes", "1"].includes(normalised)) return true;
+    if (["false", "no", "0"].includes(normalised)) return false;
+  }
+  if (typeof value === "number" && (value === 0 || value === 1)) return Boolean(value);
+  return value;
+}, z.boolean().optional());
 
 // Zod schema for a person (executor/trustee/guardian/beneficiary)
 const personSchema = z.object({
@@ -67,7 +77,7 @@ const personSchema = z.object({
   email: z.string().optional(),
   dob: z.string().optional(),
   share: z.string().optional(),
-  isVulnerable: z.boolean().optional(),
+  isVulnerable: optionalBoolean,
   notes: z.string().optional(),
 });
 
@@ -75,7 +85,7 @@ const specificGiftSchema = z.object({
   description: nullableGiftString,
   recipient: nullableGiftString,
   value: nullableGiftString,
-  isCharity: z.boolean().nullish().transform((value) => value ?? undefined),
+  isCharity: optionalBoolean,
   notes: nullableGiftString,
 });
 
@@ -84,7 +94,7 @@ const lifeInsurancePolicySchema = z.object({
   policyNumber: z.string().optional(),
   sumAssured: z.string().optional(),
   termRemaining: z.string().optional(),
-  inTrust: z.boolean().optional(),
+  inTrust: optionalBoolean,
   beneficiary: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -106,10 +116,10 @@ const exclusionSchema = z.object({
 // ── Optional clause sub-schemas ──────────────────────────────────────────────
 
 const pptTerminationTriggersSchema = z.object({
-  onDeath: z.boolean().optional(),
-  onRemarriageOrCohabitation: z.boolean().optional(),
-  onCeasingToReside: z.boolean().optional(),
-  onBreachOfConditions: z.boolean().optional(),
+  onDeath: optionalBoolean,
+  onRemarriageOrCohabitation: optionalBoolean,
+  onCeasingToReside: optionalBoolean,
+  onBreachOfConditions: optionalBoolean,
 });
 
 const pptClauseSchema = z.object({
@@ -225,7 +235,7 @@ const willInstructionInputObjectSchema = z.object({
   client2Nationality: z.string().optional(),
 
   // Client 2 same address
-  client2SameAddressAsClient1: z.boolean().optional(),
+  client2SameAddressAsClient1: optionalBoolean,
 
   // Per-client executors
   client1Executors: z.array(personSchema).optional(),
@@ -408,9 +418,9 @@ const willInstructionInputObjectSchema = z.object({
 
   // Manual Needs Assessment / Recommendations
   manualNeedsAssessment: z.string().optional(),
-  considerLPA: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
-  considerPPT: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
-  considerAAT: z.union([z.boolean(), z.number()]).transform(v => Boolean(v)).optional(),
+  considerLPA: optionalBoolean,
+  considerPPT: optionalBoolean,
+  considerAAT: optionalBoolean,
   // LPA Details (for LPA-only V1 instructions)
   lpaDetails: z.object({
     donors: z.array(z.object({

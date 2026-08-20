@@ -235,6 +235,27 @@ describe("V1 — Zod schema accepts all expected fields", () => {
     expect(result.considerLPA).toBe(true);
   });
 
+  it("normalises string boolean values in nested V1 submission data", () => {
+    const result = willInstructionInputSchema.parse({
+      client2SameAddressAsClient1: "true",
+      lifeInsurancePolicies: [{ provider: "Example Insurer", inTrust: "yes" }],
+      client1Executors: [{ firstName: "Alex", isVulnerable: "false" }],
+      client1SpecificGifts: [{ description: "Charity gift", isCharity: "1" }],
+      protectivePropertyTrusts: [{
+        terminationTriggers: { onDeath: "true", onCeasingToReside: "no" },
+      }],
+      considerPPT: "true",
+    });
+
+    expect(result.client2SameAddressAsClient1).toBe(true);
+    expect(result.lifeInsurancePolicies?.[0]?.inTrust).toBe(true);
+    expect(result.client1Executors?.[0]?.isVulnerable).toBe(false);
+    expect(result.client1SpecificGifts?.[0]?.isCharity).toBe(true);
+    expect(result.protectivePropertyTrusts?.[0]?.terminationTriggers?.onDeath).toBe(true);
+    expect(result.protectivePropertyTrusts?.[0]?.terminationTriggers?.onCeasingToReside).toBe(false);
+    expect(result.considerPPT).toBe(true);
+  });
+
   it("parses a mirror-will payload with per-client arrays", () => {
     expect(() =>
       willInputSchema.parse({
