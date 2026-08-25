@@ -81,15 +81,14 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function upsertLocalAdminUser(): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database is not available for administrator login.");
-  const now = new Date();
   await db.execute(sql`
     INSERT INTO users (openId, name, loginMethod, role, lastSignedIn)
-    VALUES ('local-admin', 'Admin', 'password', 'admin', ${now})
+    VALUES ('local-admin', 'Admin', 'password', 'admin', CURRENT_TIMESTAMP)
     ON DUPLICATE KEY UPDATE
       name = 'Admin',
       loginMethod = 'password',
       role = 'admin',
-      lastSignedIn = ${now}
+      lastSignedIn = CURRENT_TIMESTAMP
   `);
 }
 
