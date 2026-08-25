@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -75,6 +75,22 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
   }
+}
+
+/** Password-admin login requires only the stable local account fields. */
+export async function upsertLocalAdminUser(): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available for administrator login.");
+  const now = new Date();
+  await db.execute(sql`
+    INSERT INTO users (openId, name, loginMethod, role, lastSignedIn)
+    VALUES ('local-admin', 'Admin', 'password', 'admin', ${now})
+    ON DUPLICATE KEY UPDATE
+      name = 'Admin',
+      loginMethod = 'password',
+      role = 'admin',
+      lastSignedIn = ${now}
+  `);
 }
 
 export async function getUserByOpenId(openId: string) {
