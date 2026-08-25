@@ -158,69 +158,10 @@ export function normalizeInstructionForMatterTransfer<T extends InstructionField
     
     beneficiaries: preferredArray(instruction.client1Beneficiaries, instruction.beneficiaries),
     
-    specificGifts: preferredArray(instruction.client1SpecificGif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    specificGifts: preferredArray(instruction.client1SpecificGifts, instruction.specificGifts),
+    funeralType: preferredText(instruction.client1FuneralType, instruction.funeralType),
+    funeralWishes: preferredText(instruction.client1FuneralWishes, instruction.funeralWishes),
+    organDonation: preferredText(instruction.client1OrganDonation, instruction.organDonation),
+    additionalNotes: combinedNotes,
+  } as T;
+}
