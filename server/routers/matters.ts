@@ -27,6 +27,7 @@ import {
   upsertPersonPool,
   deletePersonPool,
 } from "../mattersDb";
+import { normalizeInstructionForMatterTransfer } from "../legacyMatterTransfer";
 
 const personSchema = z.object({
   title: z.string().optional(),
@@ -414,8 +415,9 @@ export const mattersRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
       const rows = await db.select().from(willInstructions).where(eq(willInstructions.id, input.instructionId)).limit(1);
-      const ins = rows[0];
-      if (!ins) throw new Error("Instruction not found");
+      const sourceInstruction = rows[0];
+      if (!sourceInstruction) throw new Error("Instruction not found");
+      const ins = normalizeInstructionForMatterTransfer(sourceInstruction);
 
       const isMirror = ins.willType === "mirror" || ins.willType === "mirrorWills";
       const matterType: "single" | "mirror" = isMirror ? "mirror" : "single";
