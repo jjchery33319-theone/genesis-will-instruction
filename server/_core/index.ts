@@ -1,5 +1,5 @@
 import "dotenv/config";
-import express from "express";
+import express, { type Request, type Response } from "express";
 import { createServer } from "http";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
@@ -577,7 +577,7 @@ async function createApp() {
     }
   });
 
-  app.post("/api/matters/:id/will-html", express.json({ limit: "10mb" }), async (req, res) => {
+  app.post("/api/matters/:id/will-html", express.json({ limit: "10mb" }), async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
