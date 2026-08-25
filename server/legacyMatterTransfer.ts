@@ -94,7 +94,8 @@ function childNames(value: unknown): string | undefined {
 
 export function normalizeInstructionForMatterTransfer<T extends InstructionFields>(instruction: T): T {
   
-  const isMirror = instruction.willType === "mirror" || instruction.willType === "mirrorWills";
+  const normalisedWillType = asText(instruction.willType)?.toLowerCase().replace(/[^a-z]/g, "");
+  const isMirror = normalisedWillType === "mirror" || normalisedWillType === "mirrorwills";
   
   const notes = [asText(instruction.additionalNotes), asText(instruction.specialNotes)];
   
@@ -140,7 +141,7 @@ export function normalizeInstructionForMatterTransfer<T extends InstructionField
   
   const combinedNotes = Array.from(new Set(notes.filter(Boolean))).join("\n\n") || undefined;
   
-  if (isMirror) return { ...instruction, additionalNotes: combinedNotes } as T;
+  if (isMirror) return { ...instruction, willType: "mirror", additionalNotes: combinedNotes } as T;
   
 
   
