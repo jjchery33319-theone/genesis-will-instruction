@@ -33,7 +33,12 @@ export const appRouter = router({
 
         // Upsert a local admin user
         const openId = "local-admin";
-        await db.upsertLocalAdminUser();
+
+        try {
+          await db.upsertLocalAdminUser();
+        } catch (error) {
+          console.error("[Auth] Failed to update local admin profile:", error);
+        }
 
         // Sign a JWT session token — must use same secret as verifySession in sdk.ts
         const secret = new TextEncoder().encode(ENV.cookieSecret || "genesis-default-secret");
