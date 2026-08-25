@@ -605,7 +605,7 @@ export const willInstructionsRouter = router({
   list: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
-    return db
+    const records = await db
       .select({
         id: willInstructions.id,
         referenceNumber: willInstructions.referenceNumber,
@@ -619,6 +619,11 @@ export const willInstructionsRouter = router({
       })
       .from(willInstructions)
       .orderBy(desc(willInstructions.createdAt));
+
+    // Imported Back Office drafts belong in the dedicated Drafts tab. Keeping
+    // them out of this list prevents unfinished intake records appearing as
+    // empty submitted instructions.
+    return records.filter((record) => record.status !== "draft");
   }),
 
   getById: publicProcedure
