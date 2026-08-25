@@ -33,13 +33,7 @@ export const appRouter = router({
 
         // Upsert a local admin user
         const openId = "local-admin";
-        await db.upsertUser({
-          openId,
-          name: "Admin",
-          role: "admin",
-          loginMethod: "password",
-          lastSignedIn: new Date(),
-        });
+        await db.upsertLocalAdminUser();
 
         // Sign a JWT session token — must use same secret as verifySession in sdk.ts
         const secret = new TextEncoder().encode(ENV.cookieSecret || "genesis-default-secret");
