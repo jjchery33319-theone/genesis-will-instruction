@@ -266,6 +266,10 @@ class SDKServer {
       throw ForbiddenError("Invalid session cookie");
     }
 
+    if (session.openId === "local-admin") {
+      return buildLocalAdminUser();
+    }
+
     if (session.openId.startsWith(CRON_OPEN_ID_PREFIX)) {
       const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
       const taskUid = userInfo.taskUid ?? null;
@@ -334,6 +338,21 @@ function buildCronUser(
     lastSignedIn: now,
     taskUid: userInfo.taskUid ?? undefined,
     isCron: true,
+  } as AuthenticatedUser;
+}
+
+function buildLocalAdminUser(): AuthenticatedUser {
+  const now = new Date();
+  return {
+    id: -2,
+    openId: "local-admin",
+    name: "Admin",
+    email: null,
+    loginMethod: "password",
+    role: "admin",
+    createdAt: now,
+    updatedAt: now,
+    lastSignedIn: now,
   } as AuthenticatedUser;
 }
 
