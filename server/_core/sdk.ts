@@ -24,6 +24,17 @@ export type SessionPayload = {
   name: string;
 };
 
+export const MIN_SESSION_SECRET_LENGTH = 32;
+
+export function getValidatedSessionSecret(secret: string | undefined): Uint8Array {
+  if (!secret || secret.length < MIN_SESSION_SECRET_LENGTH) {
+    throw new Error(
+      `JWT_SECRET must be configured and at least ${MIN_SESSION_SECRET_LENGTH} characters long`
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
+
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
@@ -155,8 +166,7 @@ class SDKServer {
   }
 
   private getSessionSecret() {
-    const secret = ENV.cookieSecret || "genesis-default-secret";
-    return new TextEncoder().encode(secret);
+    return getValidatedSessionSecret(ENV.cookieSecret);
   }
 
   /**
