@@ -30,6 +30,7 @@ import { createRequire } from "module";
 import multer from "multer";
 import { extractTextFromBuffer } from "../transcriptExtractor";
 import { extractWillDataFromTranscript } from "../transcriptAIExtractor";
+import { requireAdministrator } from "./adminGuard";
 const _require = createRequire(import.meta.url);
 
 async function createApp() {
@@ -38,8 +39,9 @@ async function createApp() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  // Debug endpoint to diagnose database connectivity
-  app.get("/api/debug", async (_req, res) => {
+  // Development-only database diagnostic. Never expose configuration details in production.
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/api/debug", async (_req, res) => {
     const hasDbUrl = !!process.env.DATABASE_URL;
     const dbUrlLen = (process.env.DATABASE_URL ?? "").length;
     let dbOk = false;
@@ -65,10 +67,16 @@ async function createApp() {
       vercel: !!process.env.VERCEL,
       ts: new Date().toISOString(),
     });
-  });
+    });
+  }
 
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  // These routes serve or update confidential estate-planning records and documents.
+  app.use("/api/admin", requireAdministrator);
+  app.use("/api/submissions", requireAdministrator);
+  app.use("/api/lpa", requireAdministrator);
+  app.use("/api/matters", requireAdministrator);
   // PDF export endpoint
   app.get("/api/submissions/:id/pdf", async (req, res) => {
     try {
