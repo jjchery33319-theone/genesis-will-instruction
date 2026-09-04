@@ -6,6 +6,7 @@
 import type { FullMatter } from "./mattersDb";
 import type { MatterClient, MatterExecutor, MatterGuardian, MatterBeneficiary } from "../drizzle/schema";
 import type { TestatorRole } from "./willV2Generator";
+import { describeForeignAssetScope } from "../shared/foreignAssetCountries";
 
 function nameAndAddress(p: { fullName?: string | null; address?: string | null }): string {
   const parts = [p.fullName || "_______________"];
@@ -20,7 +21,14 @@ function generateScottishCommentaryHtml(matter: FullMatter, testatorRole: Testat
   const role = matter.matterType === "mirror" ? testatorRole : "shared";
   const executors = matter.executors.filter(e => e.clientRole === role && e.executorType === "primary");
   const beneficiaries = matter.beneficiaries.filter(b => b.clientRole === role && b.beneficiaryType === "primary");
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Commentary — ${name}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;line-height:1.6;color:#1a1a1a}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:16px;margin:20px 0}h1,h2{color:#1a3a5c}li{margin:8px 0}</style></head><body><h1>Scottish Will Commentary</h1><p><strong>${name}</strong>${fileRef ? ` — Reference ${fileRef}` : ""}</p><div class="notice"><strong>Scottish-law review required.</strong> This commentary is an instruction summary for a Will governed by the law of Scotland. It is not an English/Welsh Will commentary and should be reviewed by a qualified Scots-law solicitor before execution.</div><h2>Instructions reflected in this draft</h2><ul><li><strong>Executors:</strong> ${executors.length ? executors.map(e => e.fullName || "Unnamed executor").join(", ") : "No executor has been recorded."}</li><li><strong>Primary beneficiaries:</strong> ${beneficiaries.length ? beneficiaries.map(b => b.fullName || b.recipientGroup || "Unnamed beneficiary").join(", ") : "No beneficiary has been recorded."}</li><li><strong>Scottish succession:</strong> the Will includes a clause recognising that legal rights and special destinations may affect the estate.</li><li><strong>Execution:</strong> use the accompanying Scottish signing guide and obtain legal review before signature.</li></ul></body></html>`;
+  const wishes = matter.wishes.find(w => w.clientRole === role) || matter.wishes[0];
+  const foreignAssetsTreatment = (wishes as any)?.foreignAssetsTreatment || "not_recorded";
+  const foreignAssetsSummary = foreignAssetsTreatment === "cover_worldwide"
+    ? "this Will is instructed to cover the recorded overseas assets; cross-border review is required before signature."
+    : foreignAssetsTreatment === "exclude_foreign_will"
+      ? "the recorded overseas assets are excluded in favour of a separate foreign Will; cross-border review is required before signature."
+      : "no foreign-assets instruction has been recorded.";
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Scottish Will Commentary — ${name}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;line-height:1.6;color:#1a1a1a}.notice{border-left:4px solid #b7791f;background:#fffaf0;padding:16px;margin:20px 0}h1,h2{color:#1a3a5c}li{margin:8px 0}</style></head><body><h1>Scottish Will Commentary</h1><p><strong>${name}</strong>${fileRef ? ` — Reference ${fileRef}` : ""}</p><div class="notice"><strong>Scottish-law review required.</strong> This commentary is an instruction summary for a Will governed by the law of Scotland. It is not an English/Welsh Will commentary and should be reviewed by a qualified Scots-law solicitor before execution.</div><h2>Instructions reflected in this draft</h2><ul><li><strong>Executors:</strong> ${executors.length ? executors.map(e => e.fullName || "Unnamed executor").join(", ") : "No executor has been recorded."}</li><li><strong>Primary beneficiaries:</strong> ${beneficiaries.length ? beneficiaries.map(b => b.fullName || b.recipientGroup || "Unnamed beneficiary").join(", ") : "No beneficiary has been recorded."}</li><li><strong>Foreign assets:</strong> ${foreignAssetsSummary}</li><li><strong>Scottish succession:</strong> the Will includes a clause recognising that legal rights and special destinations may affect the estate.</li><li><strong>Execution:</strong> use the accompanying Scottish signing guide and obtain legal review before signature.</li></ul></body></html>`;
 }
 
 export function generateCommentaryHtml(matter: FullMatter, testatorRole: TestatorRole = "testator1"): string {
@@ -52,6 +60,8 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
   const funeralWishes = wishes?.funeralWishes || "";
   const residueToSpouseFirst = matter.matterType === "mirror" && (wishes?.residueToSpouseFirst ?? 1) === 1;
   const disasterClauseNotes = (wishes as any)?.disasterClauseNotes || "";
+  const foreignAssetsTreatment = (wishes as any)?.foreignAssetsTreatment || "not_recorded";
+  const foreignAssetsDetails = describeForeignAssetScope((wishes as any)?.foreignAssetsDetails, (wishes as any)?.foreignAssetCountryCodes);
 
   // Extended sections
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
@@ -80,6 +90,7 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
   let clauseNum = 4;
   const clauseMap: Record<string, number> = {};
   clauseMap["definition"] = clauseNum++;
+  if (foreignAssetsTreatment === "cover_worldwide" || foreignAssetsTreatment === "exclude_foreign_will") clauseMap["foreignAssets"] = clauseNum++;
   if (properties.length > 0) clauseMap["property"] = clauseNum++;
   if (businesses.length > 0) clauseMap["business"] = clauseNum++;
   if (specificGifts.length > 0) clauseMap["gifts"] = clauseNum++;
@@ -105,7 +116,9 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
 
   part2Clauses.push(`<div class="clause-commentary">
     <div class="clause-title">Clause 1 — Revocation</div>
-    <p>This clause cancels all previous Wills and codicils you may have made. It is essential that a Will contains a revocation clause so that there is no ambiguity about which document represents your current wishes. Only one Will can be valid at any time.</p>
+    <p>${foreignAssetsTreatment === "exclude_foreign_will"
+      ? "This clause is adapted to preserve the separate foreign Will identified in your instructions, but only insofar as it deals with the specified foreign assets. The interaction between Wills in different countries requires appropriate cross-border legal review before signature."
+      : "This clause cancels all previous Wills and codicils you may have made. It is essential that a Will contains a revocation clause so that there is no ambiguity about which document represents your current wishes."}</p>
   </div>`);
 
   part2Clauses.push(`<div class="clause-commentary">
@@ -125,6 +138,16 @@ export function generateCommentaryHtml(matter: FullMatter, testatorRole: Testato
     <div class="clause-title">Clause ${clauseMap["definition"]} — Definition and Administration of your Estate</div>
     <p>This clause defines what is meant by "your Estate" for the purposes of the Will. It includes all assets you own at the date of your death, including property over which you have a general power of appointment. It also confirms that your Executors and Trustees have the widest powers of management and administration permitted by law.</p>
   </div>`);
+
+  if (clauseMap["foreignAssets"]) {
+    const treatmentText = foreignAssetsTreatment === "cover_worldwide"
+      ? "The Will records that it is intended to apply to the identified overseas assets as part of the Estate."
+      : "The Will records that the identified overseas assets are excluded and should instead be dealt with under the separate foreign Will named in the instructions.";
+    part2Clauses.push(`<div class="clause-commentary">
+    <div class="clause-title">Clause ${clauseMap["foreignAssets"]} — Foreign Assets</div>
+    <p>${treatmentText} The recorded assets or territory are: <strong>${foreignAssetsDetails}</strong>. Cross-border succession, tax, and revocation issues require appropriate legal review before the Will is signed.</p>
+  </div>`);
+  }
 
   if (clauseMap["property"]) {
     part2Clauses.push(`<div class="clause-commentary">

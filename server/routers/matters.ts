@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isForeignAssetCountryCode } from "../../shared/foreignAssetCountries";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
   listMatters,
@@ -66,6 +67,10 @@ const wishesSchema = z.object({
   hasMinorChildren: z.number().int().min(0).max(1).default(1),
   disasterClauseNotes: z.string().optional(),
   generalNotes: z.string().optional(),
+  foreignAssetsTreatment: z.enum(["not_recorded", "cover_worldwide", "exclude_foreign_will"]).default("not_recorded"),
+  foreignAssetsDetails: z.string().optional(),
+  foreignAssetCountryCodes: z.array(z.string().refine(isForeignAssetCountryCode, "Select a valid country or territory.")).max(20).optional(),
+  foreignWillDetails: z.string().optional(),
 });
 
 const giftSchema = z.object({
@@ -228,7 +233,11 @@ export const mattersRouter = router({
       wishes: wishesSchema,
     }))
     .mutation(async ({ input }) => {
-      await upsertWishes(input.matterId, input.clientRole, input.wishes);
+      const { foreignAssetCountryCodes, ...wishes } = input.wishes;
+      await upsertWishes(input.matterId, input.clientRole, {
+        ...wishes,
+        foreignAssetCountryCodes: JSON.stringify(foreignAssetCountryCodes ?? []),
+      });
       return { success: true };
     }),
 

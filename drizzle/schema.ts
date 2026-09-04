@@ -461,6 +461,14 @@ export const matterWishes = mysqlTable("matter_wishes", {
   hasMinorChildren: tinyint("has_minor_children").default(1),
   disasterClauseNotes: text("disaster_clause_notes"),
   generalNotes: text("general_notes"),
+  /** Whether this Will covers foreign assets or preserves a separate foreign Will for them. */
+  foreignAssetsTreatment: varchar("foreign_assets_treatment", { length: 32 }).default("not_recorded"),
+  /** Countries, territories, or assets covered by the foreign-assets instruction. */
+  foreignAssetsDetails: text("foreign_assets_details"),
+  /** JSON array of standardized ISO country or territory codes selected for foreign assets. */
+  foreignAssetCountryCodes: text("foreign_asset_country_codes"),
+  /** Identification of a separate foreign Will that must remain effective. */
+  foreignWillDetails: text("foreign_will_details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
