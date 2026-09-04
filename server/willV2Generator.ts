@@ -9,6 +9,7 @@ import type { MatterClient, MatterExecutor, MatterGuardian, MatterBeneficiary } 
 import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { describeForeignAssetScope } from "../shared/foreignAssetCountries";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -78,6 +79,16 @@ function nameAndAddress(p: { title?: string | null; fullName?: string | null; ad
   return parts.join(", ");
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#039;",
+  }[character] || character));
+}
+
 // ── Main generator ────────────────────────────────────────────────────────────
 
 export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole = "testator1"): string {
@@ -117,13 +128,23 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   const hasMinorChildren = (wishes as any)?.hasMinorChildren !== 0; // default true
   const disasterClauseNotes = (wishes as any)?.disasterClauseNotes || "";
   const generalNotes = (wishes as any)?.generalNotes || "";
+  const foreignAssetsTreatment = (wishes as any)?.foreignAssetsTreatment || "not_recorded";
+  const foreignAssetsDetails = escapeHtml(describeForeignAssetScope((wishes as any)?.foreignAssetsDetails, (wishes as any)?.foreignAssetCountryCodes));
+  const foreignWillDetails = escapeHtml(((wishes as any)?.foreignWillDetails || "").trim());
 
   const fileRef = matter.fileReference || "";
   const documentTitle = isScottish ? "Will Governed by the Law of Scotland" : "The Last Will & Testament";
   const recitalTitle = isScottish ? "THIS IS MY WILL" : "THIS IS THE LAST WILL AND TESTAMENT";
-  const revocationText = isScottish
+  let revocationText = isScottish
     ? "I revoke all former Wills and testamentary writings previously made by me, except any writing which I expressly declare is to remain in force, and declare this to be my Will governed by the law of Scotland."
     : "I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.";
+  if (foreignAssetsTreatment === "exclude_foreign_will") {
+    const foreignWillReference = foreignWillDetails || "the separate foreign Will identified in my instructions";
+    const foreignAssetScope = foreignAssetsDetails;
+    revocationText = isScottish
+      ? `I revoke all former Wills and testamentary writings previously made by me, save for ${foreignWillReference} insofar as it deals solely with ${foreignAssetScope}; I expressly declare that writing is to remain in force for those assets. I declare this to be my Will governed by the law of Scotland.`
+      : `I hereby revoke all former Wills and Testamentary dispositions previously made by me, save for ${foreignWillReference} insofar as it deals solely with ${foreignAssetScope}; I expressly declare that separate foreign Will is to remain in force for those assets. Subject to that exception, I declare this to be my Last Will and Testament.`;
+  }
 
   // Gifts for this testator
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
@@ -173,6 +194,18 @@ export function generateWillHtml(matter: FullMatter, testatorRole: TestatorRole 
   <p>My "Estate" shall mean all property, assets and rights to which I am beneficially entitled at the date of my death, including all property over which I have a general power of appointment or disposition by Will.</p>
   <p>My Executors and Trustees shall have the widest powers of management and administration in relation to my Estate as are set out in this Will and as are conferred by law.</p>
 </div>`);
+
+  if (foreignAssetsTreatment === "cover_worldwide" || foreignAssetsTreatment === "exclude_foreign_will") {
+    const foreignAssetsText = foreignAssetsDetails;
+    const foreignWillReference = foreignWillDetails || "a separate foreign Will";
+    const provision = foreignAssetsTreatment === "cover_worldwide"
+      ? `I declare that this Will is intended to apply to all property, assets and rights comprising my Estate wherever situated, including ${foreignAssetsText}.`
+      : `I declare that this Will is not intended to apply to ${foreignAssetsText}, which are to be dealt with under ${foreignWillReference}. This Will is intended to apply to the remainder of my Estate, subject to applicable law.`;
+    clauses.push(`<div class="clause">
+  <h2>${clauseNum++}. Foreign Assets</h2>
+  <p>${provision}</p>
+</div>`);
+  }
 
   if (isScottish) {
     clauses.push(`<div class="clause">

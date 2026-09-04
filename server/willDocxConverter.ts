@@ -25,6 +25,7 @@ import {
 import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { describeForeignAssetScope } from "../shared/foreignAssetCountries";
 import type { FullMatter } from "./mattersDb";
 import type { MatterClient, MatterExecutor, MatterGuardian, MatterBeneficiary } from "../drizzle/schema";
 
@@ -406,6 +407,9 @@ export async function generateWillDocxFromMatter(
   const hasMinorChildren = (wishes as any)?.hasMinorChildren !== 0;
   const disasterClauseNotes = (wishes as any)?.disasterClauseNotes || "";
   const generalNotes = (wishes as any)?.generalNotes || "";
+  const foreignAssetsTreatment = (wishes as any)?.foreignAssetsTreatment || "not_recorded";
+  const foreignAssetsDetails = describeForeignAssetScope((wishes as any)?.foreignAssetsDetails, (wishes as any)?.foreignAssetCountryCodes);
+  const foreignWillDetails = ((wishes as any)?.foreignWillDetails || "").trim();
   const giftRole = matter.matterType === "mirror" ? testatorRole : "shared";
   const specificGifts = (matter.gifts || []).filter(g => g.clientRole === giftRole);
   const pets = matter.pets || [];
@@ -463,7 +467,10 @@ export async function generateWillDocxFromMatter(
 
   // ── CLAUSE 1: Revocation ────────────────────────────────────────────────
   children.push(clauseHeading("1. Revocation"));
-  children.push(body("I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament."));
+  const revocationText = foreignAssetsTreatment === "exclude_foreign_will"
+    ? `I hereby revoke all former Wills and Testamentary dispositions previously made by me, save for ${foreignWillDetails || "the separate foreign Will identified in my instructions"} insofar as it deals solely with ${foreignAssetsDetails}; I expressly declare that separate foreign Will is to remain in force for those assets. Subject to that exception, I declare this to be my Last Will and Testament.`
+    : "I hereby revoke all former Wills and Testamentary dispositions previously made by me and declare this to be my Last Will and Testament.";
+  children.push(body(revocationText));
 
   // ── CLAUSE 2: Executors ─────────────────────────────────────────────────
   children.push(clauseHeading("2. Appointment of Executors"));
@@ -482,6 +489,16 @@ export async function generateWillDocxFromMatter(
   children.push(body(`My "Estate" shall mean all property, assets and rights to which I am beneficially entitled at the date of my death, including all property over which I have a general power of appointment or disposition by Will.`));
   children.push(body("My Executors and Trustees shall have the widest powers of management and administration in relation to my Estate as are set out in this Will and as are conferred by law."));
   clauseNum++;
+
+  // ── Foreign Assets (only when an instruction is recorded) ────────────────
+  if (foreignAssetsTreatment === "cover_worldwide" || foreignAssetsTreatment === "exclude_foreign_will") {
+    children.push(clauseHeading(`${clauseNum}. Foreign Assets`));
+    const provision = foreignAssetsTreatment === "cover_worldwide"
+      ? `I declare that this Will is intended to apply to all property, assets and rights comprising my Estate wherever situated, including ${foreignAssetsDetails}.`
+      : `I declare that this Will is not intended to apply to ${foreignAssetsDetails}, which are to be dealt with under ${foreignWillDetails || "a separate foreign Will"}. This Will is intended to apply to the remainder of my Estate, subject to applicable law.`;
+    children.push(body(provision));
+    clauseNum++;
+  }
 
   // ── Property ─────────────────────────────────────────────────────────────
   if (properties.length > 0) {
