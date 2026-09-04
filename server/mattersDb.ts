@@ -43,6 +43,41 @@ import {
 } from "../drizzle/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
+const delayedForeignAssetColumns = [
+  "foreign_assets_treatment",
+  "foreign_assets_details",
+  "foreign_asset_country_codes",
+  "foreign_will_details",
+] as const;
+
+const foreignAssetDefaults = {
+  foreignAssetsTreatment: "not_recorded",
+  foreignAssetsDetails: null,
+  foreignAssetCountryCodes: null,
+  foreignWillDetails: null,
+} as const;
+
+export class ForeignAssetsMigrationPendingError extends Error {
+  constructor() {
+    super("Foreign-assets details cannot be saved until the required database migration has completed. Existing Matter details remain available.");
+    this.name = "ForeignAssetsMigrationPendingError";
+  }
+}
+
+export function isDelayedForeignAssetColumnError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return delayedForeignAssetColumns.some((column) => message.includes(`Unknown column '${column}'`) || message.includes(`Unknown column \`${column}\``));
+}
+
+function hasRecordedForeignAssetInstruction(data: Omit<InsertMatterWishes, "matterId" | "clientRole">): boolean {
+  return (
+    (data.foreignAssetsTreatment ?? "not_recorded") !== "not_recorded" ||
+    Boolean(data.foreignAssetsDetails?.trim()) ||
+    Boolean(data.foreignAssetCountryCodes?.trim() && data.foreignAssetCountryCodes !== "[]") ||
+    Boolean(data.foreignWillDetails?.trim())
+  );
+}
+
 // ── Auto-migration for new columns ───────────────────────────────────────────
 let _migrated = false;
 async function ensureClientNameColumns(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
@@ -125,7 +160,7 @@ async function enrichMatter(matter: Matter): Promise<FullMatter> {
     db.select().from(matterExecutors).where(eq(matterExecutors.matterId, matter.id)).orderBy(matterExecutors.sortOrder),
     db.select().from(matterGuardians).where(eq(matterGuardians.matterId, matter.id)).orderBy(matterGuardians.sortOrder),
     db.select().from(matterBeneficiaries).where(eq(matterBeneficiaries.matterId, matter.id)).orderBy(matterBeneficiaries.sortOrder),
-    db.select().from(matterWishes).where(eq(matterWishes.matterId, matter.id)),
+    listWishesSafely(db, matter.id),
     db.select().from(matterGifts).where(eq(matterGifts.matterId, matter.id)).orderBy(matterGifts.sortOrder),
     db.select().from(matterPets).where(eq(matterPets.matterId, matter.id)).orderBy(matterPets.sortOrder),
     db.select().from(matterProperty).where(eq(matterProperty.matterId, matter.id)).orderBy(matterProperty.sortOrder),
@@ -135,6 +170,35 @@ async function enrichMatter(matter: Matter): Promise<FullMatter> {
     db.select().from(matterLettersOfWishes).where(eq(matterLettersOfWishes.matterId, matter.id)),
   ]);
   return { ...matter, clients, executors, guardians, beneficiaries, wishes, gifts, pets, properties, businesses, trustClauses, exclusions, lettersOfWishes };
+}
+
+async function listWishesSafely(db: NonNullable<Awaited<ReturnType<typeof getDb>>>, matterId: number): Promise<MatterWishes[]> {
+  try {
+    return await db.select().from(matterWishes).where(eq(matterWishes.matterId, matterId));
+  } catch (error) {
+    if (!isDelayedForeignAssetColumnError(error)) throw error;
+
+    console.warn(`[matterWishes] Foreign-assets migration is pending for matter ${matterId}; loading the compatible wishes fields.`);
+    const legacyRows = await db.select({
+      id: matterWishes.id,
+      matterId: matterWishes.matterId,
+      clientRole: matterWishes.clientRole,
+      ageCondition: matterWishes.ageCondition,
+      survivorshipDays: matterWishes.survivorshipDays,
+      organDonation: matterWishes.organDonation,
+      organDonationText: matterWishes.organDonationText,
+      funeralWishes: matterWishes.funeralWishes,
+      extraNotes: matterWishes.extraNotes,
+      residueToSpouseFirst: matterWishes.residueToSpouseFirst,
+      hasMinorChildren: matterWishes.hasMinorChildren,
+      disasterClauseNotes: matterWishes.disasterClauseNotes,
+      generalNotes: matterWishes.generalNotes,
+      createdAt: matterWishes.createdAt,
+      updatedAt: matterWishes.updatedAt,
+    }).from(matterWishes).where(eq(matterWishes.matterId, matterId));
+
+    return legacyRows.map((row) => ({ ...row, ...foreignAssetDefaults } as MatterWishes));
+  }
 }
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -241,13 +305,28 @@ export async function upsertWishes(
   data: Omit<InsertMatterWishes, "matterId" | "clientRole">
 ): Promise<void> {
   const db = await d();
-  const existing = await db.select().from(matterWishes).where(
-    and(eq(matterWishes.matterId, matterId), eq(matterWishes.clientRole, clientRole))
-  );
-  if (existing[0]) {
-    await db.update(matterWishes).set(data).where(eq(matterWishes.id, existing[0].id));
-  } else {
-    await db.insert(matterWishes).values({ matterId, clientRole, ...data });
+  try {
+    const existing = await db.select().from(matterWishes).where(
+      and(eq(matterWishes.matterId, matterId), eq(matterWishes.clientRole, clientRole))
+    );
+    if (existing[0]) {
+      await db.update(matterWishes).set(data).where(eq(matterWishes.id, existing[0].id));
+    } else {
+      await db.insert(matterWishes).values({ matterId, clientRole, ...data });
+    }
+  } catch (error) {
+    if (!isDelayedForeignAssetColumnError(error)) throw error;
+    if (hasRecordedForeignAssetInstruction(data)) throw new ForeignAssetsMigrationPendingError();
+
+    const { foreignAssetsTreatment, foreignAssetsDetails, foreignAssetCountryCodes, foreignWillDetails, ...legacyData } = data;
+    const existing = await db.select({ id: matterWishes.id }).from(matterWishes).where(
+      and(eq(matterWishes.matterId, matterId), eq(matterWishes.clientRole, clientRole))
+    );
+    if (existing[0]) {
+      await db.update(matterWishes).set(legacyData).where(eq(matterWishes.id, existing[0].id));
+    } else {
+      await db.insert(matterWishes).values({ matterId, clientRole, ...legacyData });
+    }
   }
 }
 
