@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Users } from "lucide-react";
+import { RotateCcw, Users } from "lucide-react";
 
 export interface PoolPerson {
   id: number;
@@ -42,10 +42,12 @@ interface PersonPickerFieldProps {
   selectedId?: number;
   onSelect: (person: PoolPerson | null) => void;
   label?: string;
-  /** Extra people (e.g. unsaved Client 1 entries) to show alongside the saved pool */
+  /** Unsaved people entered elsewhere in the current Matter, available immediately for copying. */
   extraPeople?: Array<Omit<PoolPerson, "id"> & { _tempKey: string }>;
-  /** Called when an extra (unsaved) person is selected */
+  /** Called when an unsaved person is selected. The parent applies the copied details locally. */
   onSelectExtra?: (person: Omit<PoolPerson, "id">) => void;
+  /** Clears the reusable personal fields on the current entry but leaves role-specific fields intact. */
+  onClearCopiedDetails?: () => void;
 }
 
 const ADD_NEW_VALUE = "__add_new__";
@@ -57,13 +59,23 @@ export function PersonPickerField({
   label = "Select existing person",
   extraPeople = [],
   onSelectExtra,
+  onClearCopiedDetails,
 }: PersonPickerFieldProps) {
   const { data: pool = [] } = trpc.matters.listPeoplePool.useQuery(
     { matterId },
     { staleTime: 30_000 }
   );
+  const clearCopiedDetails = onClearCopiedDetails ?? (() => onSelect(null));
 
-  if (pool.length === 0 && extraPeople.length === 0) return null;
+  const poolFingerprints = new Set(
+    pool.map((person) => `${person.fullName.trim().toLowerCase()}|${(person.address ?? "").trim().toLowerCase()}|${(person.dateOfBirth ?? "").trim()}|${(person.relationship ?? "").trim().toLowerCase()}`)
+  );
+  const availableExtraPeople = extraPeople.filter((person) => {
+    const fingerprint = `${person.fullName.trim().toLowerCase()}|${(person.address ?? "").trim().toLowerCase()}|${(person.dateOfBirth ?? "").trim()}|${(person.relationship ?? "").trim().toLowerCase()}`;
+    return !poolFingerprints.has(fingerprint);
+  });
+
+  if (pool.length === 0 && availableExtraPeople.length === 0) return null;
 
   const handleChange = (value: string) => {
     if (value === ADD_NEW_VALUE) {
@@ -72,7 +84,7 @@ export function PersonPickerField({
     }
     if (value.startsWith("__extra__")) {
       const key = value.slice(9);
-      const extra = extraPeople.find(p => p._tempKey === key);
+      const extra = availableExtraPeople.find(p => p._tempKey === key);
       if (extra && onSelectExtra) {
         const { _tempKey, ...person } = extra;
         onSelectExtra(person);
@@ -86,10 +98,21 @@ export function PersonPickerField({
 
   return (
     <div className="space-y-1 col-span-2">
-      <Label className="text-xs flex items-center gap-1 text-muted-foreground">
-        <Users className="h-3 w-3" />
-        {label}
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-xs flex items-center gap-1 text-muted-foreground">
+          <Users className="h-3 w-3" />
+          {label}
+        </Label>
+        <button
+          type="button"
+          onClick={clearCopiedDetails}
+          className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          title="Clear copied personal details while keeping the role-specific entry"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Clear copied details
+        </button>
+      </div>
       <Select
         value={selectedId !== undefined ? String(selectedId) : ADD_NEW_VALUE}
         onValueChange={handleChange}
@@ -107,12 +130,12 @@ export function PersonPickerField({
               {p.relationship ? ` (${p.relationship})` : ""}
             </SelectItem>
           ))}
-          {extraPeople.length > 0 && (
+          {availableExtraPeople.length > 0 && (
             <>
               {pool.length > 0 && (
-                <div className="px-2 py-1 text-xs text-muted-foreground font-medium border-t mt-1 pt-1">From Client 1 (unsaved)</div>
+                <div className="px-2 py-1 text-xs text-muted-foreground font-medium border-t mt-1 pt-1">From this Matter — not yet saved</div>
               )}
-              {extraPeople.map((p) => (
+              {availableExtraPeople.map((p) => (
                 <SelectItem key={`__extra__${p._tempKey}`} value={`__extra__${p._tempKey}`}>
                   {p.fullName || "(unnamed)"}
                   {p.relationship ? ` (${p.relationship})` : ""}
