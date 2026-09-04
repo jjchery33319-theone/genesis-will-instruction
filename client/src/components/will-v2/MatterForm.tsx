@@ -1,6 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { PersonPickerField, type PoolPerson } from "./PersonPickerField";
+import { buildCurrentMatterPeople, copiedPersonFields, type CurrentMatterPerson } from "./personCopy";
+import { PersonNameAutocomplete } from "./PersonNameAutocomplete";
+import { CountryTerritoryMultiSelect } from "./CountryTerritoryMultiSelect";
 import { SingleLineAddressField } from "../PostcodeAddressField";
+import { parseForeignAssetCountryCodes } from "@shared/foreignAssetCountries";
 import { trpc } from "@/lib/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   Plus, Trash2, User, Baby, Heart, Scroll, UserCog,
-  Gift, PawPrint, Home, Briefcase, Shield, Copy, UserX, FileHeart
+  Gift, PawPrint, Home, Briefcase, Shield, Copy, RotateCcw, UserX, FileHeart
 } from "lucide-react";
 
 type FullMatter = any;
@@ -49,6 +53,9 @@ interface PersonRowProps {
   matterId?: number;
   poolPersonId?: number;
   onPickPerson?: (p: PoolPerson | null) => void;
+  copyCandidates?: CurrentMatterPerson[];
+  onPickUnsavedPerson?: (p: Omit<PoolPerson, "id">) => void;
+  onClearCopiedDetails?: () => void;
   clientAddress?: string;
 }
 
@@ -71,7 +78,7 @@ const RELATIONSHIP_OPTIONS = [
   "Parent", "Friend", "Colleague", "Solicitor", "Accountant", "Other",
 ];
 
-function PersonRow({ label, title, name, address, dateOfBirth, gender, relationship, onChangeTitle, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onChangeRelationship, onChangeTitleAndGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson, clientAddress }: PersonRowProps) {
+function PersonRow({ label, title, name, address, dateOfBirth, gender, relationship, onChangeTitle, onChangeName, onChangeAddress, onChangeDateOfBirth, onChangeGender, onChangeRelationship, onChangeTitleAndGender, onRemove, showRemove = true, extraFields, matterId, poolPersonId, onPickPerson, copyCandidates = [], onPickUnsavedPerson, onClearCopiedDetails, clientAddress }: PersonRowProps) {
   function handleTitleChange(v: string) {
     // Auto-set gender if the title unambiguously implies one
     const autoGender = TITLE_GENDER_MAP[v];
@@ -89,11 +96,24 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, relations
     <div className="border border-border rounded-lg p-3 space-y-2 bg-card">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
-        {showRemove && (
-          <button onClick={onRemove} className="text-muted-foreground hover:text-destructive transition-colors">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onClearCopiedDetails && (
+            <button
+              type="button"
+              onClick={onClearCopiedDetails}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              title="Clear name, address, date of birth, relationship, title, and gender"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Clear copied details
+            </button>
+          )}
+          {showRemove && (
+            <button type="button" onClick={onRemove} className="text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
       {matterId !== undefined && onPickPerson && (
         <div className="grid grid-cols-2 gap-2">
@@ -101,7 +121,9 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, relations
             matterId={matterId}
             selectedId={poolPersonId}
             onSelect={onPickPerson}
-            label="Select existing person or add new"
+            extraPeople={copyCandidates}
+            onSelectExtra={onPickUnsavedPerson}
+            label="Copy details from this Matter"
           />
         </div>
       )}
@@ -126,7 +148,12 @@ function PersonRow({ label, title, name, address, dateOfBirth, gender, relations
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Full Name</Label>
-          <Input value={name} onChange={e => onChangeName(e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
+          <PersonNameAutocomplete
+            value={name}
+            candidates={copyCandidates}
+            onValueChange={onChangeName}
+            onSelect={(person) => onPickUnsavedPerson?.(person)}
+          />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Date of Birth</Label>
@@ -324,6 +351,10 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
       hasMinorChildren: w.hasMinorChildren ?? 1,
       disasterClauseNotes: w.disasterClauseNotes || "",
       generalNotes: w.generalNotes || "",
+      foreignAssetsTreatment: w.foreignAssetsTreatment || "not_recorded",
+      foreignAssetsDetails: w.foreignAssetsDetails || "",
+      foreignAssetCountryCodes: parseForeignAssetCountryCodes(w.foreignAssetCountryCodes),
+      foreignWillDetails: w.foreignWillDetails || "",
     };
   };
 
@@ -458,6 +489,20 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
     }));
   const [exclusions1, setExclusions1] = useState<ExclusionRow[]>(toExclusionRows(isMirror ? "testator1" : "testator1"));
   const [exclusions2, setExclusions2] = useState<ExclusionRow[]>(toExclusionRows("testator2"));
+
+  // Include unsaved in-form details so a person can be reused immediately in another role.
+  const currentMatterPeople = useMemo(() => buildCurrentMatterPeople([
+    { key: "testator1", sourceRole: "testator", people: [t1] },
+    { key: "testator2", sourceRole: "testator", people: isMirror ? [t2] : [] },
+    { key: "executor1", sourceRole: "executor", people: execs1 },
+    { key: "executor2", sourceRole: "executor", people: isMirror ? execs2 : [] },
+    { key: "guardian", sourceRole: "guardian", people: guardians },
+    { key: "beneficiary1", sourceRole: "beneficiary", people: bens1 },
+    { key: "beneficiary2", sourceRole: "beneficiary", people: isMirror ? bens2 : [] },
+    { key: "gift1", sourceRole: "gift recipient", people: gifts1.map((gift) => ({ fullName: gift.recipientName, address: gift.recipientAddress, dateOfBirth: gift.recipientDob, title: gift.recipientTitle, gender: gift.recipientGender, relationship: gift.recipientRelationship })) },
+    { key: "gift2", sourceRole: "gift recipient", people: isMirror ? gifts2.map((gift) => ({ fullName: gift.recipientName, address: gift.recipientAddress, dateOfBirth: gift.recipientDob, title: gift.recipientTitle, gender: gift.recipientGender, relationship: gift.recipientRelationship })) : [] },
+    { key: "pet-carer", sourceRole: "pet carer", people: pets.map((pet) => ({ fullName: pet.carerName, address: pet.carerAddress, dateOfBirth: pet.carerDob, title: pet.carerTitle, gender: pet.carerGender, relationship: pet.carerRelationship })) },
+  ]), [t1, t2, isMirror, execs1, execs2, guardians, bens1, bens2, gifts1, gifts2, pets]);
 
   // ── Letter of Wishes state ──────────────────────────────────────────
   const [low1, setLow1] = useState<string>("");
@@ -805,6 +850,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
               onChange={(v) => { setExecs1(v); markDirty(); }}
               matterId={matter.id}
               clientAddress={t1.address || undefined}
+              copyCandidates={currentMatterPeople}
             />
             {isMirror && (
               <>
@@ -821,6 +867,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
                   onChange={(v) => { setExecs2(v); markDirty(); }}
                   matterId={matter.id}
                   clientAddress={t2.address || undefined}
+                  copyCandidates={currentMatterPeople}
                 />
               </>
             )}
@@ -831,7 +878,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
             <div className="text-sm text-muted-foreground mb-2">
               Guardians are shared across both Wills for minor children.
             </div>
-            <GuardianSection rows={guardians} onChange={(v) => { setGuardians(v); markDirty(); }} matterId={matter.id} clientAddress={t1.address || undefined} />
+            <GuardianSection rows={guardians} onChange={(v) => { setGuardians(v); markDirty(); }} matterId={matter.id} clientAddress={t1.address || undefined} copyCandidates={currentMatterPeople} />
           </TabsContent>
 
           {/* ── PROPERTY ─────────────────────────────────────────────────── */}
@@ -851,6 +898,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
               rows={gifts1}
               onChange={(v) => { setGifts1(v); markDirty(); }}
               matterId={matter.id}
+              copyCandidates={currentMatterPeople}
             />
             {isMirror && (
               <>
@@ -866,6 +914,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
                   rows={gifts2}
                   onChange={(v) => { setGifts2(v); markDirty(); }}
                   matterId={matter.id}
+                  copyCandidates={currentMatterPeople}
                 />
               </>
             )}
@@ -873,7 +922,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
 
           {/* ── PETS ─────────────────────────────────────────────────────── */}
           <TabsContent value="pets" className="space-y-4">
-            <PetsSection rows={pets} onChange={(v) => { setPets(v); markDirty(); }} matterId={matter.id} />
+            <PetsSection rows={pets} onChange={(v) => { setPets(v); markDirty(); }} matterId={matter.id} copyCandidates={currentMatterPeople} />
           </TabsContent>
 
           {/* ── BENEFICIARIES ─────────────────────────────────────────────── */}
@@ -887,6 +936,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
               onWishesChange={(v) => { setWishes1(v); markDirty(); }}
               matterId={matter.id}
               clientAddress={t1.address || undefined}
+              copyCandidates={currentMatterPeople}
             />
             {isMirror && (
               <>
@@ -907,6 +957,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
                   matterId={matter.id}
                   clientAddress={t2.address || undefined}
                   client1People={bens1}
+                  copyCandidates={currentMatterPeople}
                 />
               </>
             )}
@@ -918,6 +969,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
               label={isMirror ? `Wishes for ${t1.fullName || "Testator 1"}` : "Wishes & Preferences"}
               data={wishes1}
               onChange={(v) => { setWishes1(v); markDirty(); }}
+              hasSavedWillEdits={!!m.editedWillHtmlTestator1}
             />
             {isMirror && (
               <>
@@ -932,6 +984,7 @@ export function MatterForm({ matter, onSaved, onDirty, onSaveAll }: Props) {
                   label=""
                   data={wishes2}
                   onChange={(v) => { setWishes2(v); markDirty(); }}
+                  hasSavedWillEdits={!!m.editedWillHtmlTestator2}
                 />
               </>
             )}
@@ -1098,7 +1151,7 @@ function ClientSection({ label, data, onChange }: { label: string; data: any; on
   );
 }
 
-function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string }) {
+function ExecutorSection({ label, rows, onChange, matterId, clientAddress, copyCandidates = [] }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string; copyCandidates?: CurrentMatterPerson[] }) {
   const addRow = (type: "primary" | "substitute") => onChange([...rows, { title: "", fullName: "", address: "", dateOfBirth: "", executorType: type, gender: "", relationship: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -1122,9 +1175,12 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
           <PersonRow key={i} label={`Primary Executor ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender} relationship={r.relationship ?? ""}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
+            copyCandidates={copyCandidates}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, ...copiedPersonFields(p) }));
             }}
+            onPickUnsavedPerson={p => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(p) }))}
+            onClearCopiedDetails={() => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(null) }))}
           />
         ))}
       </div>
@@ -1140,9 +1196,12 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
           <PersonRow key={i} label={`Substitute Executor ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender} relationship={r.relationship ?? ""}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
+            copyCandidates={copyCandidates}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, ...copiedPersonFields(p) }));
             }}
+            onPickUnsavedPerson={p => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(p) }))}
+            onClearCopiedDetails={() => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(null) }))}
           />
         ))}
       </div>
@@ -1150,7 +1209,7 @@ function ExecutorSection({ label, rows, onChange, matterId, clientAddress }: { l
   );
 }
 
-function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string }) {
+function GuardianSection({ rows, onChange, matterId, clientAddress, copyCandidates = [] }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number; clientAddress?: string; copyCandidates?: CurrentMatterPerson[] }) {
   const addRow = (type: "primary" | "substitute") => onChange([...rows, { title: "", fullName: "", address: "", dateOfBirth: "", guardianType: type, gender: "", relationship: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -1173,9 +1232,12 @@ function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: an
           <PersonRow key={i} label={`Primary Guardian ${primary.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender} relationship={r.relationship ?? ""}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
+            copyCandidates={copyCandidates}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, ...copiedPersonFields(p) }));
             }}
+            onPickUnsavedPerson={p => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(p) }))}
+            onClearCopiedDetails={() => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(null) }))}
           />
         ))}
       </div>
@@ -1191,9 +1253,12 @@ function GuardianSection({ rows, onChange, matterId, clientAddress }: { rows: an
           <PersonRow key={i} label={`Substitute Guardian ${substitute.indexOf(r) + 1}`} title={r.title} name={r.fullName} address={r.address} dateOfBirth={r.dateOfBirth} gender={r.gender} relationship={r.relationship ?? ""}
             onChangeTitle={v => updateRow(i, "title", v)} onChangeName={v => updateRow(i, "fullName", v)} onChangeAddress={v => updateRow(i, "address", v)} onChangeDateOfBirth={v => updateRow(i, "dateOfBirth", v)} onChangeGender={v => updateRow(i, "gender", v)} onChangeRelationship={v => updateRow(i, "relationship", v)} onChangeTitleAndGender={(t, g) => updateTitleAndGender(i, t, g)} onRemove={() => removeRow(i)}
             matterId={matterId} poolPersonId={r._poolId} clientAddress={clientAddress}
+            copyCandidates={copyCandidates}
             onPickPerson={p => {
-              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, title: p ? (p.title ?? "") : "", fullName: p ? (p.fullName ?? "") : "", address: p ? (p.address ?? "") : "", dateOfBirth: p ? (p.dateOfBirth ?? "") : "", gender: p ? (p.gender ?? "") : "", relationship: p ? (p.relationship ?? "") : "" }));
+              onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, ...copiedPersonFields(p) }));
             }}
+            onPickUnsavedPerson={p => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(p) }))}
+            onClearCopiedDetails={() => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, ...copiedPersonFields(null) }))}
           />
         ))}
       </div>
@@ -1407,7 +1472,7 @@ const GIFT_RECIPIENT_GROUPS = [
   { value: "other", label: "Other group (specify below)" },
 ];
 
-function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+function GiftsSection({ label, rows, onChange, matterId, copyCandidates = [] }: { label: string; rows: any[]; onChange: (r: any[]) => void; matterId?: number; copyCandidates?: CurrentMatterPerson[] }) {
   const addRow = () => onChange([...rows, { recipientGroup: "__named", recipientName: "", recipientAddress: "", recipientDob: "", recipientTitle: "", recipientGender: "", recipientRelationship: "", giftDescription: "", giftType: "asset", onSecondDeath: false, divisionType: "equally", divisionNotes: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -1495,16 +1560,31 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
                       matterId={matterId}
                       selectedId={r._poolId}
                       onSelect={p => {
-                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: p ? (p.fullName ?? "") : "", recipientAddress: p ? (p.address ?? "") : "", recipientDob: p ? (p.dateOfBirth ?? "") : "", recipientTitle: p ? (p.title ?? "") : "", recipientGender: p ? (p.gender ?? "") : "", recipientRelationship: p ? (p.relationship ?? "") : "" }));
+                        const details = copiedPersonFields(p);
+                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: p?.id, recipientName: details.fullName, recipientAddress: details.address, recipientDob: details.dateOfBirth, recipientTitle: details.title, recipientGender: details.gender, recipientRelationship: details.relationship }));
                       }}
-                      label="Select existing recipient or add new"
+                      extraPeople={copyCandidates}
+                      onSelectExtra={p => {
+                        const details = copiedPersonFields(p);
+                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, recipientName: details.fullName, recipientAddress: details.address, recipientDob: details.dateOfBirth, recipientTitle: details.title, recipientGender: details.gender, recipientRelationship: details.relationship }));
+                      }}
+                      onClearCopiedDetails={() => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, recipientName: "", recipientAddress: "", recipientDob: "", recipientTitle: "", recipientGender: "", recipientRelationship: "" }))}
+                      label="Copy recipient details from this Matter"
                     />
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <Label className="text-xs">Recipient Full Name</Label>
-                    <Input value={r.recipientName} onChange={e => updateRow(i, "recipientName", e.target.value)} placeholder="Full legal name" className="h-8 text-sm" />
+                    <PersonNameAutocomplete
+                      value={r.recipientName}
+                      candidates={copyCandidates}
+                      onValueChange={value => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, recipientName: value }))}
+                      onSelect={person => {
+                        const details = copiedPersonFields(person);
+                        onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _poolId: undefined, recipientName: details.fullName, recipientAddress: details.address, recipientDob: details.dateOfBirth, recipientTitle: details.title, recipientGender: details.gender, recipientRelationship: details.relationship }));
+                      }}
+                    />
                   </div>
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Recipient Address (optional)</Label>
@@ -1577,7 +1657,7 @@ function GiftsSection({ label, rows, onChange, matterId }: { label: string; rows
   );
 }
 
-function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number }) {
+function PetsSection({ rows, onChange, matterId, copyCandidates = [] }: { rows: any[]; onChange: (r: any[]) => void; matterId?: number; copyCandidates?: CurrentMatterPerson[] }) {
   const addRow = () => onChange([...rows, { petName: "", petType: "", carerName: "", carerAddress: "", careNotes: "", _carerPoolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -1608,9 +1688,16 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
                 matterId={matterId}
                 selectedId={r._carerPoolId}
                 onSelect={p => {
-                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: p?.id, carerName: p ? (p.fullName ?? "") : "", carerAddress: p ? (p.address ?? "") : "", carerDob: p ? (p.dateOfBirth ?? "") : "", carerTitle: p ? (p.title ?? "") : "", carerGender: p ? (p.gender ?? "") : "", carerRelationship: p ? (p.relationship ?? "") : "" }));
+                  const details = copiedPersonFields(p);
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: p?.id, carerName: details.fullName, carerAddress: details.address, carerDob: details.dateOfBirth, carerTitle: details.title, carerGender: details.gender, carerRelationship: details.relationship }));
                 }}
-                label="Select existing carer or add new"
+                extraPeople={copyCandidates}
+                onSelectExtra={p => {
+                  const details = copiedPersonFields(p);
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: undefined, carerName: details.fullName, carerAddress: details.address, carerDob: details.dateOfBirth, carerTitle: details.title, carerGender: details.gender, carerRelationship: details.relationship }));
+                }}
+                onClearCopiedDetails={() => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: undefined, carerName: "", carerAddress: "", carerDob: "", carerTitle: "", carerGender: "", carerRelationship: "" }))}
+                label="Copy carer details from this Matter"
               />
             </div>
           )}
@@ -1625,7 +1712,16 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Nominated Carer Name</Label>
-              <Input value={r.carerName} onChange={e => updateRow(i, "carerName", e.target.value)} placeholder="Full name of carer" className="h-8 text-sm" />
+              <PersonNameAutocomplete
+                value={r.carerName}
+                candidates={copyCandidates}
+                onValueChange={value => onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: undefined, carerName: value }))}
+                onSelect={person => {
+                  const details = copiedPersonFields(person);
+                  onChange(rows.map((row, idx) => idx !== i ? row : { ...row, _carerPoolId: undefined, carerName: details.fullName, carerAddress: details.address, carerDob: details.dateOfBirth, carerTitle: details.title, carerGender: details.gender, carerRelationship: details.relationship }));
+                }}
+                placeholder="Full name of carer"
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Carer Address</Label>
@@ -1642,7 +1738,7 @@ function PetsSection({ rows, onChange, matterId }: { rows: any[]; onChange: (r: 
   );
 }
 
-function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange, matterId, clientAddress, client1People }: {
+function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWishesChange, matterId, clientAddress, client1People, copyCandidates = [] }: {
   label: string;
   partnerName?: string;
   rows: any[];
@@ -1653,9 +1749,10 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
   clientAddress?: string;
   /** Unsaved Client 1 beneficiary rows to show in the person picker for Client 2 */
   client1People?: any[];
+  copyCandidates?: CurrentMatterPerson[];
 }) {
   // Build extra people list from client1People for the picker
-  const extraPeopleForPicker = (client1People || []).filter(p => p.fullName?.trim()).map((p, idx) => ({
+  const extraPeopleForPicker = [...copyCandidates, ...(client1People || []).filter(p => p.fullName?.trim()).map((p, idx) => ({
     _tempKey: `c1-${idx}`,
     fullName: p.fullName || "",
     title: p.title || "",
@@ -1664,7 +1761,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
     gender: p.gender || "",
     relationship: p.relationship || "",
     sourceRole: "beneficiary",
-  }));
+  }))];
   const addRow = (type: "primary" | "fallback") => onChange([...rows, { fullName: "", address: "", dateOfBirth: "", relationship: "", shareFraction: "", beneficiaryType: type, includeIssue: 1, recipientGroup: "__named", divisionType: "equally", divisionNotes: "", _poolId: undefined }]);
   const removeRow = (i: number) => onChange(rows.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: string, value: any) => onChange(rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
@@ -2053,7 +2150,7 @@ function BeneficiarySection({ label, partnerName, rows, onChange, wishes, onWish
   );
 }
 
-function WishesSection({ label, data, onChange }: { label: string; data: any; onChange: (d: any) => void }) {
+function WishesSection({ label, data, onChange, hasSavedWillEdits = false }: { label: string; data: any; onChange: (d: any) => void; hasSavedWillEdits?: boolean }) {
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-sm">{label}</h3>
@@ -2113,6 +2210,69 @@ function WishesSection({ label, data, onChange }: { label: string; data: any; on
           placeholder="Optional: specify what happens if ALL beneficiaries predecease you. Leave blank to use the standard intestacy fallback."
           rows={5} className="text-sm" />
         <p className="text-[10px] text-muted-foreground">If left blank, the Will will include a standard clause directing the estate to pass under the intestacy rules.</p>
+      </div>
+
+      <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+        <div>
+          <Label className="text-sm font-medium">Foreign Assets and Foreign Will</Label>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            Record whether this Will should apply to overseas assets or preserve a separate foreign Will for those assets.
+          </p>
+        </div>
+        <Select
+          value={data.foreignAssetsTreatment || "not_recorded"}
+          onValueChange={value => onChange({ ...data, foreignAssetsTreatment: value })}
+        >
+          <SelectTrigger className="h-9 text-sm">
+            <SelectValue placeholder="Select foreign-assets instruction" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="not_recorded">No foreign-assets instruction recorded</SelectItem>
+            <SelectItem value="cover_worldwide">This Will should cover the overseas assets</SelectItem>
+            <SelectItem value="exclude_foreign_will">Exclude overseas assets covered by a separate foreign Will</SelectItem>
+          </SelectContent>
+        </Select>
+        {data.foreignAssetsTreatment !== "not_recorded" && (
+          <CountryTerritoryMultiSelect
+            value={data.foreignAssetCountryCodes || []}
+            onChange={foreignAssetCountryCodes => onChange({ ...data, foreignAssetCountryCodes })}
+          />
+        )}
+        {data.foreignAssetsTreatment !== "not_recorded" && !data.foreignAssetCountryCodes?.length && data.foreignAssetsDetails && (
+          <p className="text-[10px] text-muted-foreground">
+            Existing saved asset details are preserved below. Select the relevant country or territory above to add standardized entries without replacing that description.
+          </p>
+        )}
+        {data.foreignAssetsTreatment !== "not_recorded" && (
+          <div className="space-y-1">
+            <Label className="text-xs">Overseas asset details</Label>
+            <Textarea
+              value={data.foreignAssetsDetails || ""}
+              onChange={e => onChange({ ...data, foreignAssetsDetails: e.target.value })}
+              placeholder="e.g. apartment; investment account; shareholding"
+              rows={3}
+              className="text-sm"
+            />
+          </div>
+        )}
+        {data.foreignAssetsTreatment === "exclude_foreign_will" && (
+          <div className="space-y-1">
+            <Label className="text-xs">Separate foreign Will identification</Label>
+            <Textarea
+              value={data.foreignWillDetails || ""}
+              onChange={e => onChange({ ...data, foreignWillDetails: e.target.value })}
+              placeholder="e.g. Spanish Will dated 14 March 2024 dealing only with the Spanish property"
+              rows={3}
+              className="text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground">Include the country and enough detail to identify the separate Will. Obtain appropriate cross-border legal review before finalising.</p>
+          </div>
+        )}
+        {hasSavedWillEdits && data.foreignAssetsTreatment !== "not_recorded" && (
+          <p className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-[10px] text-amber-900">
+            This Will has saved manual edits. After saving these instructions, use <strong>Reset to original Will</strong> in the Will preview before relying on the generated foreign-assets provision; resetting removes only the saved manual document edits.
+          </p>
+        )}
       </div>
 
       <div className="space-y-1">
